@@ -1,0 +1,12 @@
+{
+    "name": "ehims",
+    "version": "0.0.1",
+    "author" : "Amiel Kollek <a_kollek@live.ca>"
+    "description" : "Encapsulated hierarchical instant messaging system. (reimplementation of Jon Volkmar's EHIMS)"
+    "dependencies": {
+        "express": "4.*",
+        "jade": "*",
+        "socket.io": "*",
+        "mongodb": "*"
+    }
+}
