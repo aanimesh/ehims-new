@@ -1,0 +1,21 @@
+doctype html
+
+html
+    head
+        link(rel="stylesheet",href="/foundation/css/foundation.min.css")
+        script(src="/jquery/dist/jquery.min.js")
+        script(src="/foundation/js/foundation.min.js")
+    body
+        .row.text-center(style="margin-top:10%;")
+            .large-4.medium-4.columns.large-offset-4.medium-offset-4
+                .panel
+                    h3 Welcome to EHIMS
+                    p Please enter your username
+                    form(action="channels",method="GET")
+                        .input-group
+                            input.input-group-field(type="text",
+                                                    placeholder="Username",
+                                                    name="username")
+                            button.input-group-button.button Go
+
+

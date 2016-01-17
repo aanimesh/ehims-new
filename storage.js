@@ -29,11 +29,12 @@ var jQuery = require('jquery');
 /**
  * Get or create user
  * @param {string} username
+ * @param {function} callback, to be called with user document
  * @returns {Object} User
  */
-exports.get_or_create_user = function(name){
-    var user;
+exports.get_or_create_user = function(name,callback){
     var find_user = function(db){
+        var user;
         var docs = db.collection('users').find({"_id": name}).toArray();
         if(docs.length > 0){
            user = docs[0];
@@ -41,15 +42,17 @@ exports.get_or_create_user = function(name){
             user = { "_id": name, "channels": []};
             db.collection('users').insertOne(user);
         }
+        return user;
     };
 
     MongoClient.connect(_mongo_url, function(err, db) {
           assert.equal(null, err);
-          find_user(db);
+          var user = find_user(db);
           db.close();
+          callback(user);
     });
 
-    return user;
+
 };
 
 /**

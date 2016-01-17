@@ -8,7 +8,9 @@
         "jade": "*",
         "socket.io": "*",
         "mongodb": "*",
-        "jquery" : "*"
+        "jquery" : "*",
+        "body-parser": "*",
+        "mongojs" : "*"
     },
     "engines": "node >= 0.10.31"
 }
