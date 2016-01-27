@@ -6,13 +6,12 @@ html
         link(rel="stylesheet",href="/awesomplete/awesomplete.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.min.js")
-        script var name ="!{user._id}"; 
     body
         .row(style="margin-top:5%")
             .large-6.medium-6.columns.large-offset-3.medium-offset-3
-                h3 Hi #{name}, join/create a channel
+                h3 Hi !{user.name}, join/create a channel
                 form
-                    input(type="hidden",name="username",value="#{name}")
+                    input(type="hidden",name="username",value="!{user._id}")
                     .row
                         .large-12.columns
                             .row.collapse
@@ -25,14 +24,14 @@ html
                 hr
                 h4  Or choose from a previously joined channel
                 ul.side-nav
-                    - example_channels = ["Channel 1", "General","Test"]
-                    each channel in example_channels
+                    each channel in channels
                         li: h6: a= channel
         script(src="/awesomplete/awesomplete.min.js")
         script.
+            var channels = !{channels};
             var channel_input = document.getElementById("channel");
             new Awesomplete(channel_input,{
-                list : ["General","Random","Test","Test2"]
+                list : !{user.channels.map(function(item){item.name})}
                 });
 
 
