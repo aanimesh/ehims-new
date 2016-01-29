@@ -34,6 +34,18 @@ var get_or_create_user = function(name,callback){
 };
 
 /**
+ * get channel
+ * @param {String} channel id
+ * @param {function} callback to be called on channel name
+ */
+var get_channel = function(channel_id, callback){
+    Channel.find({ '_id': channel_id },function(err, channel){
+        assert.equal(null, err);
+        callback(channel);
+    });
+};
+
+/**
  * get channels
  * @param {function} callback to be called on list of channel names
  */
@@ -71,7 +83,81 @@ var join_or_create_channel = function(user, channel_name, callback){
     });
 };
     
+
+/**
+ * Get users
+ * @param {Array} Array of user ids
+ * @param {function} callback to be called on [users]
+ */
+
+var get_users = function(ids, callback){
+    User.find({
+        '_id' : { $in : ids }
+    }, function(err, users){
+        assert.equal(null, err);
+        var user_list = [];
+        users.forEach(function(u){user_list.push(u);});
+        callback(user_list);
+    });
+};
+
+/**
+ * Get messages by channel
+ * @param {String} channel id
+ * @param {function} callback to be called on { message_id : message, ... }
+ */
+
+var get_messages_by_channel = function(channel_id, callback){
+    Message.find({
+        'channel' : channel_id
+    }, function(err, message_objs){
+        assert.equal(null, err);
+        var messages = {};
+        message_objs.forEach(function(m){messages[m._id] = m;});
+        callback(messages);
+    });
+};
+
+/**
+ * Get message
+ * @param {String} message id
+ * @param {function} callback to be called on message_id
+ */
+
+var get_message = function(message_id, callback){
+    Message.find({
+        '_id' : message_id
+    }, function(err, message){
+        assert.equal(null, err);
+        callback(message);
+    });
+};
+
+/**
+ * Create message
+ * @param {json} Message data
+ * @param {function} callback to be called on the resulting message
+ */
+var create_message = function(msg, callback){
+    var message = new Message(msg);
+    // add message to top lvl messages if it doesn't have a parent
+    if(!message.parent){
+        get_channel(message.channel,function (channel){
+            channel.top_lvl_messages.push(message);
+            channel.save();
+            callback(message);
+        });
+    } else {
+        get_message(message.parent,function(p){
+            p.children.push(message);
+            callback(message);
+        });
+    }
+};
+
 exports.get_or_create_user = get_or_create_user;
 exports.get_channels = get_channels;
 exports.join_or_create_channel = join_or_create_channel;
-
+exports.get_messages_by_channel = get_messages_by_channel;
+exports.get_users = get_users;
+exports.create_message = create_message;
