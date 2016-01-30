@@ -112,13 +112,11 @@ var get_users = function(ids, callback){
  */
 
 var get_messages_by_channel = function(channel, callback){
-    console.log(channel);
     Message.find({
         channel : channel
     }, function(err, message_objs){
         assert.equal(null, err);
         var messages = {};
-        console.log(message_objs);
         message_objs.forEach(function(m){messages[m._id] = m;});
         callback(messages);
     });
@@ -131,7 +129,7 @@ var get_messages_by_channel = function(channel, callback){
  */
 
 var get_message = function(message_id, callback){
-    Message.find({
+    Message.findOne({
         '_id' : message_id
     }, function(err, message){
         assert.equal(null, err);
@@ -148,15 +146,16 @@ var create_message = function(msg, callback){
     var message = new Message(msg);
     message.save();
     // add message to top lvl messages if it doesn't have a parent
-    if(!message.parent){
+    if(message.msg_parent === null || message.msg_parent === undefined){
         get_channel_by_name(message.channel,function (channel){
             channel.top_lvl_messages.push(message._id);
             channel.save();
             callback(message);
         });
     } else {
-        get_message(message.parent,function(p){
-            p.children.push(message);
+        get_message(message.msg_parent,function(p){
+            p.children.push(message._id);
+            p.save();
             callback(message);
         });
     }

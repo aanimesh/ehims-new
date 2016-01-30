@@ -39,7 +39,6 @@ module.exports = function(io){
                    var channel = results.channel;
                    context.channel = channel;
                    storage.get_messages_by_channel(channel.name,function(results){
-                       console.log(results);
                        context.messages = results;
                        storage.get_users(channel.online_users,function(results){
                            context.online = results;

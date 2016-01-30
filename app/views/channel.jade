@@ -16,7 +16,7 @@ html
         nav.top-bar#navbar
             ul.title-area
                 li.name
-                    h1: a !{channel.name}
+                    h1: a#channel-name !{channel.name}
             section.top-bar-section
                 ul.left
                     li
@@ -32,10 +32,11 @@ html
                     div(class=cls,id=msg)
                             p !{messages[msg].content}
                             .info 
-                                !{messages[msg].author} | 
+                                | !{messages[msg].author} | 
                                 a.reply
                                     i.fa.fa-reply
-                                    |  Reply (!{messages[msg].children.length})
+                                    |  Reply
+                                    span.rcnt  (!{messages[msg].children.length})
 
             #message-input
                 #message-text
