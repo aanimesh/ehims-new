@@ -4,10 +4,10 @@
 //
 
 var connection = function(socket){
-    var data = { 'username' : socket.handshake.query.username,
-                 'channel'  : socket.handshake.query.channel
-    };
-    console.log(data.username+" connected to "+data.channel);
+    var q = socket.handshake.query;
+    console.log(q.username+" connected to "+q.channel);
+    socket.join(q.channel);
+
 };
 
 

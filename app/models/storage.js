@@ -27,19 +27,21 @@ var get_or_create_user = function(name,callback){
 
     User.findOne({'name': name},function(err, user){
         assert.equal(null, err);
-        if(!user)
+        if(!user){
             user = new User({'name':name, channels: []});
+            user.save();
+        }
         callback(user);
     });
 };
 
 /**
- * get channel
+ * get channel by name
  * @param {String} channel id
  * @param {function} callback to be called on channel name
  */
-var get_channel = function(channel_id, callback){
-    Channel.find({ '_id': channel_id },function(err, channel){
+var get_channel_by_name = function(channel_name, callback){
+    Channel.findOne({ 'name': channel_name },function(err, channel){
         assert.equal(null, err);
         callback(channel);
     });
@@ -73,10 +75,12 @@ var join_or_create_channel = function(user, channel_name, callback){
     
     Channel.findOne({'name':channel_name},function(err, channel){
         assert.equal(null,err);
-        if(!channel)
+        if(!channel){
             channel = new Channel({'name': channel_name,
                                    'online_users': [],
                                    'top_lvl_messages': []});
+            channel.save();
+        }
         user.join_channel(channel);
         channel.log_user_in(user);
         callback({'user':user,'channel':channel});
@@ -107,12 +111,14 @@ var get_users = function(ids, callback){
  * @param {function} callback to be called on { message_id : message, ... }
  */
 
-var get_messages_by_channel = function(channel_id, callback){
+var get_messages_by_channel = function(channel, callback){
+    console.log(channel);
     Message.find({
-        'channel' : channel_id
+        channel : channel
     }, function(err, message_objs){
         assert.equal(null, err);
         var messages = {};
+        console.log(message_objs);
         message_objs.forEach(function(m){messages[m._id] = m;});
         callback(messages);
     });
@@ -140,10 +146,11 @@ var get_message = function(message_id, callback){
  */
 var create_message = function(msg, callback){
     var message = new Message(msg);
+    message.save();
     // add message to top lvl messages if it doesn't have a parent
     if(!message.parent){
-        get_channel(message.channel,function (channel){
-            channel.top_lvl_messages.push(message);
+        get_channel_by_name(message.channel,function (channel){
+            channel.top_lvl_messages.push(message._id);
             channel.save();
             callback(message);
         });

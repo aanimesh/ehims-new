@@ -35,5 +35,6 @@ ChannelSchema.methods.log_user_out = function(user){
     this.save();
 };
 
+
 exports.Channel = mongoose.model('Channel',ChannelSchema);
 

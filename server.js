@@ -9,12 +9,12 @@ var http     = require('http');
 var bodyParser = require('body-parser');
 var io       = require('socket.io');
 
-var routes  = require('./app/routes/routes.js');
-var io_r    = require('./app/io/io.js');
-
 var app  = express();
 var http = http.Server(app);
 var io   = io(http);
+
+var routes  = require('./app/routes/routes.js')(io);
+var io_r    = require('./app/io/io.js');
 
 // Set up jade
 app.set('views', './app/views');
@@ -44,6 +44,9 @@ app.get('/channels', routes.channels);
 
 // log on to a channel and chat
 app.get('/channels/:channel/:username', routes.channel);
+
+// send a message
+app.post('/message',routes.message);
 
 // ---------------------------------
 
