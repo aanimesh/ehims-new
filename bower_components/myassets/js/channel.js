@@ -28,11 +28,14 @@ var send_message = function () {
 };
 
 var make_msg_div = function(msg){
-    var class_str="message "; 
+    var class_str="message ",info_div; 
     class_str += msg.author===username?"message-user":"message-other";
-    var msg_div = $("<div>",{class: class_str}); 
+    var msg_div = $("<div>",{class: class_str, id: msg._id}); 
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
-    msg_div.append('<div class="info">'+msg.author+'</div>');
+    info_div = '<div class="info">'+msg.author+' | ';
+    info_div += '<a class="reply"><i class="fa fa-reply"></i> ';
+    info_div += 'Reply ('+msg.children.length +')</a></div>';
+    msg_div.append(info_div);
     return msg_div;
 };
 

@@ -29,13 +29,13 @@ html
             #messages-view
                 each msg in channel.top_lvl_messages
                     - var cls = 'message '+(messages[msg].author===user.name ? 'message-user' : 'message-other')
-                    div(class=cls)
+                    div(class=cls,id=msg)
                             p !{messages[msg].content}
                             .info 
                                 !{messages[msg].author} | 
                                 a.reply
                                     i.fa.fa-reply
-                                    |  Reply
+                                    |  Reply (!{messages[msg].children.length})
 
             #message-input
                 #message-text
