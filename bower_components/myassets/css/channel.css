@@ -67,16 +67,22 @@ div.message {
     color: #FFFFFF;
 }
 
-div.message.info{
+div.info{
     bottom: 2px;
     color: #333333 !important;
     background: inherit;
     line-height: .9;
-    opacity: 0.3;
+    opacity: 0.5;
     position: absolute;
 }
 
+a.reply {
+    color: #333333;
+}
 
+a.reply:hover {
+   color: #111111; 
+}
 
 /* other users are blue */
 div.message-other {

@@ -3,6 +3,7 @@ doctype html
 html
     head
         link(rel="stylesheet",href="/foundation/css/foundation.min.css")
+        link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
         link(rel="stylesheet",href="/myassets/css/channel.css")
         script.
             var messages = !{JSON.stringify(messages)};    
@@ -27,18 +28,14 @@ html
         #messages-column
             #messages-view
                 each msg in channel.top_lvl_messages
-                    if messages[msg].author==user.name
-                        .message.message-user
+                    - var cls = 'message '+(messages[msg].author===user.name ? 'message-user' : 'message-other')
+                    div(class=cls)
                             p !{messages[msg].content}
-                            .info !{messages[msg].author}
-                    else
-                        .message.message-other
-                            p !{messages[msg].content}
-                            .info !{messages[msg].author}
-                //.alert-box.radius.message.message-other
-                    p This is a message from another user 
-                //.alert-box.success.radius.message.message-user
-                    p This is a message from you 
+                            .info 
+                                !{messages[msg].author} | 
+                                a.reply
+                                    i.fa.fa-reply
+                                    |  Reply
 
             #message-input
                 #message-text
