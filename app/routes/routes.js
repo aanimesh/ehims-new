@@ -8,7 +8,6 @@ var storage = require('../models/storage.js');
 module.exports = function(io){
 
     routes = {
-
        landing : function(req, res){
            res.render("welcome");
        },
@@ -40,7 +39,7 @@ module.exports = function(io){
                    context.channel = channel;
                    storage.get_messages_by_channel(channel.name,function(results){
                        context.messages = results;
-                       storage.get_users(channel.online_users,function(results){
+                       storage.get_usernames(channel.online_users,function(results){
                            context.online = results;
                            res.render("channel", context);
                        });

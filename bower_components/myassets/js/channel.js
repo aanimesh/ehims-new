@@ -27,19 +27,6 @@ var send_message = function () {
     });
 };
 
-var make_msg_div = function(msg){
-    var class_str="message ",info_div; 
-    class_str += msg.author===username?"message-user":"message-other";
-    var msg_div = $("<div>",{class: class_str, id: msg._id}); 
-    msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
-    info_div = '<div class="info">'+msg.author+' | ';
-    info_div += '<a class="reply"><i class="fa fa-reply"></i> ';
-    info_div += 'Reply <span class="rcnt">('+msg.children.length +')';
-    info_div += '</span></a></div>';
-    msg_div.append(info_div);
-    return msg_div;
-};
-
 var receive_msg = function(msg){
     messages[msg._id] = msg;
     if(msg.msg_parent){
@@ -62,12 +49,34 @@ var receive_msg = function(msg){
        }
         channel.top_lvl_messages.push(msg._id);
     }
-    $('a.reply').on('click',reply);
+    $('a.reply').on('click',function(){
+        reply($(this).closest('.message').attr('id'));
+    });
+    if(tree){
+        tree.destroy();
+    }
+    build_tree();
+    display_tree();
 };
 
-var reply = function(){ // change root
-    // get message id
-    var root = messages[$(this).closest('.message').attr('id')];
+
+var make_msg_div = function(msg){
+    var class_str="message ",info_div; 
+    class_str += msg.author===username?"message-user":"message-other";
+    var msg_div = $("<div>",{class: class_str, id: msg._id}); 
+    msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
+    info_div = '<div class="info">'+msg.author+' | ';
+    info_div += '<a class="reply"><i class="fa fa-reply"></i> ';
+    info_div += 'Reply <span class="rcnt">('+msg.children.length +')';
+    info_div += '</span></a></div>';
+    msg_div.append(info_div);
+    return msg_div;
+};
+
+// navigating functions
+
+var reply = function(id){ // change root
+    var root = messages[id];
     cur_root = root._id;
     var msg_view = $('#messages-view');
     msg_view.empty();
@@ -75,9 +84,10 @@ var reply = function(){ // change root
     for(var i = 0, len = root.children.length; i<len; i++){
         msg_view.append(make_msg_div(messages[root.children[i]]));
     }
-    $('a.reply').on('click',reply);
+    $('a.reply').on('click',function(){
+        reply($(this).closest('.message').attr('id'));
+    });
 };
-
 
 var go_to_root = function(){ // change the chat to the root of the channel
     cur_root = null;
@@ -87,17 +97,104 @@ var go_to_root = function(){ // change the chat to the root of the channel
     for(var i = 0, len = channel.top_lvl_messages.length; i<len; i++){
         msg_view.append(make_msg_div(messages[channel.top_lvl_messages[i]]));
     }
-    $('a.reply').on('click',reply);
+    $('a.reply').on('click',function(){
+        reply($(this).closest('.message').attr('id'));
+    });
 }; 
+
+var back = function(){ // when back arrow is clicked
+    // if at root, logout and go to channels page
+    if(cur_root === null){
+        // logout();
+        window.location.replace('/channels?username='+username);
+    } else {
+        if(messages[cur_root].msg_parent === null)
+            go_to_root();
+        else 
+            reply(messages[cur_root].msg_parent);
+    }
+};
+
+var user_log_on = function(uname){
+    if(uname !== username)
+        $('#online-users').append('<li>'+uname+'</li>');
+};
+
+var user_log_off = function(uname){
+    $('#online-users').find("li:contains('"+uname+"')")
+                      .filter(function(){
+                         return $(this).html() === uname;
+                      }).remove();
+};
+
+
+// Tree View Code
+// --------------
+
+var tree_data, tree;
+
+function Node(id, label){
+    this.id    = id;
+    this.label = label;
+}
+
+function Edge(from, to){
+    this.from = from;
+    this.to   = to;
+}
+
+var build_tree = function(){
+    var msg;
+    var root = new Node('0',channel.name); 
+    var msg_array = Object.keys(messages);
+    tree_data = {
+    nodes: [],
+    edges: []
+};
+    tree_data.nodes.push(root);
+    for(var i=0, len=msg_array.length; i<len; i++){
+        msg = messages[msg_array[i]]; 
+        tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...'));
+        for(var j=0,leng=msg.children.length;j<leng; j++){
+            tree_data.edges.push(new Edge(msg._id,msg.children[j]));
+        }
+    }
+
+    for(i=0, len=channel.top_lvl_messages.length;i<len;i++){
+        tree_data.edges.push(new Edge('0',channel.top_lvl_messages[i]));
+    }
+
+}; 
+
+var display_tree = function(){
+    var container = document.getElementById('chat-view');
+    var options = {
+        layout: {
+            hierarchical: {
+                direction: 'UD'
+            } 
+        }
+    };
+    tree = new vis.Network(container, tree_data, options);
+};
 
 $(document).ready(function(){
     var q = "username="+username+"&channel="+channel.name;
     socket = io('http://127.0.0.1:3000/', {query:q});
     socket.on('message',receive_msg);
 
+    socket.on('log-on',user_log_on);
+    socket.on('log-off',user_log_off);
+
     $('#message-send').on('click',send_message);
-    $('a.reply').on('click',reply);
+    $('a.reply').on('click',function(){
+        reply($(this).closest('.message').attr('id'));
+    });
     $('#channel-name').on('click',go_to_root);
+    $('#back-arrow').on('click',back);
+
+    build_tree();
+    display_tree();
 
 });
 

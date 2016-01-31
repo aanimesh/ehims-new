@@ -4,6 +4,7 @@ html
     head
         link(rel="stylesheet",href="/foundation/css/foundation.min.css")
         link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
+        link(rel="stylesheet",href="/vis/dist/vis.css")
         link(rel="stylesheet",href="/myassets/css/channel.css")
         script.
             var messages = !{JSON.stringify(messages)};    
@@ -17,13 +18,17 @@ html
             ul.title-area
                 li.name
                     h1: a#channel-name !{channel.name}
+
             section.top-bar-section
                 ul.left
                     li
-                        a Chatting as: !{user.name}
+                        a#back-arrow 
+                            i.fa.fa-arrow-left
                 ul.right
                     li
-                        a Logout
+                        a Chatting as: !{user.name}
+                    li
+                        a(href='/') Logout
 
         #messages-column
             #messages-view
@@ -48,15 +53,17 @@ html
 
         #view-column
             #chat-view
-                p.
-                    View all the chats here
-            #users-view
-                p.
-                    Online users
+            #users-view(style="overflow-y:scroll;")
+                h5(style='width:100%;text-align:center')
+                    | Online Users
+                ul(style='padding-left:20px;')#online-users
+                    each user in online
+                        li !{user}
 
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.min.js")
         script(src="/socket.io-client/socket.io.js")
+        script(src="/vis/dist/vis.js")
         script(src="/myassets/js/channel.js")
         script.
             $(document).foundation();

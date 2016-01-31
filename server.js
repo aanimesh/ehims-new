@@ -14,7 +14,7 @@ var http = http.Server(app);
 var io   = io(http);
 
 var routes  = require('./app/routes/routes.js')(io);
-var io_r    = require('./app/io/io.js');
+var io_r    = require('./app/io/io.js')(io);
 
 // Set up jade
 app.set('views', './app/views');

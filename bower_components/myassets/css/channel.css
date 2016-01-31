@@ -8,6 +8,10 @@ div#navbar{
     height:30px;
 }
 
+a#back-arrow {
+}
+
+
 div#messages-column {
     position: absolute;
     min-height: 95%;
@@ -110,9 +114,7 @@ div#view-column {
 }
 
 div#chat-view {
-    min-height: 70%;
-    height: auto !important;
-    height: 65%;
+    height: 100%;
 }
 
 div#users-view {

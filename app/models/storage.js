@@ -91,16 +91,16 @@ var join_or_create_channel = function(user, channel_name, callback){
 /**
  * Get users
  * @param {Array} Array of user ids
- * @param {function} callback to be called on [users]
+ * @param {function} callback to be called on [usernames]
  */
 
-var get_users = function(ids, callback){
+var get_usernames = function(ids, callback){
     User.find({
         '_id' : { $in : ids }
     }, function(err, users){
         assert.equal(null, err);
         var user_list = [];
-        users.forEach(function(u){user_list.push(u);});
+        users.forEach(function(u){user_list.push(u.name);});
         callback(user_list);
     });
 };
@@ -165,5 +165,6 @@ exports.get_or_create_user = get_or_create_user;
 exports.get_channels = get_channels;
 exports.join_or_create_channel = join_or_create_channel;
 exports.get_messages_by_channel = get_messages_by_channel;
-exports.get_users = get_users;
+exports.get_usernames = get_usernames;
 exports.create_message = create_message;
+exports.get_channel_by_name = get_channel_by_name;
