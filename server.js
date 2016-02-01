@@ -56,7 +56,9 @@ app.post('/message',routes.message);
 
 io.on('connection',io_r.connection);
 
+var port = process.env.PORT || 3000
+
 // Run server
-http.listen(3000,function(){
+http.listen(port,function(){
     console.log('Listening on 3000');
 });
