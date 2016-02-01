@@ -9,7 +9,9 @@
 var MongoClient = require('mongodb').MongoClient;
 var mongoose = require('mongoose');
 var assert = require('assert');
-var _mongo_url = 'mongodb://localhost:27017/ehims';
+var _mongo_url = process.env.MONGOLAB_URI || 
+                 process.env.MONGOHQ_URL  || 
+                 'mongodb://localhost:27017/ehims';
 
 mongoose.connect(_mongo_url);
 
