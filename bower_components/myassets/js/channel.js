@@ -180,7 +180,7 @@ var display_tree = function(){
 
 $(document).ready(function(){
     var q = "username="+username+"&channel="+channel.name;
-    socket = io('http://127.0.0.1:3000/', {query:q});
+    socket = io(socket_url, {query:q});
     socket.on('message',receive_msg);
 
     socket.on('log-on',user_log_on);

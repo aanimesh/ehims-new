@@ -7,6 +7,7 @@ html
         link(rel="stylesheet",href="/vis/dist/vis.css")
         link(rel="stylesheet",href="/myassets/css/channel.css")
         script.
+            var socket_url = "!{socket_url}";
             var messages = !{JSON.stringify(messages)};    
             var online   = !{JSON.stringify(online)};
             var username = "!{user.name}";

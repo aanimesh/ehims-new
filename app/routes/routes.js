@@ -29,8 +29,10 @@ module.exports = function(io){
        },
        
         channel : function(req, res){
+           var socket_url = process.env.NODE_ENV ? 'https://ehims-new.herokuapp.com/' : 'http://localhost:3000/';
            var context = { user: req.params.username,
-                       channel: req.params.channel};
+                       channel: req.params.channel,
+                       socket_url : socket_url};
            storage.get_or_create_user(context.user,function(results){
                var user = results;
                context.user = user;
