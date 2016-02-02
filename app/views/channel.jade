@@ -54,7 +54,15 @@ html
 
         #view-column
             #chat-view
-            #users-view(style="overflow-y:scroll;")
+                h5(style='width:100%;text-align:center')
+                    | Tree View
+                #tree
+                #node-select
+                    p#content
+                    #actions
+                        a.button(style="vertical-align:middle;height:70px;")#view View
+
+            #users-view
                 h5(style='width:100%;text-align:center')
                     | Online Users
                 ul(style='padding-left:20px;')#online-users

@@ -55,7 +55,10 @@ var receive_msg = function(msg){
     if(tree){
         tree.destroy();
     }
-    build_tree();
+    // add the message to the tree_data and display
+    tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...'));
+    var msg_parent = msg.msg_parent ? msg.msg_parent : '0';
+    tree_data.edges.push(new Edge(msg_parent,msg._id));
     display_tree();
 };
 
@@ -76,17 +79,21 @@ var make_msg_div = function(msg){
 // navigating functions
 
 var reply = function(id){ // change root
-    var root = messages[id];
-    cur_root = root._id;
-    var msg_view = $('#messages-view');
-    msg_view.empty();
-    msg_view.append(make_msg_div(root));
-    for(var i = 0, len = root.children.length; i<len; i++){
-        msg_view.append(make_msg_div(messages[root.children[i]]));
+    if(id === "0")
+        go_to_root();
+    else {
+        var root = messages[id];
+        cur_root = root._id;
+        var msg_view = $('#messages-view');
+        msg_view.empty();
+        msg_view.append(make_msg_div(root));
+        for(var i = 0, len = root.children.length; i<len; i++){
+            msg_view.append(make_msg_div(messages[root.children[i]]));
+        }
+        $('a.reply').on('click',function(){
+            reply($(this).closest('.message').attr('id'));
+        });
     }
-    $('a.reply').on('click',function(){
-        reply($(this).closest('.message').attr('id'));
-    });
 };
 
 var go_to_root = function(){ // change the chat to the root of the channel
@@ -150,7 +157,7 @@ var build_tree = function(){
     tree_data = {
     nodes: [],
     edges: []
-};
+    };
     tree_data.nodes.push(root);
     for(var i=0, len=msg_array.length; i<len; i++){
         msg = messages[msg_array[i]]; 
@@ -166,8 +173,16 @@ var build_tree = function(){
 
 }; 
 
+var display_node = function(params){
+    console.log(params);
+    var msg_id = params.nodes[0];
+    var content = (msg_id === "0") ? '' : messages[msg_id].content;
+    $('#content').html(content);
+    $('#view').on('click',function(){reply(msg_id);});
+};
+
 var display_tree = function(){
-    var container = document.getElementById('chat-view');
+    var container = document.getElementById('tree');
     var options = {
         layout: {
             hierarchical: {
@@ -176,6 +191,7 @@ var display_tree = function(){
         }
     };
     tree = new vis.Network(container, tree_data, options);
+    tree.on('select',display_node);
 };
 
 $(document).ready(function(){
