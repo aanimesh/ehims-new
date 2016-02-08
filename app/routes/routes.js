@@ -41,6 +41,15 @@ module.exports = function(io){
                    context.channel = channel;
                    storage.get_messages_by_channel(channel.name,function(results){
                        context.messages = results;
+                       var message_keys = Object.keys(results);
+                       var queue = [];
+                       for(var i = 0, len = message_keys.length;i<len;i++){
+                            queue.push(context.messages[message_keys[i]]);
+                       }
+                       queue.sort(function(a,b){
+                           return new Date(a.created_at) - new Date(b.created_at);
+                       });
+                       context.queue = queue;
                        storage.get_usernames(channel.online_users,function(results){
                            context.online = results;
                            res.render("channel", context);

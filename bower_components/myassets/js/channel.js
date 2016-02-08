@@ -27,31 +27,29 @@ var send_message = function () {
     });
 };
 
+var new_message_flash;
+
+var message_flash = function(){
+    var envelope = $('a#mail i')[0];
+    envelope.className = 
+        envelope.className === "fa fa-envelope" ? 
+        "fa fa-envelope-o" : "fa fa-envelope";
+};
+
 var receive_msg = function(msg){
     messages[msg._id] = msg;
-    if(msg.msg_parent){
+    if(msg.msg_parent)
         messages[msg.msg_parent].children.push(msg._id);
-
-        // if the parent message is in view, then increment it's reply count
-        if($('#'+msg.msg_parent).length > 0){
-            $('#'+msg.msg_parent)
-                .find('.rcnt')
-                .html('('+messages[msg.msg_parent].children.length+')');
-        }
-
-        if(cur_root && msg.msg_parent._id === cur_root._id){
-            $('#messages-view').append(make_msg_div(msg));
-        }
-    } else {
-        // then msg is a top_lvl message
-        if (!cur_root){
-            $('#messages-view').append(make_msg_div(msg));
-       }
+    else
         channel.top_lvl_messages.push(msg._id);
+    if(msg.author === username)
+        show_msg(msg);
+    else{
+        queue.push(msg);
+        $('#queue-length').html('('+queue.length+')');
+        clearInterval(new_message_flash);
+        new_message_flash = setInterval(message_flash, 700);
     }
-    $('a.reply').on('click',function(){
-        reply($(this).closest('.message').attr('id'));
-    });
     if(tree){
         tree.destroy();
     }
@@ -62,6 +60,43 @@ var receive_msg = function(msg){
     display_tree();
 };
 
+var next_msg = function(msg){
+    if(queue.length === 0) return;
+    show_msg(queue.shift());
+}; 
+
+// show the next message
+var show_msg = function(msg){
+    // stop flashing the new message icon when queue is empty
+    $('#queue-length').html('('+queue.length+')');
+    if(queue.length === 0 ){
+        var envelope = $('a#mail i')[0];
+        envelope.className = "fa fa-envelope";
+        clearTimeout(new_message_flash);
+    }
+    //if(msg.msg_parent){
+    //    // if the parent message is in view, then increment it's reply count
+    //    if($('#'+msg.msg_parent).length > 0){
+    //        $('#'+msg.msg_parent)
+    //            .find('.rcnt')
+    //            .html('('+messages[msg.msg_parent].children.length+')');
+    //    }
+
+   //     if(cur_root && msg.msg_parent._id === cur_root._id){
+   //         $('#messages-view').append(make_msg_div(msg));
+   //     }
+   //} else {
+   //     // then msg is a top_lvl message
+   //     if (!cur_root){
+   //         $('#messages-view').append(make_msg_div(msg));
+   //    }
+   //}
+   // $('a.reply').on('click',function(){
+   //     reply($(this).closest('.message').attr('id'));
+   // });
+
+    reply(msg._id);
+};
 
 var make_msg_div = function(msg){
     var class_str="message ",info_div; 
@@ -78,17 +113,28 @@ var make_msg_div = function(msg){
 
 // navigating functions
 
-var reply = function(id){ // change root
+var reply = function(id){
+    var root = messages[id];
+    cur_root = root._id;
+    // show slection on tree
+    tree.selectNodes([id]); 
+    change_view_root(root.msg_parent ? root.msg_parent : "0");
+    var className = " message-selected-";
+    className += username === root.author ? 'user' : 'other';
+    $('#'+id)[0].className += className;
+    $('#message').trigger("focus");
+};
+
+var change_view_root = function(id){ // change root
     if(id === "0")
         go_to_root();
     else {
-        var root = messages[id];
-        cur_root = root._id;
+        var view_root = messages[id];
         var msg_view = $('#messages-view');
         msg_view.empty();
-        msg_view.append(make_msg_div(root));
-        for(var i = 0, len = root.children.length; i<len; i++){
-            msg_view.append(make_msg_div(messages[root.children[i]]));
+        msg_view.append(make_msg_div(view_root));
+        for(var i = 0, len = view_root.children.length; i<len; i++){
+            msg_view.append(make_msg_div(messages[view_root.children[i]]));
         }
         $('a.reply').on('click',function(){
             reply($(this).closest('.message').attr('id'));
@@ -119,6 +165,20 @@ var back = function(){ // when back arrow is clicked
             go_to_root();
         else 
             reply(messages[cur_root].msg_parent);
+    }
+};
+
+var enter_on_message = function(e){
+    var code = e.keyCode || e.which;
+    if( code === 13){
+        if($('#message').val().trim())
+            // not empty, so send message
+            send_message();
+        else{
+            next_msg();
+            $('#message').val('');
+            e.preventDefault();
+        }
     }
 };
 
@@ -208,6 +268,13 @@ $(document).ready(function(){
     });
     $('#channel-name').on('click',go_to_root);
     $('#back-arrow').on('click',back);
+
+    $('a#mail').on('click',next_msg);
+    
+    $('textarea#message').on('keydown',enter_on_message);
+
+    if(queue.length > 0)
+        new_message_flash = setInterval(message_flash, 700);
 
     build_tree();
     display_tree();

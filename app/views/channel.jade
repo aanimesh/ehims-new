@@ -10,6 +10,7 @@ html
             var socket_url = "!{socket_url}";
             var messages = !{JSON.stringify(messages)};    
             var online   = !{JSON.stringify(online)};
+            var queue    = !{JSON.stringify(queue)};
             var username = "!{user.name}";
             var channel  = !{JSON.stringify(channel)}; 
             var cur_root = null; // this variable stores the parent to the
@@ -25,6 +26,11 @@ html
                     li
                         a#back-arrow 
                             i.fa.fa-arrow-left
+                    li 
+                        a#mail
+                            i.fa.fa-envelope
+                            | &nbsp;
+                            span#queue-length (!{queue.length})
                 ul.right
                     li
                         a Chatting as: !{user.name}
@@ -33,16 +39,16 @@ html
 
         #messages-column
             #messages-view
-                each msg in channel.top_lvl_messages
-                    - var cls = 'message '+(messages[msg].author===user.name ? 'message-user' : 'message-other')
-                    div(class=cls,id=msg)
-                            p !{messages[msg].content}
-                            .info 
-                                | !{messages[msg].author} | 
-                                a.reply
-                                    i.fa.fa-reply
-                                    |  Reply
-                                    span.rcnt  (!{messages[msg].children.length})
+                //each msg in channel.top_lvl_messages
+                //    - var cls = 'message '+(messages[msg].author===user.name ? 'message-user' : 'message-other')
+                //    div(class=cls,id=msg)
+                //            p !{messages[msg].content}
+                //            .info 
+                //                | !{messages[msg].author} | 
+                //                a.reply
+                //                    i.fa.fa-reply
+                //                    |  Reply
+                //                    span.rcnt  (!{messages[msg].children.length})
 
             #message-input
                 #message-text

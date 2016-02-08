@@ -102,6 +102,15 @@ div.message-user {
     float: right;
 }
 
+div.message-selected-user {
+    box-shadow: 0px 1px 3px #43AC6A inset, 0px 0px 8px #43AC6A;
+    margin-right: 10px;
+}
+
+div.message-selected-other {
+    box-shadow: 0px 1px 3px #008CBA inset, 0px 0px 8px #008CBA;
+    margin-left: 10px;
+}
 
 div#view-column {
     position: absolute;
