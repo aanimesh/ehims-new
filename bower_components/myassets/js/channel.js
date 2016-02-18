@@ -327,7 +327,7 @@ var display_tree = function(){
         }
     };
     tree = new vis.Network(container, tree_data, options);
-    tree.on('select',display_node);
+    tree.on('select',function(p){ reply(p.nodes[0]);});
 };
 
 $(document).ready(function(){
