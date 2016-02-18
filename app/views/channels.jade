@@ -13,7 +13,7 @@ html
         .row(style="margin-top:5%")
             .large-6.medium-6.columns.large-offset-3.medium-offset-3
                 h3 Hi #{user.name}, join/create a channel
-                form#channel-form
+                form(action="/channel",method="POST")#channel-form
                     input#user(type="hidden",
                                name="username",
                                value="#{user.name}")
@@ -31,17 +31,17 @@ html
                 ul.side-nav
                     each channel in channels
                         li: h6
-                            a(href="/channels/#{channel}/#{user.name}")= channel
+                            a(onclick="open_channel('#{channel}')")= channel
+                            
         script(src="/awesomplete/awesomplete.min.js")
         script.
             var channel_input = document.getElementById("channel");
             new Awesomplete(channel_input,{
                 list : user.channels.map(function(item){item.name})
                 });
-            $('#channel-form').submit(function(e){
-                e.preventDefault();
-                var url = '/channels/' + $('#channel').val() + '/'+$('#user').val();
-                window.location.replace(url);
-            });
+                var open_channel = function(channel){
+                    $('#channel').val(channel);
+                    $('#channel-form').submit();
+                }
 
 

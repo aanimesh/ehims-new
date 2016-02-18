@@ -1,4 +1,5 @@
 
+var cur_root = null;
 var socket;
 
 var send_message = function () {
@@ -36,15 +37,34 @@ var message_flash = function(){
         "fa fa-envelope-o" : "fa fa-envelope";
 };
 
+var update_queue_display = function(){
+    $('#queue-length').html('('+queue.length+')');
+    if(queue.length === 0 ){
+        var envelope = $('a#mail i')[0];
+        envelope.className = "fa fa-envelope";
+        clearTimeout(new_message_flash);
+    }
+};
+
+
+var add_msg_to_hover_list = function(msg){
+    $('#new-msg-list').prepend('<li id="list-'+
+            msg._id +'">'+
+            msg.author + ': ' +
+            msg.content.substring(0, 
+                (25-msg.author.length)>0? 25-msg.author.length : 0) +
+            '</li>');
+    $('#list-'+msg._id).on('click', function(){show_msg(msg);});
+};
+
+
 var receive_msg = function(msg){
     messages[msg._id] = msg;
     if(msg.msg_parent)
         messages[msg.msg_parent].children.push(msg._id);
     else
         channel.top_lvl_messages.push(msg._id);
-    if(msg.author === username)
-        show_msg(msg);
-    else{
+    if(msg.author !== username){
         queue.push(msg);
         $('#queue-length').html('('+queue.length+')');
         clearInterval(new_message_flash);
@@ -58,6 +78,11 @@ var receive_msg = function(msg){
     var msg_parent = msg.msg_parent ? msg.msg_parent : '0';
     tree_data.edges.push(new Edge(msg_parent,msg._id));
     display_tree();
+    if(msg.author === username)
+        show_msg(msg,true);
+    else
+        add_msg_to_hover_list(msg);
+
 };
 
 var next_msg = function(msg){
@@ -67,13 +92,8 @@ var next_msg = function(msg){
 
 // show the next message
 var show_msg = function(msg){
-    // stop flashing the new message icon when queue is empty
-    $('#queue-length').html('('+queue.length+')');
-    if(queue.length === 0 ){
-        var envelope = $('a#mail i')[0];
-        envelope.className = "fa fa-envelope";
-        clearTimeout(new_message_flash);
-    }
+    reply(msg._id);
+
     //if(msg.msg_parent){
     //    // if the parent message is in view, then increment it's reply count
     //    if($('#'+msg.msg_parent).length > 0){
@@ -94,8 +114,29 @@ var show_msg = function(msg){
    // $('a.reply').on('click',function(){
    //     reply($(this).closest('.message').attr('id'));
    // });
+   //
+   
+    // if in queue, remove
+    remove_from_queue(msg._id);
+   
+};
 
-    reply(msg._id);
+var remove_from_queue = function(id){
+    var i;
+    for(i=queue.length-1;i>=0;i--){
+        if (queue[i]._id === id){
+            queue.splice(i,1);
+            break;
+        }
+    }
+    var queue_list = $('#new-msg-list').children();
+    for(i=queue_list.length-1;i>=0;i--){
+        if($(queue_list[i]).attr('id') === ('list-'+id)){
+            $(queue_list[i]).remove();
+            break;
+        }
+    }
+    update_queue_display();
 };
 
 var make_msg_div = function(msg){
@@ -115,15 +156,17 @@ var make_msg_div = function(msg){
 
 var reply = function(id){
     var root = messages[id];
-    cur_root = root._id;
+    cur_root = id;
+    console.log("set cur_root to: " + cur_root);
     // show slection on tree
     tree.selectNodes([id]); 
-    change_view_root(root.msg_parent ? root.msg_parent : "0");
+    change_view_root(id);
     var className = " message-selected-";
     className += username === root.author ? 'user' : 'other';
     $('#'+id)[0].className += className;
     $('#message').trigger("focus");
 };
+
 
 var change_view_root = function(id){ // change root
     if(id === "0")
@@ -136,8 +179,8 @@ var change_view_root = function(id){ // change root
         for(var i = 0, len = view_root.children.length; i<len; i++){
             msg_view.append(make_msg_div(messages[view_root.children[i]]));
         }
-        $('a.reply').on('click',function(){
-            reply($(this).closest('.message').attr('id'));
+        $('.message').on('click',function(){
+            reply($(this).attr('id'));
         });
     }
 };
@@ -150,16 +193,17 @@ var go_to_root = function(){ // change the chat to the root of the channel
     for(var i = 0, len = channel.top_lvl_messages.length; i<len; i++){
         msg_view.append(make_msg_div(messages[channel.top_lvl_messages[i]]));
     }
-    $('a.reply').on('click',function(){
-        reply($(this).closest('.message').attr('id'));
+    $('.message').on('click',function(){
+        reply($(this).attr('id'));
     });
 }; 
 
 var back = function(){ // when back arrow is clicked
     // if at root, logout and go to channels page
-    if(cur_root === null){
+    if(!cur_root){
         // logout();
-        window.location.replace('/channels?username='+username);
+        $('form#back-form input').val(username);
+        $('#back-form').submit();
     } else {
         if(messages[cur_root].msg_parent === null)
             go_to_root();
@@ -263,8 +307,9 @@ $(document).ready(function(){
     socket.on('log-off',user_log_off);
 
     $('#message-send').on('click',send_message);
-    $('a.reply').on('click',function(){
-        reply($(this).closest('.message').attr('id'));
+    $('.message').on('click',function(){
+        console.log('clicked');
+        reply($(this).attr('id'));
     });
     $('#channel-name').on('click',go_to_root);
     $('#back-arrow').on('click',back);
@@ -273,11 +318,18 @@ $(document).ready(function(){
     
     $('textarea#message').on('keydown',enter_on_message);
 
-    if(queue.length > 0)
-        new_message_flash = setInterval(message_flash, 700);
 
     build_tree();
     display_tree();
+    $('#message').focus();
+
+    if(queue.length > 0){
+        new_message_flash = setInterval(message_flash, 700);
+        for(var i=queue.length-1;i>=0;i--){
+            add_msg_to_hover_list(queue[i]);
+        }
+    }
+
 
 });
 

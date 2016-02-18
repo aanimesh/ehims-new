@@ -69,6 +69,7 @@ div.message {
     font-weight: normal;
     position: relative;
     color: #FFFFFF;
+    float: left;
 }
 
 div.info{
@@ -90,7 +91,6 @@ a.reply:hover {
 
 /* other users are blue */
 div.message-other {
-    float: left;
     background-color: #008CBA;
     border-color: #0078a0;
 }
@@ -99,12 +99,11 @@ div.message-other {
 div.message-user {
     background-color: #43AC6A;
     border-color: #3a945b;
-    float: right;
 }
 
 div.message-selected-user {
     box-shadow: 0px 1px 3px #43AC6A inset, 0px 0px 8px #43AC6A;
-    margin-right: 10px;
+    margin-left: 10px;
 }
 
 div.message-selected-other {
@@ -129,7 +128,8 @@ div#chat-view {
 div#tree {
     width:100%;
     position:absolute;
-    bottom: 220px; 
+    /*bottom: 220px;*/
+    bottom: 110px; 
     top:50px;
 }
 

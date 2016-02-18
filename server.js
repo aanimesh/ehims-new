@@ -40,10 +40,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get('/', routes.landing);
 
 // list of channels, redirected to by landing
-app.get('/channels', routes.channels);
+app.post('/channels', routes.channels);
 
 // log on to a channel and chat
-app.get('/channels/:channel/:username', routes.channel);
+app.post('/channel', routes.channel);
 
 // send a message
 app.post('/message',routes.message);
@@ -56,7 +56,7 @@ app.post('/message',routes.message);
 
 io.on('connection',io_r.connection);
 
-var port = process.env.PORT || 3000
+var port = process.env.PORT || 3000;
 
 // Run server
 http.listen(port,function(){

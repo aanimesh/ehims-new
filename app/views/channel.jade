@@ -13,9 +13,9 @@ html
             var queue    = !{JSON.stringify(queue)};
             var username = "!{user.name}";
             var channel  = !{JSON.stringify(channel)}; 
-            var cur_root = null; // this variable stores the parent to the
-                                 // current encapsulated chat
     body
+        form(action="/channels",method="POST")#back-form
+            input(type="hidden",name="username")
         nav.top-bar#navbar
             ul.title-area
                 li.name
@@ -27,7 +27,8 @@ html
                         a#back-arrow 
                             i.fa.fa-arrow-left
                     li 
-                        a#mail
+                        a(data-dropdown="new-msg-list",
+                          data-options="is_hover:true; hover_timeout:5000")#mail
                             i.fa.fa-envelope
                             | &nbsp;
                             span#queue-length (!{queue.length})
@@ -36,6 +37,10 @@ html
                         a Chatting as: !{user.name}
                     li
                         a(href='/') Logout
+
+        ul#new-msg-list.f-dropdown(data-dropdown-content,
+            style="height=200px;overflow-y:scroll;")
+
 
         #messages-column
             #messages-view
@@ -63,10 +68,10 @@ html
                 h5(style='width:100%;text-align:center')
                     | Tree View
                 #tree
-                #node-select
-                    p#content
-                    #actions
-                        a.button(style="vertical-align:middle;height:70px;")#view View
+                //#node-select
+                //    p#content
+                //    #actions
+                //        a.button(style="vertical-align:middle;height:70px;")#view View
 
             #users-view
                 h5(style='width:100%;text-align:center')
