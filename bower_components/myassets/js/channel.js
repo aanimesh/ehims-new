@@ -25,6 +25,7 @@ var send_message = function () {
     }).always(function(){
         $('#message').val('');
         $('#message').prop('disabled',false);
+        $('#message').focus();
     });
 };
 
@@ -90,8 +91,21 @@ var next_msg = function(msg){
     show_msg(queue.shift());
 }; 
 
+var get_path_to_root = function (msg){
+    var ret = [];
+    if(msg){
+        ret = get_path_to_root(messages[msg.msg_parent]);
+        ret.push(msg);
+    }
+    return ret;
+};
+
+
 // show the next message
 var show_msg = function(msg){
+
+
+
     reply(msg._id);
 
     //if(msg.msg_parent){
@@ -160,12 +174,30 @@ var reply = function(id){
     console.log("set cur_root to: " + cur_root);
     // show slection on tree
     tree.selectNodes([id]); 
-    change_view_root(id);
+    display_path_to_root(id);
+    //change_view_root(id);
     var className = " message-selected-";
     className += username === root.author ? 'user' : 'other';
     $('#'+id)[0].className += className;
     $('#message').trigger("focus");
 };
+
+var display_path_to_root = function(id){
+    if(id === "0")
+        go_to_root();
+    else{
+        var path = get_path_to_root(messages[id]);
+        var msg_view = $('#messages-view');
+        var msg_div;
+        msg_view.empty();
+        for(var i=0, len = path.length; i<len; i++){
+            msg_div = make_msg_div(path[i]);
+            msg_div.css('margin-left', (10*i) + 'px');
+            msg_view.append(msg_div);
+        }
+    }
+};
+
 
 
 var change_view_root = function(id){ // change root
