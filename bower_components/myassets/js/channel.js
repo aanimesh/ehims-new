@@ -195,6 +195,9 @@ var display_path_to_root = function(id){
             msg_div.css('margin-left', (10*i) + 'px');
             msg_view.append(msg_div);
         }
+        $('.message').on('click',function(){
+            reply($(this).attr('id'));
+        });
     }
 };
 
