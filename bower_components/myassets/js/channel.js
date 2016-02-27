@@ -246,7 +246,7 @@ var back = function(){ // when back arrow is clicked
 
 var enter_on_message = function(e){
     var code = e.keyCode || e.which;
-    if( code === 13){
+    if( code === 13 || code===39){
         if($('#message').val().trim())
             // not empty, so send message
             send_message();
