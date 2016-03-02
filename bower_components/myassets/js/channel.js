@@ -133,6 +133,9 @@ var show_msg = function(msg){
     remove_from_queue(msg._id);
     seen.push(msg);
     
+    var messages_view = document.getElementById("messages-view");
+    messages_view.scrollTop = messages_view.scrollHeight;
+
 };
 
 var remove_from_queue = function(id){
@@ -186,12 +189,15 @@ var display_path_to_root = function(id){
         go_to_root();
     else{
         var path = get_path_to_root(messages[id]);
+        //only display the previous ten messages
+        if(path.length>10) path = path.slice(path.length-10,path.length);
         var msg_view = $('#messages-view');
         var msg_div;
+
         msg_view.empty();
         for(var i=0, len = path.length; i<len; i++){
             msg_div = make_msg_div(path[i]);
-            msg_div.css('margin-left', (10*i) + 'px');
+            msg_div.css('opacity', i === len-1 ? '1':'0.'+(i+1+(10-len)));
             msg_view.append(msg_div);
         }
         $('.message').on('click',function(){
