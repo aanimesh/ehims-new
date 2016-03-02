@@ -86,9 +86,10 @@ var receive_msg = function(msg){
 
 };
 
-var next_msg = function(msg){
+var next_msg = function(){
     if(queue.length === 0) return;
-    show_msg(queue.shift());
+    var msg = queue.shift();
+    show_msg(msg);
 }; 
 
 var get_path_to_root = function (msg){
@@ -130,7 +131,8 @@ var show_msg = function(msg){
    
     // if in queue, remove
     remove_from_queue(msg._id);
-   
+    seen.push(msg);
+    
 };
 
 var remove_from_queue = function(id){
@@ -231,30 +233,54 @@ var go_to_root = function(){ // change the chat to the root of the channel
 }; 
 
 var back = function(){ // when back arrow is clicked
+    // This version of back goes to the previous node in the tree:
     // if at root, logout and go to channels page
-    if(!cur_root){
-        // logout();
-        $('form#back-form input').val(username);
-        $('#back-form').submit();
-    } else {
-        if(messages[cur_root].msg_parent === null)
+//    if(!cur_root){
+//        // logout();
+//        $('form#back-form input').val(username);
+//        $('#back-form').submit();
+//    } else {
+//        if(messages[cur_root].msg_parent === null)
+//            go_to_root();
+//        else 
+//            reply(messages[cur_root].msg_parent);
+//    }
+
+    // This version of back goes to the last seen 
+    if(seen.length > 0){
+        queue.unshift(seen.pop());
+        if(seen.length > 0)
+            reply(seen[seen.length-1]._id);
+        else
             go_to_root();
-        else 
-            reply(messages[cur_root].msg_parent);
+        update_queue_display();
     }
+
 };
 
 var enter_on_message = function(e){
     var code = e.keyCode || e.which;
-    if( code === 13 || code===39){
-        if($('#message').val().trim())
-            // not empty, so send message
-            send_message();
-        else{
+    switch(code){
+        case 13:
+            if($('#message').val().trim())
+                // not empty, so send message
+                send_message();
+            else{
+                next_msg();
+                $('#message').val('');
+                e.preventDefault();
+            }
+            return;
+        case 39:
             next_msg();
             $('#message').val('');
             e.preventDefault();
-        }
+            return;
+        case 37:
+            back();
+            return;
+        default:
+            return;
     }
 };
 

@@ -11,9 +11,13 @@ html
             var messages = !{JSON.stringify(messages)};    
             var online   = !{JSON.stringify(online)};
             var queue    = !{JSON.stringify(queue)};
+            // stack used for back-button
+            var seen     = []
             var username = "!{user.name}";
             var channel  = !{JSON.stringify(channel)}; 
+            // colours to be cycled through when assigning a colour to each user
             var colours   = ["#00a","#00f","#050","#055","#05a","#05f","#0a0","#0a5","#0aa","#0af","#0f0","#0f5","#0fa","#0ff","#500","#505","#50a","#50f","#550","#555","#55a","#55f","#5a0","#5a5","#5aa","#5af","#5f0","#5f5","#5fa","#5ff","#a00","#a05","#a0a","#a0f","#a50","#a55","#a5a","#a5f","#aa0","#aa5","#aaa","#aaf","#af0","#af5","#afa","#aff","#f00","#f05","#f0a","#f0f","#f50","#f55","#f5a","#f5f","#fa0","#fa5","#faa"]; 
+            // cycle position
             var colour_pos = 0;
     body
         form(action="/channels",method="POST")#back-form
