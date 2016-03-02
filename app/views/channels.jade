@@ -29,9 +29,9 @@ html
                 hr
                 h4  Or choose from a previously joined channel
                 ul.side-nav
-                    each channel in channels
+                    each channel in user.channels
                         li: h6
-                            a(onclick="open_channel('#{channel}')")= channel
+                            a(onclick="open_channel('#{channel.name}')")= channel.name
                             
         script(src="/awesomplete/awesomplete.min.js")
         script.
