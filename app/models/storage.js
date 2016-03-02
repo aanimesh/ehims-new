@@ -102,7 +102,7 @@ var get_usernames = function(ids, callback){
     }, function(err, users){
         assert.equal(null, err);
         var user_list = [];
-        users.forEach(function(u){user_list.push(u.name);});
+        users.forEach(function(u){user_list.push({name:u.name});});
         callback(user_list);
     });
 };

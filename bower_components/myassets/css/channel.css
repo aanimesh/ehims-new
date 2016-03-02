@@ -69,47 +69,42 @@ div.message {
     font-weight: normal;
     position: relative;
     color: #FFFFFF;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
     float: left;
 }
 
 div.info{
     bottom: 2px;
-    color: #333333 !important;
+    color: #fff !important;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
     background: inherit;
     line-height: .9;
     opacity: 0.5;
     position: absolute;
 }
 
-a.reply {
-    color: #333333;
-}
-
-a.reply:hover {
-   color: #050505; 
-}
-
 /* other users are blue */
 div.message-other {
-    background-color: #008CBA;
-    border-color: #0078a0;
+/*    background-color: #008CBA; 
+    border-color: #0078a0; */
 }
 
 /* current user is green */
 div.message-user {
-    background-color: #43AC6A;
-    border-color: #3a945b;
+/*    background-color: #43AC6A;
+    border-color: #3a945b; */
 }
 
-div.message-selected-user {
-    box-shadow: 0px 1px 3px #43AC6A inset, 0px 0px 8px #43AC6A;
+div.message-selected {
+    /*box-shadow: 0px 1px 3px #43AC6A inset, 0px 0px 8px #43AC6A;*/
     margin-left: 10px;
 }
 
+/*
 div.message-selected-other {
     box-shadow: 0px 1px 3px #008CBA inset, 0px 0px 8px #008CBA;
     margin-left: 10px;
-}
+}*/
 
 div#view-column {
     position: absolute;

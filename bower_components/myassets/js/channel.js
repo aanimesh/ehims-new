@@ -104,8 +104,6 @@ var get_path_to_root = function (msg){
 // show the next message
 var show_msg = function(msg){
 
-
-
     reply(msg._id);
 
     //if(msg.msg_parent){
@@ -155,13 +153,13 @@ var remove_from_queue = function(id){
 
 var make_msg_div = function(msg){
     var class_str="message ",info_div; 
-    class_str += msg.author===username?"message-user":"message-other";
-    var msg_div = $("<div>",{class: class_str, id: msg._id}); 
+    //class_str += msg.author===username?"message-user":"message-other";
+    var msg_div = $("<div>",{class: class_str, id: msg._id});  
+    msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
     info_div = '<div class="info">'+msg.author+' | ';
-    info_div += '<a class="reply"><i class="fa fa-reply"></i> ';
-    info_div += 'Reply <span class="rcnt">('+msg.children.length +')';
-    info_div += '</span></a></div>';
+    info_div += 'Replies: '+msg.children.length; 
+    info_div += '</div>';
     msg_div.append(info_div);
     return msg_div;
 };
@@ -176,8 +174,7 @@ var reply = function(id){
     tree.selectNodes([id]); 
     display_path_to_root(id);
     //change_view_root(id);
-    var className = " message-selected-";
-    className += username === root.author ? 'user' : 'other';
+    var className = " message-selected";
     $('#'+id)[0].className += className;
     $('#message').trigger("focus");
 };
@@ -262,8 +259,17 @@ var enter_on_message = function(e){
 };
 
 var user_log_on = function(uname){
-    if(uname !== username)
-        $('#online-users').append('<li>'+uname+'</li>');
+    if(uname !== username){
+        // first assign a colour
+        var pos = online.length;
+        online.push({name:uname, colour: colours[colour_pos %57]});
+        colour_pos += 7;
+
+        $('#online-users').append(
+            '<li style="color:'+
+            online[pos].colour+
+            ';">'+uname+'</li>');
+    }
 };
 
 var user_log_off = function(uname){
@@ -333,6 +339,37 @@ var display_tree = function(){
     tree.on('select',function(p){ reply(p.nodes[0]);});
 };
 
+var assign_colour = function(){
+    for (var i = online.length-1; i>=0 ; i--){
+        online[i].colour = colours[colour_pos % colours.length];
+        // increase by  so multiple users aren't too close 
+        // together. 7 chosen to be coprime ot length of
+        // colours (57) so that all colours are visited before
+        // a repeated colour.
+        colour_pos += 7; 
+    }
+};
+
+
+var update_online = function(){
+    $('#online-users').html('');
+    for (var i = online.length-1; i>=0 ; i--){
+        $('#online-users').append(
+                '<li style="color:'+
+                online[i].colour+
+                ';">'+online[i].name+'</li>');
+    }
+};
+
+var get_colour = function(uname){
+    for (var i = online.length-1; i>=0 ; i--){
+        if(online[i].name === uname){
+            return online[i].colour;
+        }
+    }
+    return "#000";
+};
+
 $(document).ready(function(){
     var q = "username="+username+"&channel="+channel.name;
     socket = io(socket_url, {query:q});
@@ -352,6 +389,11 @@ $(document).ready(function(){
     $('a#mail').on('click',next_msg);
     
     $('textarea#message').on('keydown',enter_on_message);
+
+
+    assign_colour();
+
+    update_online();
 
 
     build_tree();

@@ -50,6 +50,7 @@ module.exports = function(io){
                            return new Date(a.created_at) - new Date(b.created_at);
                        });
                        context.queue = queue;
+                       console.log(channel.online_users);
                        storage.get_usernames(channel.online_users,function(results){
                            context.online = results;
                            res.render("channel", context);
