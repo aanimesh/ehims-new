@@ -197,7 +197,8 @@ var display_path_to_root = function(id){
         msg_view.empty();
         for(var i=0, len = path.length; i<len; i++){
             msg_div = make_msg_div(path[i]);
-            msg_div.css('opacity', i === len-1 ? '1':'0.'+(i+1+(10-len)));
+            //msg_div.css('opacity', i === len-1 ? '1':'0.'+(i+1+(10-len)));
+            msg_div.css('opacity', len=== 1 ? '1' : String((i+1)/len));
             msg_view.append(msg_div);
         }
         $('.message').on('click',function(){
