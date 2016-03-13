@@ -92,11 +92,13 @@ var next_msg = function(){
     show_msg(msg);
 }; 
 
+// this method does not include the message it was called on
 var get_path_to_root = function (msg){
     var ret = [];
-    if(msg){
-        ret = get_path_to_root(messages[msg.msg_parent]);
-        ret.push(msg);
+    msg = messages[msg.msg_parent];
+    while(msg){
+        ret.unshift(msg);
+        msg = messages[msg.msg_parent];
     }
     return ret;
 };
@@ -107,35 +109,14 @@ var show_msg = function(msg){
 
     reply(msg._id);
 
-    //if(msg.msg_parent){
-    //    // if the parent message is in view, then increment it's reply count
-    //    if($('#'+msg.msg_parent).length > 0){
-    //        $('#'+msg.msg_parent)
-    //            .find('.rcnt')
-    //            .html('('+messages[msg.msg_parent].children.length+')');
-    //    }
-
-   //     if(cur_root && msg.msg_parent._id === cur_root._id){
-   //         $('#messages-view').append(make_msg_div(msg));
-   //     }
-   //} else {
-   //     // then msg is a top_lvl message
-   //     if (!cur_root){
-   //         $('#messages-view').append(make_msg_div(msg));
-   //    }
-   //}
-   // $('a.reply').on('click',function(){
-   //     reply($(this).closest('.message').attr('id'));
-   // });
-   //
-   
     // if in queue, remove
-    remove_from_queue(msg._id);
-    seen.push(msg);
+    //remove_from_queue(msg._id);
+    //seen.push(msg);
     
     var messages_view = document.getElementById("messages-view");
-    messages_view.scrollTop = messages_view.scrollHeight;
-
+    // check to make sure displayed message is in view
+    messages_view.scrollTop = // messages_view.scrollHeight;
+            $('#'+msg._id).position().top;
 };
 
 var remove_from_queue = function(id){
@@ -172,15 +153,31 @@ var make_msg_div = function(msg){
 // navigating functions
 
 var reply = function(id){
+    console.log(id);
     var root = messages[id];
     cur_root = id;
-    console.log("set cur_root to: " + cur_root);
     // show slection on tree
-    tree.selectNodes([id]); 
     display_path_to_root(id);
     //change_view_root(id);
-    var className = " message-selected";
-    $('#'+id)[0].className += className;
+    
+    display_siblings(id);
+    // remove siblings from queue
+    var siblings;
+    console.log(queue.length);
+    if(!(id === "0" || messages[id].msg_parent === null)){
+        siblings = messages[messages[id].msg_parent].children;
+    } else{
+        siblings = channel.top_lvl_messages;
+    }
+
+    var siblings_set = new Set(siblings);
+    for(var i=0, len=queue.length; i<len; i++)
+        if(siblings_set.has(queue[i]._id))
+            seen.push(queue.splice(i,1)[0]);
+
+    console.log(queue.length);
+    tree.selectNodes(siblings); 
+    
     $('#message').trigger("focus");
 };
 
@@ -198,8 +195,31 @@ var display_path_to_root = function(id){
         for(var i=0, len = path.length; i<len; i++){
             msg_div = make_msg_div(path[i]);
             //msg_div.css('opacity', i === len-1 ? '1':'0.'+(i+1+(10-len)));
-            msg_div.css('opacity', len=== 1 ? '1' : String((i+1)/len));
+            msg_div.css('opacity', String((i+1)/(len+1)));
             msg_view.append(msg_div);
+        }
+        $('.message').on('click',function(){
+            reply($(this).attr('id'));
+        });
+    }
+};
+
+var display_siblings = function(id){
+    if(id === "0" || messages[id].msg_parent === null){
+        go_to_root();
+        document.getElementById(id).className+= ' message-selected';
+    }else{
+        var msg_div;
+        var siblings = messages[messages[id].msg_parent].children;
+        var msg_view = $('#messages-view');
+        for(var i=0, len=siblings.length; i<len; i++){
+            msg_div = make_msg_div(messages[siblings[i]]);
+            msg_view.append(msg_div); 
+        }
+
+        for(i=0, len=siblings.length; i<len; i++){
+            document.getElementById(siblings[i]).className += 
+                siblings[i] === id ? ' message-selected' : ' message-sibling';
         }
         $('.message').on('click',function(){
             reply($(this).attr('id'));
@@ -227,7 +247,7 @@ var change_view_root = function(id){ // change root
 };
 
 var go_to_root = function(){ // change the chat to the root of the channel
-    cur_root = null;
+    //cur_root = null;
     var msg_view = $('#messages-view');
     msg_view.empty();
     var msg;
@@ -416,7 +436,7 @@ $(document).ready(function(){
         console.log('clicked');
         reply($(this).attr('id'));
     });
-    $('#channel-name').on('click',go_to_root);
+    $('#channel-name').on('click',function(){cur_root=null;go_to_root();});
     $('#back-arrow').on('click',back);
 
     $('a#mail').on('click',next_msg);
@@ -431,6 +451,7 @@ $(document).ready(function(){
 
     build_tree();
     display_tree();
+    $('body').on('click',function(){$('#message').focus();});
     $('#message').focus();
 
     if(queue.length > 0){
