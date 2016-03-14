@@ -57,20 +57,20 @@ div#message-buttons{
 }
 
 div.message {
-    width: 80%;
+    width: 95%;
     margin: 5px 1px 0px 1px;
     padding: 2px 2px 2px 2px; 
     color: #FFFFFF;
     border-radius: 3px;
     border-style: solid;
     border-width: 1px;
-    display: block;
+    display: inline-block;
     font-size: 0.72222rem;
     font-weight: normal;
     position: relative;
     color: #FFFFFF;
     text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
-    float: left;
+    top: 0px;
 }
 
 div.info{
@@ -100,13 +100,18 @@ div.message-selected {
     margin-left: 20px;
 }
 
-div.message_wrapper {
+div.message-wrapper {
     position: relative;
+    width: 80%;
+    display: block;
+    float: left;
 }
 
-i#selected-arrow {
+
+div.selected-arrow {
     position: relative;
-    left: 0px;
+    display:inline;
+    float: left;
     top: 10px;
 }
 /*div.message-selected::before {

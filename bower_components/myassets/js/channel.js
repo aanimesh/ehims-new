@@ -142,7 +142,7 @@ var remove_from_queue = function(id){
 var make_msg_div = function(msg){
     var class_str="message ",info_div; 
     //class_str += msg.author===username?"message-user":"message-other";
-    var wrapper = $("<div>",{class: 'message_wrapper'});
+    var wrapper = $("<div>",{class: 'message-wrapper', id: msg._id+'-wrapper'});
     var msg_div = $("<div>",{class: class_str, id: msg._id});  
     msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
@@ -196,7 +196,7 @@ var reply = function(id){
 //    $('#selected-arrow').css('display', 'inline-block');
 //    $('#selected-arrow').css('left',$('#'+id).position().left);
 //    $('#selected-arrow').css('top',$('#'+id).position().top);
-    $('#'+id).parent().prepend('<i class="fa fa-arrow-right selected-arrow"></i>');
+    $('#'+id+'-wrapper').prepend('<div class="selected-arrow"><i class="fa fa-arrow-right"></i></div>');
 };
 
 var display_path_to_root = function(id){
@@ -237,7 +237,7 @@ var display_siblings = function(id){
     }
 
     for(i=0, len=siblings.length; i<len; i++){
-        document.getElementById(siblings[i]).className += 
+        document.getElementById(siblings[i]+'-wrapper').className += 
             siblings[i] === id ? ' message-selected' : ' message-sibling';
     }
     $('.message').on('click',function(){
