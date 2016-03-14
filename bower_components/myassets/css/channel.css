@@ -23,9 +23,16 @@ div#messages-column {
     padding-left: 3px;
 }
 
+div#progress-div {
+    position: absolute;
+    top:0px;
+    height: 15px;
+    left: -1.5px;
+}
+
 div#messages-view {
     position: absolute;
-    top: 0;
+    top: 15px;
     bottom: 100px;
     overflow-y: scroll;
     padding-bottom: 5px;

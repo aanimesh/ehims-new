@@ -50,6 +50,10 @@ var update_queue_display = function(){
     $('#new-msg-list').empty();
     for(i=queue.length-1;i>=0;i--)
         add_msg_to_hover_list(queue[i]);
+
+    // now fix the progress bar
+    var percent = Math.ceil(100*seen.length/(queue.length + seen.length));
+    document.getElementById('progress-bar').style.width = percent + '%';
 };
 
 

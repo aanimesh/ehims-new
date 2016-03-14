@@ -43,6 +43,7 @@ html
                             i.fa.fa-envelope
                             | &nbsp;
                             span#queue-length (!{queue.length})
+                //     li
                 ul.right
                     li
                         a Chatting as: !{user.name}
@@ -54,6 +55,8 @@ html
 
 
         #messages-column
+            .progress.large-12.radius.success#progress-div
+                span.meter#progress-bar(style="width:1%")
             //#selected-arrow
             //    i.fa.fa-arrow-right
             #messages-view
