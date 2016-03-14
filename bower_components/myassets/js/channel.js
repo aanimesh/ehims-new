@@ -11,7 +11,9 @@ var send_message = function () {
         'channel'   : channel.name,
         'msg_parent': cur_root,
         'children'  : [], // can't have children yet...
-        'content'   : $('#message').val()
+        'content'   : $('#message').val().replace('>','&gt;')
+                                         .replace('<','&lt;')
+                                         .replace('&','&amp;')
     };
     
     // post to server as json
@@ -64,6 +66,9 @@ var add_msg_to_hover_list = function(msg){
 
 var receive_msg = function(msg){
     messages[msg._id] = msg;
+    ids[String(cur_id)] = msg._id;
+    cur_id++;
+
     if(msg.msg_parent)
         messages[msg.msg_parent].children.push(msg._id);
     else
