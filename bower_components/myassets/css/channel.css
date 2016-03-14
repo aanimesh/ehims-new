@@ -73,6 +73,10 @@ div.message {
     top: 0px;
 }
 
+div.message::before {
+    content: "ID: " attr(user_id);
+}
+
 div.info{
     bottom: 2px;
     color: #fff !important;

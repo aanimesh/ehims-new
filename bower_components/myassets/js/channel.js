@@ -66,7 +66,7 @@ var add_msg_to_hover_list = function(msg){
 
 var receive_msg = function(msg){
     messages[msg._id] = msg;
-    ids[String(cur_id)] = msg._id;
+    ids[msg._id] = cur_id;
     cur_id++;
 
     if(msg.msg_parent)
@@ -88,7 +88,7 @@ var receive_msg = function(msg){
     tree_data.edges.push(new Edge(msg_parent,msg._id));
     display_tree();
     if(msg.author === username)
-        show_msg(msg,true);
+        reply(msg._id,true);
     else
         add_msg_to_hover_list(msg);
 
@@ -110,21 +110,6 @@ var get_path_to_root = function (msg){
     return ret;
 };
 
-
-// show the next message
-var show_msg = function(msg){
-
-    reply(msg._id);
-
-    // if in queue, remove
-    //remove_from_queue(msg._id);
-    //seen.push(msg);
-    
-    var messages_view = document.getElementById("messages-view");
-    // check to make sure displayed message is in view
-    messages_view.scrollTop = // messages_view.scrollHeight;
-            $('#'+msg._id).position().top;
-};
 
 var remove_from_queue = function(id){
     var i;
@@ -148,7 +133,7 @@ var make_msg_div = function(msg){
     var class_str="message ",info_div; 
     //class_str += msg.author===username?"message-user":"message-other";
     var wrapper = $("<div>",{class: 'message-wrapper', id: msg._id+'-wrapper'});
-    var msg_div = $("<div>",{class: class_str, id: msg._id});  
+    var msg_div = $("<div>",{class: class_str, id: msg._id, user_id: ids[msg._id]});  
     msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
     info_div = '<div class="info">'+msg.author+' | ';
@@ -202,6 +187,11 @@ var reply = function(id){
 //    $('#selected-arrow').css('left',$('#'+id).position().left);
 //    $('#selected-arrow').css('top',$('#'+id).position().top);
     $('#'+id+'-wrapper').prepend('<div class="selected-arrow"><i class="fa fa-arrow-right"></i></div>');
+
+    // check to make sure displayed message is in view
+    var messages_view = document.getElementById("messages-view");
+    messages_view.scrollTop = // messages_view.scrollHeight;
+            $('#'+id+'-wrapper').position().top;
 };
 
 var display_path_to_root = function(id){

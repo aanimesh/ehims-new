@@ -15,7 +15,7 @@ html
             var cur_id = 0;
             // set up ids dict for search ids visible to the user
             for(len=queue.length; cur_id<len; cur_id++)
-                ids[String(cur_id)] = queue[cur_id]._id;
+                ids[queue[cur_id]._id] = cur_id;
             // stack used for back-button
             var seen     = []
             var username = "!{user.name}";
