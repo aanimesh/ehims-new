@@ -45,6 +45,9 @@ var update_queue_display = function(){
         envelope.className = "fa fa-envelope";
         clearTimeout(new_message_flash);
     }
+    $('#new-msg-list').empty();
+    for(i=queue.length-1;i>=0;i--)
+        add_msg_to_hover_list(queue[i]);
 };
 
 
@@ -55,7 +58,7 @@ var add_msg_to_hover_list = function(msg){
             msg.content.substring(0, 
                 (25-msg.author.length)>0? 25-msg.author.length : 0) +
             '</li>');
-    $('#list-'+msg._id).on('click', function(){show_msg(msg);});
+    $('#list-'+msg._id).on('click', function(){reply(msg);});
 };
 
 
@@ -88,8 +91,7 @@ var receive_msg = function(msg){
 
 var next_msg = function(){
     if(queue.length === 0) return;
-    var msg = queue.shift();
-    show_msg(msg);
+    reply(queue[0]._id);
 }; 
 
 // this method does not include the message it was called on
@@ -140,6 +142,7 @@ var remove_from_queue = function(id){
 var make_msg_div = function(msg){
     var class_str="message ",info_div; 
     //class_str += msg.author===username?"message-user":"message-other";
+    var wrapper = $("<div>",{class: 'message_wrapper'});
     var msg_div = $("<div>",{class: class_str, id: msg._id});  
     msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
@@ -147,13 +150,16 @@ var make_msg_div = function(msg){
     info_div += 'Replies: '+msg.children.length; 
     info_div += '</div>';
     msg_div.append(info_div);
-    return msg_div;
+    wrapper.append(msg_div);
+    return wrapper;
 };
 
 // navigating functions
 
+// maybe this should be renamed to "set focus"
+// This function takes an id and sets that message to the focal message,
+// also popping and displaying all siblings in the process
 var reply = function(id){
-    console.log(id);
     var root = messages[id];
     cur_root = id;
     // show slection on tree
@@ -163,7 +169,6 @@ var reply = function(id){
     display_siblings(id);
     // remove siblings from queue
     var siblings;
-    console.log(queue.length);
     if(!(id === "0" || messages[id].msg_parent === null)){
         siblings = messages[messages[id].msg_parent].children;
     } else{
@@ -171,14 +176,27 @@ var reply = function(id){
     }
 
     var siblings_set = new Set(siblings);
-    for(var i=0, len=queue.length; i<len; i++)
-        if(siblings_set.has(queue[i]._id))
+    for(var i=0, len=queue.length; i<len; i++){
+        if(siblings_set.has(queue[i]._id)){
             seen.push(queue.splice(i,1)[0]);
-
-    console.log(queue.length);
+            i--;
+            len -= 1;
+        }
+    }
+    update_queue_display();
     tree.selectNodes(siblings); 
     
     $('#message').trigger("focus");
+    //var msg_pos = $('#'+id).position();
+    //$('#selected-arrow').css({
+    //    position : 'relative',
+    //    top : (msg_pos.top + 5) + 'px',
+    //    left: msg_pos.left + 'px'
+    //});
+//    $('#selected-arrow').css('display', 'inline-block');
+//    $('#selected-arrow').css('left',$('#'+id).position().left);
+//    $('#selected-arrow').css('top',$('#'+id).position().top);
+    $('#'+id).parent().prepend('<i class="fa fa-arrow-right selected-arrow"></i>');
 };
 
 var display_path_to_root = function(id){
@@ -205,26 +223,26 @@ var display_path_to_root = function(id){
 };
 
 var display_siblings = function(id){
-    if(id === "0" || messages[id].msg_parent === null){
-        go_to_root();
-        document.getElementById(id).className+= ' message-selected';
-    }else{
-        var msg_div;
-        var siblings = messages[messages[id].msg_parent].children;
-        var msg_view = $('#messages-view');
-        for(var i=0, len=siblings.length; i<len; i++){
-            msg_div = make_msg_div(messages[siblings[i]]);
-            msg_view.append(msg_div); 
-        }
-
-        for(i=0, len=siblings.length; i<len; i++){
-            document.getElementById(siblings[i]).className += 
-                siblings[i] === id ? ' message-selected' : ' message-sibling';
-        }
-        $('.message').on('click',function(){
-            reply($(this).attr('id'));
-        });
+    var msg_div;
+    var siblings;
+    if(!(id === "0" || messages[id].msg_parent === null)){
+        siblings = messages[messages[id].msg_parent].children;
+    } else{
+        siblings = channel.top_lvl_messages;
     }
+    var msg_view = $('#messages-view');
+    for(var i=0, len=siblings.length; i<len; i++){
+        msg_div = make_msg_div(messages[siblings[i]]);
+        msg_view.append(msg_div); 
+    }
+
+    for(i=0, len=siblings.length; i<len; i++){
+        document.getElementById(siblings[i]).className += 
+            siblings[i] === id ? ' message-selected' : ' message-sibling';
+    }
+    $('.message').on('click',function(){
+        reply($(this).attr('id'));
+    });
 };
 
 
@@ -275,11 +293,28 @@ var back = function(){ // when back arrow is clicked
 
     // This version of back goes to the last seen 
     if(seen.length > 0){
-        queue.unshift(seen.pop());
-        if(seen.length > 0)
+        // get the id of the last seen message
+        var id = seen[seen.length-1]._id;
+        // get all of it's siblings
+        var siblings;
+        if(!(id === "0" || messages[id].msg_parent === null)){
+            siblings = messages[messages[id].msg_parent].children;
+        } else{
+            siblings = channel.top_lvl_messages;
+        }
+    
+        // remove all of it's siblings from seen and place them in the front of the queue
+        var siblings_set = new Set(siblings);
+        for(var i=0, len=seen.length; i<len; i++){
+            if(siblings_set.has(seen[i]._id)){
+                queue.unshift(seen.splice(i,1)[0]);
+                i--;
+                len -= 1;
+            }
+        }
+        if(seen.length>0){
             reply(seen[seen.length-1]._id);
-        else
-            go_to_root();
+        }
         update_queue_display();
     }
 
@@ -384,7 +419,8 @@ var display_tree = function(){
     var options = {
         layout: {
             hierarchical: {
-                direction: 'UD'
+                direction: 'UD',
+                sortMethod: 'directed'
             } 
         }
     };
