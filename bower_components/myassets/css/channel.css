@@ -125,6 +125,14 @@ div.selected-arrow {
     float: left;
     top: 10px;
 }
+
+div.plus-minus-button {
+    position: relative;
+    display: inline;
+    float:right;
+    top: 20px;
+}
+
 /*div.message-selected::before {
     content: 'Selected';
 }*/

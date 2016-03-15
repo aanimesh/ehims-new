@@ -145,6 +145,8 @@ var make_msg_div = function(msg){
     info_div += '</div>';
     msg_div.append(info_div);
     wrapper.append(msg_div);
+    wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
+    wrapper.append($("<ul>",{class: 'reveal-children',style: "display:none;"}));
     return wrapper;
 };
 
@@ -161,6 +163,40 @@ var reply = function(id){
     //change_view_root(id);
     
     display_siblings(id);
+
+    // add listeners
+    $('.message').on('click',function(){
+        reply($(this).attr('id'));
+    });
+
+
+    // handle children reveal
+    $('.plus-minus-button').on('click',function(){
+        var id = $(this).parent().find('.message').attr('id');
+        // toggle symbol
+        $(this).find('i').attr('class',
+            $(this).find('i').attr('class').indexOf('plus')>-1 ? 
+            'fa fa-minus':'fa fa-plus');
+        var list = $(this).parent().closest('div').find('.reveal-children');
+        console.log(list);
+        // if not filled, update
+        if(list.is(':empty')){
+            var make_bind_func = function(this_id){
+                return function(){reply(this_id);};
+            };
+            var children = messages[id].children;
+            for(var i=0,len=children.length; i<len;i++){
+                list.append('<li id="child-'+messages[children[i]]._id+'">'+
+                    messages[children[i]].author +': '+
+                    messages[children[i]].content+'</li>');
+                $('#child-'+messages[children[i]]._id).on('click',
+                   make_bind_func(messages[children[i]]._id) );
+            }
+        }
+        list.slideToggle('fast');
+
+    });
+
     // remove siblings from queue
     var siblings;
     if(!(id === "0" || messages[id].msg_parent === null)){
@@ -215,9 +251,6 @@ var display_path_to_root = function(id){
             msg_div.css('opacity', String((i+1)/(len+1)));
             msg_view.append(msg_div);
         }
-        $('.message').on('click',function(){
-            reply($(this).attr('id'));
-        });
     }
 };
 
@@ -239,9 +272,6 @@ var display_siblings = function(id){
         document.getElementById(siblings[i]+'-wrapper').className += 
             siblings[i] === id ? ' message-selected' : ' message-sibling';
     }
-    $('.message').on('click',function(){
-        reply($(this).attr('id'));
-    });
 };
 
 
