@@ -119,7 +119,7 @@ div.message-wrapper {
 }
 
 
-div.selected-arrow {
+div#selected-arrow {
     position: relative;
     display:inline;
     float: left;

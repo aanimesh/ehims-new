@@ -11,9 +11,9 @@ var send_message = function () {
         'channel'   : channel.name,
         'msg_parent': cur_root,
         'children'  : [], // can't have children yet...
-        'content'   : $('#message').val().replace('>','&gt;')
+        'content'   : $('#message').val().replace('&','&amp;')
                                          .replace('<','&lt;')
-                                         .replace('&','&amp;')
+                                         .replace('>','&gt;')
     };
     
     // post to server as json
@@ -216,6 +216,7 @@ var reply = function(id){
     update_queue_display();
     tree.selectNodes(siblings); 
     
+
     $('#message').trigger("focus");
     //var msg_pos = $('#'+id).position();
     //$('#selected-arrow').css({
@@ -226,7 +227,11 @@ var reply = function(id){
 //    $('#selected-arrow').css('display', 'inline-block');
 //    $('#selected-arrow').css('left',$('#'+id).position().left);
 //    $('#selected-arrow').css('top',$('#'+id).position().top);
-    $('#'+id+'-wrapper').prepend('<div class="selected-arrow"><i class="fa fa-arrow-right"></i></div>');
+    $('#'+id+'-wrapper').prepend('<div id="selected-arrow"><i class="fa fa-arrow-right"></i></div>');
+
+    // fix indenting
+    $('#'+id+'-wrapper').css({'margin-left':
+        (20-$('#selected-arrow').width())+'px'});
 
     // check to make sure displayed message is in view
     var messages_view = document.getElementById("messages-view");
