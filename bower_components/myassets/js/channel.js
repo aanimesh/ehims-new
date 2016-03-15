@@ -64,7 +64,7 @@ var add_msg_to_hover_list = function(msg){
             msg.content.substring(0, 
                 (25-msg.author.length)>0? 25-msg.author.length : 0) +
             '</li>');
-    $('#list-'+msg._id).on('click', function(){reply(msg);});
+    $('#list-'+msg._id).on('click', function(){reply(msg._id);});
 };
 
 
@@ -92,7 +92,7 @@ var receive_msg = function(msg){
     tree_data.edges.push(new Edge(msg_parent,msg._id));
     display_tree();
     if(msg.author === username)
-        reply(msg._id,true);
+        reply(msg._id);
     else
         add_msg_to_hover_list(msg);
 
@@ -156,6 +156,7 @@ var make_msg_div = function(msg){
 // This function takes an id and sets that message to the focal message,
 // also popping and displaying all siblings in the process
 var reply = function(id){
+    if(id === "0") return;
     var root = messages[id];
     cur_root = id;
     // show slection on tree
