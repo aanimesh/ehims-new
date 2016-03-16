@@ -81,10 +81,16 @@ div.message {
 }
 
 div.message::before {
-    content: "ID: " attr(user_id);
+    content: attr(author);
+    color: #fff !important;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    background: inherit;
+    line-height: .9;
+    opacity: 0.5;
 }
 
-div.info{
+div.message::after {
+    content: attr(created_at) " | ID: " attr(user_visible_id) " | Replies: " attr(replies);
     bottom: 2px;
     color: #fff !important;
     text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;

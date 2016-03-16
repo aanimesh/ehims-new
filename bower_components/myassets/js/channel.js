@@ -137,13 +137,16 @@ var make_msg_div = function(msg){
     var class_str="message ",info_div; 
     //class_str += msg.author===username?"message-user":"message-other";
     var wrapper = $("<div>",{class: 'message-wrapper', id: msg._id+'-wrapper'});
-    var msg_div = $("<div>",{class: class_str, id: msg._id, user_id: ids[msg._id]});  
+    var d = new Date(msg.created_at);
+    var date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
+    var msg_div = $("<div>",{class: class_str, 
+        id: msg._id, 
+        author: msg.author,
+        created_at: date,
+        replies: msg.children.length,
+        user_visible_id: ids[msg._id]});  
     msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
-    info_div = '<div class="info">'+msg.author+' | ';
-    info_div += 'Replies: '+msg.children.length; 
-    info_div += '</div>';
-    msg_div.append(info_div);
     wrapper.append(msg_div);
     wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
     wrapper.append($("<ul>",{class: 'reveal-children',style: "display:none;"}));
