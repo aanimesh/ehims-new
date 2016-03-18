@@ -11,5 +11,8 @@
         "mongoose": "4.*",
         "body-parser": ">=1.14.2"
     },
-    "engines": "node >= 0.10.31"
+    "engines": "node >= 0.10.31",
+    "scripts": {
+        "start": "node server.js"
+    }
 }
