@@ -702,5 +702,8 @@ $(document).ready(function(){
     // get things started with the first message
     next_msg();
 
+    // show help dialog
+    $('#help-modal').foundation('reveal', 'open');
+
 });
 

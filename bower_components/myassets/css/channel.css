@@ -246,5 +246,20 @@ div#actions{
 
 }
 
+div#help-modal {
+    height: 90%;
+    overflow-y: scroll;
+    top: 20px;
+}
+
+ul#keybinding-help {
+    list-style-type: none;
+    margin-left: 20px;
+}
+
+ul#keybinding-help li::before {
+    font-weight: bold;
+    content: attr(key) ': ';
+}
 
 
