@@ -330,7 +330,7 @@ var arrow_down = function(){
      *       b -> else: go to next child
      *  2 -> on path to root:
      *      two subcases:
-     *       a -> hard focus node: go to first child (display if needed)
+     *       a -> hard focus node: go to first child if exists (display if needed)
      *       b -> go to child which is displayed
      */
 
@@ -341,26 +341,43 @@ var arrow_down = function(){
         var msg_parent = messages[soft_focus_id].msg_parent;
         var siblings = messages[msg_parent].children;
         if(siblings.indexOf(soft_focus_id) !== (siblings.length-1)){
-            console.log("1b");
             // case 1b
             set_soft_focus(siblings[siblings.indexOf(soft_focus_id)+1]);
         }
-    } else 
+    } else {
+        var children = messages[soft_focus_id].children;
         if(soft_focus_id === cur_root){
             //case 2a
-            console.log("2a");
-            set_soft_focus(messages[soft_focus_id].children[0]);
+            // expand children if needed
+            if($('#'+soft_focus_id+'-wrapper div.plus-minus-button i')
+                    .attr('class')
+                    .indexOf('minus') === -1){
+                $('#'+soft_focus_id+'-wrapper .plus-minus-button').trigger("click");
+            }
+            if(children.length > 0)
+                set_soft_focus(children[0]);
         } else {
             // case 2b
-            console.log("2b");
-            var children = messages[soft_focus_id].children;
             for(var i = children.length-1; i>=0; i--){
                 if($('#'+children[i]).length !== 0){
                     set_soft_focus(children[i]);
                     break;
                     }
             }
+        }
     }
+};
+
+// make soft focus the hard focal node
+var descend_from_soft_focus = function(){
+    reply(get_soft_focus());
+};
+
+// go to parent of soft focus
+var ascend_from_soft_focus = function(){
+    msg_parent = messages[get_soft_focus()].msg_parent;
+    if(msg_parent !== null)
+        reply(msg_parent);
 };
 
 var display_path_to_root = function(id){
@@ -488,25 +505,30 @@ var back = function(){ // when back arrow is clicked
 
 var handle_keydown = function(e){
     var code = e.keyCode || e.which;
+    // don't do anything if the user is typing
+    if($('#message').val().trim()){
+        if(code === 13) send_message();
+        return;
+    }
     switch(code){
         case 13: // enter
-            if($('#message').val().trim())
-                // not empty, so send message
-                send_message();
-            else{
-                next_msg();
-                $('#message').val('');
-                e.preventDefault();
-            }
+            next_msg();
+            $('#message').val('');
+            e.preventDefault();
             break;
         case 37: // left
+            ascend_from_soft_focus();
+            break;
         case 38: // up
             arrow_up();
             break;
         case 39: // right
+            /* This is for the queue/seen behaviour
             next_msg();
             $('#message').val('');
             e.preventDefault();
+            */
+            descend_from_soft_focus();
             break;
         case 40: // down
             arrow_down();
