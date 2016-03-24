@@ -192,9 +192,12 @@ var reply = function(id){
             var children = messages[id].children;
             var listitem;
             for(var i=0,len=children.length; i<len;i++){
-                listitem = $("<li>", {
+                listitem_wrapper = $("<li>", {
                     class: "child-message",
                     id: messages[children[i]]._id+'-wrapper'
+                });
+                listitem = $("<div>",{
+                    class: "child-message",
                 });
                 listitem.css({
                     'background-color': get_colour(messages[children[i]].author)
@@ -202,7 +205,8 @@ var reply = function(id){
                 listitem.html(
                     messages[children[i]].author +': '+
                     messages[children[i]].content);
-                list.append(listitem);
+                listitem_wrapper.append(listitem);
+                list.append(listitem_wrapper);
                 $('#child-'+messages[children[i]]._id).on('click',
                    make_bind_func(messages[children[i]]._id) );
             }
