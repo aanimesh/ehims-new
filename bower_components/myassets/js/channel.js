@@ -659,7 +659,13 @@ $(document).ready(function(){
     socket.on('log-on',user_log_on);
     socket.on('log-off',user_log_off);
 
-    $('#message-send').on('click',send_message);
+    $('#message-send').on('click',function(){
+        if($('#message').val().trim())
+            send_message();
+        else
+            next_msg();
+    });
+
     $('.message').on('click',function(){
         console.log('clicked');
         reply($(this).attr('id'));
@@ -689,6 +695,8 @@ $(document).ready(function(){
         }
     }
 
+    // get things started with the first message
+    next_msg();
 
 });
 
