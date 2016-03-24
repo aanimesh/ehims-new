@@ -1,4 +1,5 @@
 
+// should be "hard_focus"
 var cur_root = null;
 var socket;
 
@@ -166,7 +167,8 @@ var reply = function(id){
     display_path_to_root(id);
     //change_view_root(id);
     
-    display_siblings(id);
+    //display_siblings(id);
+    display_message(id);
 
     // add listeners
     $('.message').on('click',function(){
@@ -182,17 +184,25 @@ var reply = function(id){
             $(this).find('i').attr('class').indexOf('plus')>-1 ? 
             'fa fa-minus':'fa fa-plus');
         var list = $(this).parent().closest('div').find('.reveal-children');
-        console.log(list);
         // if not filled, update
         if(list.is(':empty')){
             var make_bind_func = function(this_id){
                 return function(){reply(this_id);};
             };
             var children = messages[id].children;
+            var listitem;
             for(var i=0,len=children.length; i<len;i++){
-                list.append('<li id="child-'+messages[children[i]]._id+'">'+
+                listitem = $("<li>", {
+                    class: "child-message",
+                    id: messages[children[i]]._id+'-wrapper'
+                });
+                listitem.css({
+                    'background-color': get_colour(messages[children[i]].author)
+                });
+                listitem.html(
                     messages[children[i]].author +': '+
-                    messages[children[i]].content+'</li>');
+                    messages[children[i]].content);
+                list.append(listitem);
                 $('#child-'+messages[children[i]]._id).on('click',
                    make_bind_func(messages[children[i]]._id) );
             }
@@ -202,45 +212,155 @@ var reply = function(id){
     });
 
     // remove siblings from queue
-    var siblings;
-    if(!(id === "0" || messages[id].msg_parent === null)){
-        siblings = messages[messages[id].msg_parent].children;
-    } else{
-        siblings = channel.top_lvl_messages;
-    }
+    // uncomment if using display_siblings
+    //var siblings;
+    //if(!(id === "0" || messages[id].msg_parent === null)){
+    //    siblings = messages[messages[id].msg_parent].children;
+    //} else{
+    //    siblings = channel.top_lvl_messages;
+    //}
 
-    var siblings_set = new Set(siblings);
+    //var siblings_set = new Set(siblings);
+    //for(var i=0, len=queue.length; i<len; i++){
+    //    if(siblings_set.has(queue[i]._id)){
+    //        seen.push(queue.splice(i,1)[0]);
+    //        i--;
+    //        len -= 1;
+    //    }
+    //}
+    //tree.selectNodes(siblings); 
+    
+    // remove self from queue
     for(var i=0, len=queue.length; i<len; i++){
-        if(siblings_set.has(queue[i]._id)){
+        if(queue[i]._id === id){
             seen.push(queue.splice(i,1)[0]);
-            i--;
-            len -= 1;
+            break;
         }
     }
+
+    tree.selectNodes([id]);
     update_queue_display();
-    tree.selectNodes(siblings); 
-    
 
     $('#message').trigger("focus");
-    //var msg_pos = $('#'+id).position();
-    //$('#selected-arrow').css({
-    //    position : 'relative',
-    //    top : (msg_pos.top + 5) + 'px',
-    //    left: msg_pos.left + 'px'
-    //});
-//    $('#selected-arrow').css('display', 'inline-block');
-//    $('#selected-arrow').css('left',$('#'+id).position().left);
-//    $('#selected-arrow').css('top',$('#'+id).position().top);
-    $('#'+id+'-wrapper').prepend('<div id="selected-arrow"><i class="fa fa-arrow-right"></i></div>');
 
-    // fix indenting
-    $('#'+id+'-wrapper').css({'margin-left':
-        (20-$('#selected-arrow').width())+'px'});
+    //automatically expand children
+    setTimeout(function() {
+        $('#'+id+'-wrapper .plus-minus-button').trigger("click");
+    },250);
+
+    // set soft focus arrow
+    set_soft_focus(id);
 
     // check to make sure displayed message is in view
     var messages_view = document.getElementById("messages-view");
     messages_view.scrollTop = // messages_view.scrollHeight;
             $('#'+id+'-wrapper').position().top;
+};
+
+// get the id of the current soft focus message wrapper
+var get_soft_focus = function(){
+    var id = $('#selected-arrow').parent().attr('id');
+    return id.substr(0,id.length-8); // strip the "-wrapper" 
+};
+
+// places the soft-focus arrow on the div of message_id 'id'
+var set_soft_focus = function (id){
+    // first remove margin from current soft focus
+    var cur_soft = $('#selected-arrow').parent().attr("id");
+    $('#'+cur_soft).css({'margin-left':''});
+    $('#'+cur_soft + ' ul.reveal-children').css({'margin-left':'20px'});
+    
+
+
+    // delete current arrow
+    $('#selected-arrow').remove();
+
+    // add the new one
+    $('#'+id+'-wrapper').prepend(
+            '<div id="selected-arrow">'+
+                '<i class="fa fa-arrow-right"></i>'+
+            '</div>');
+    // fix indenting
+    var arrow_width = $('#selected-arrow').width();
+    var new_margin = ( (id===cur_root) ? 20 : 0) -$('#selected-arrow').width();
+    $('#'+id+'-wrapper').css({
+        'margin-left':(((id===cur_root) ? 20 : 0) - arrow_width) +'px'
+    });
+    $('#'+id+'-wrapper ul.reveal-children').css({
+        'margin-left': 20+arrow_width+'px'});
+};
+
+// moves the soft-focus arrow visually up on screen
+var arrow_up = function(){
+    /* three cases:
+     *  1 -> child
+     *      two sub cases:
+     *       a -> top child: go to hard focus
+     *       b -> else: go to prev child
+     *  2 -> on path to root: go to parent
+     *  3 -> root: do nothing
+     */
+    
+    var soft_focus_wrapper = $('#selected-arrow').parent();
+    var soft_focus_id = soft_focus_wrapper.attr("id");
+    soft_focus_id = soft_focus_id.substr(0,soft_focus_id.length-8);
+    if(soft_focus_wrapper.is('li')){
+        var msg_parent = messages[soft_focus_id].msg_parent;
+        var siblings = messages[msg_parent].children;
+        if(siblings.indexOf(soft_focus_id) === 0)
+            // case 1a
+            set_soft_focus(cur_root);
+        else {
+            // case 1b
+            set_soft_focus(siblings[siblings.indexOf(soft_focus_id)-1]);
+        }
+    } else 
+        if(messages[soft_focus_id].msg_parent !== null)
+           // case 2
+           set_soft_focus(messages[soft_focus_id].msg_parent);
+       
+};
+
+// moves the soft-focus arrow visually down on screen
+var arrow_down = function(){
+    /* two cases:
+     *  1 -> child
+     *      two subcases:
+     *       a -> bottom child: do nothing
+     *       b -> else: go to next child
+     *  2 -> on path to root:
+     *      two subcases:
+     *       a -> hard focus node: go to first child (display if needed)
+     *       b -> go to child which is displayed
+     */
+
+    var soft_focus_wrapper = $('#selected-arrow').parent();
+    var soft_focus_id = soft_focus_wrapper.attr("id");
+    soft_focus_id = soft_focus_id.substr(0,soft_focus_id.length-8);
+    if(soft_focus_wrapper.is('li')){
+        var msg_parent = messages[soft_focus_id].msg_parent;
+        var siblings = messages[msg_parent].children;
+        if(siblings.indexOf(soft_focus_id) !== (siblings.length-1)){
+            console.log("1b");
+            // case 1b
+            set_soft_focus(siblings[siblings.indexOf(soft_focus_id)+1]);
+        }
+    } else 
+        if(soft_focus_id === cur_root){
+            //case 2a
+            console.log("2a");
+            set_soft_focus(messages[soft_focus_id].children[0]);
+        } else {
+            // case 2b
+            console.log("2b");
+            var children = messages[soft_focus_id].children;
+            for(var i = children.length-1; i>=0; i--){
+                if($('#'+children[i]).length !== 0){
+                    set_soft_focus(children[i]);
+                    break;
+                    }
+            }
+    }
 };
 
 var display_path_to_root = function(id){
@@ -263,6 +383,8 @@ var display_path_to_root = function(id){
     }
 };
 
+/* No longer used 
+ * Uncomment to show all siblings of the focal message
 var display_siblings = function(id){
     var msg_div;
     var siblings;
@@ -281,6 +403,12 @@ var display_siblings = function(id){
         document.getElementById(siblings[i]+'-wrapper').className += 
             siblings[i] === id ? ' message-selected' : ' message-sibling';
     }
+};
+*/
+
+var display_message = function(id){
+    $('#messages-view').append(make_msg_div(messages[id]));
+     document.getElementById(id+'-wrapper').className += ' message-selected';
 };
 
 
@@ -358,10 +486,10 @@ var back = function(){ // when back arrow is clicked
 
 };
 
-var enter_on_message = function(e){
+var handle_keydown = function(e){
     var code = e.keyCode || e.which;
     switch(code){
-        case 13:
+        case 13: // enter
             if($('#message').val().trim())
                 // not empty, so send message
                 send_message();
@@ -370,17 +498,21 @@ var enter_on_message = function(e){
                 $('#message').val('');
                 e.preventDefault();
             }
-            return;
-        case 39:
+            break;
+        case 37: // left
+        case 38: // up
+            arrow_up();
+            break;
+        case 39: // right
             next_msg();
             $('#message').val('');
             e.preventDefault();
-            return;
-        case 37:
-            back();
-            return;
+            break;
+        case 40: // down
+            arrow_down();
+            break;
         default:
-            return;
+            break;
     }
 };
 
@@ -515,7 +647,7 @@ $(document).ready(function(){
 
     $('a#mail').on('click',next_msg);
     
-    $('textarea#message').on('keydown',enter_on_message);
+    $('textarea#message').on('keydown',handle_keydown);
 
 
     assign_colour();

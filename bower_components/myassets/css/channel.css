@@ -80,6 +80,29 @@ div.message {
     top: 0px;
 }
 
+li.child-message {
+    width: 80%;
+    margin: 5px 1px 0px 0px;
+    padding: 2px 2px 2px 2px; 
+    color: #FFFFFF;
+    border-radius: 3px;
+    border-style: solid;
+    border-width: 1px;
+    display: inline-block;
+    font-size: 0.82222rem;
+    font-weight: normal;
+    position: relative;
+    color: #FFFFFF;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    top: 0px;
+}
+
+ul.reveal-children {
+    list-style-type: none;
+    margin-left: 20px;
+}
+
+
 div.message::before {
     content: attr(author);
     color: #fff !important;
