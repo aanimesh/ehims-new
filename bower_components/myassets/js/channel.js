@@ -2,6 +2,7 @@
 // should be "hard_focus"
 var cur_root = null;
 var socket;
+var dropdown_delay = 250; // ms to children dropdown shows
 
 var send_message = function () {
     $('#message').prop('disabled',true);
@@ -257,7 +258,7 @@ var reply = function(id,hnav){
     //automatically expand children
     setTimeout(function() {
         $('#'+id+'-wrapper .plus-minus-button').trigger("click");
-    },250);
+    },dropdown_delay);
 
     // set soft focus arrow
     set_soft_focus(id);
@@ -289,7 +290,7 @@ var set_soft_focus = function (id){
     // add the new one
     $('#'+id+'-wrapper').prepend(
             '<div id="selected-arrow">'+
-                '<i class="fa fa-arrow-right"></i>'+
+                '<i class="fa fa-chevron-circle-right"></i>'+
             '</div>');
     // fix indenting
     var arrow_width = $('#selected-arrow').width();
@@ -379,9 +380,46 @@ var arrow_down = function(){
     }
 };
 
+var to_left_sibling = function(){
+    var id = get_soft_focus();
+    var siblings = messages[id].msg_parent ? 
+        messages[messages[id].msg_parent].children : 
+        channel.top_lvl_messages;
+    if(siblings.indexOf(id) <= 0)
+        return;
+    var left = siblings[siblings.indexOf(id)-1];
+    if(is_visible(left))
+            set_soft_focus(left);
+    else
+        reply(left);
+};
+
+var to_right_sibling = function(){
+    var id = get_soft_focus();
+    var siblings = messages[id].msg_parent ? 
+        messages[messages[id].msg_parent].children : 
+        channel.top_lvl_messages;
+    if(siblings.indexOf(id) >= siblings.length-1 || siblings.indexOf(id) === -1)
+        return;
+
+    var right = siblings[siblings.indexOf(id)+1];
+    if(is_visible(right))
+            set_soft_focus(right);
+    else
+        reply(right);
+};
+
 // make soft focus the hard focal node
 var descend_from_soft_focus = function(){
-    reply(get_soft_focus());
+    var soft_focus = get_soft_focus();
+    reply(soft_focus);
+    // set soft focus to last child
+    var children = messages[soft_focus].children;
+    if(children.length > 0)
+        // wait for dropdown then set selected arrow to last child
+        setTimeout(function(){
+            set_soft_focus(children[children.length-1]);
+        },dropdown_delay+10);
 };
 
 // go to parent of soft focus
@@ -455,6 +493,11 @@ var change_view_root = function(id){ // change root
         });
     }
 };
+
+var is_visible = function(id){
+    return ($('#'+id+'-wrapper').length > 0);
+};
+
 
 var go_to_root = function(){ // change the chat to the root of the channel
     //cur_root = null;
@@ -555,10 +598,12 @@ var handle_keydown = function(e){
             e.preventDefault();
             break;
         case 37: // left
-            ascend_from_soft_focus();
+            //ascend_from_soft_focus();
+            to_left_sibling();
             break;
         case 38: // up
-            arrow_up();
+            //arrow_up();
+            ascend_from_soft_focus();
             break;
         case 39: // right
             /* This is for the queue/seen behaviour
@@ -566,10 +611,12 @@ var handle_keydown = function(e){
             $('#message').val('');
             e.preventDefault();
             */
-            descend_from_soft_focus();
+            //descend_from_soft_focus();
+            to_right_sibling();
             break;
         case 40: // down
-            arrow_down();
+            //arrow_down();
+            descend_from_soft_focus();
             break;
         default:
             break;
