@@ -159,7 +159,14 @@ var make_msg_div = function(msg){
 // maybe this should be renamed to "set focus"
 // This function takes an id and sets that message to the focal message,
 // also popping and displaying all siblings in the process
-var reply = function(id){
+var reply = function(id,hnav){
+    // if reply was called while naviaging history, do not add to history
+    // if not, add to history and clear forward history
+    if(!hnav){
+        bhistory.push(id);
+        fhistory = [];
+    }
+
     if(id === "0") return;
     var root = messages[id];
     cur_root = id;
@@ -432,8 +439,6 @@ var display_message = function(id){
      document.getElementById(id+'-wrapper').className += ' message-selected';
 };
 
-
-
 var change_view_root = function(id){ // change root
     if(id === "0")
         go_to_root();
@@ -464,6 +469,9 @@ var go_to_root = function(){ // change the chat to the root of the channel
     });
 }; 
 
+/* No longer used
+ * uncomment for seen/queue back/forward behaviour
+ *
 var back = function(){ // when back arrow is clicked
     // This version of back goes to the previous node in the tree:
     // if at root, logout and go to channels page
@@ -506,6 +514,32 @@ var back = function(){ // when back arrow is clicked
     }
 
 };
+*/
+
+var back = function(){
+    if(bhistory.length > 0){
+       var last = bhistory.pop();
+       fhistory.push(last);
+       if(cur_root === last){
+        last = bhistory.pop();
+        fhistory.push(last);
+       }
+       reply(last,true);
+    }
+};
+
+var forward = function(){
+    if(fhistory.length > 0){
+       var next = fhistory.pop();
+       bhistory.push(next);
+       if(cur_root === next){
+        next = fhistory.pop();
+        bhistory.push(next);
+       }
+       reply(next,true); 
+    }
+};
+
 
 var handle_keydown = function(e){
     var code = e.keyCode || e.which;
@@ -675,7 +709,10 @@ $(document).ready(function(){
         reply($(this).attr('id'));
     });
     $('#channel-name').on('click',function(){cur_root=null;go_to_root();});
-    $('#back-arrow').on('click',back);
+    //$('#back-arrow').on('click',back);
+
+    $('#backward').on('click',back);
+    $('#forward').on('click',forward);
 
     $('a#mail').on('click',next_msg);
     

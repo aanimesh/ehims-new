@@ -249,7 +249,6 @@ div#actions{
 div#help-modal {
     height: 90%;
     overflow-y: scroll;
-    top: 20px;
 }
 
 ul#keybinding-help {

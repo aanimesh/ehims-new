@@ -18,6 +18,8 @@ html
                 ids[queue[cur_id]._id] = cur_id;
             // stack used for back-button
             var seen     = []
+            var bhistory  = []
+            var fhistory = []
             var username = "!{user.name}";
             var channel  = !{JSON.stringify(channel)}; 
             // colours to be cycled through when assigning a colour to each user
@@ -35,14 +37,17 @@ html
             section.top-bar-section
                 ul.left
                     li
-                        a#back-arrow 
-                            i.fa.fa-arrow-left
+                        a#backward 
+                            i.fa.fa-backward
                     li 
                         a(data-dropdown="new-msg-list",
                           data-options="is_hover:true; hover_timeout:5000")#mail
                             i.fa.fa-envelope
                             | &nbsp;
                             span#queue-length (!{queue.length})
+                    li
+                        a#forward 
+                            i.fa.fa-forward
                 //     li
                 ul.right
                     li
