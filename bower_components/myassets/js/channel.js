@@ -150,7 +150,8 @@ var make_msg_div = function(msg){
     msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
     wrapper.append(msg_div);
-    wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
+    if(msg.children.length > 0)
+        wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
     wrapper.append($("<ul>",{class: 'reveal-children',style: "display:none;"}));
     return wrapper;
 };
@@ -412,7 +413,10 @@ var to_right_sibling = function(){
 // make soft focus the hard focal node
 var descend_from_soft_focus = function(){
     var soft_focus = get_soft_focus();
-    reply(soft_focus);
+    // if the soft focus isn't the hard focus, the change that
+    if(cur_root !== soft_focus){
+        reply(soft_focus);
+    }
     // set soft focus to last child
     var children = messages[soft_focus].children;
     if(children.length > 0)
@@ -593,7 +597,8 @@ var handle_keydown = function(e){
     }
     switch(code){
         case 13: // enter
-            next_msg();
+            //next_msg();
+            descend_from_soft_focus();
             $('#message').val('');
             e.preventDefault();
             break;
@@ -602,8 +607,8 @@ var handle_keydown = function(e){
             to_left_sibling();
             break;
         case 38: // up
-            //arrow_up();
-            ascend_from_soft_focus();
+            arrow_up();
+            //ascend_from_soft_focus();
             break;
         case 39: // right
             /* This is for the queue/seen behaviour
@@ -615,8 +620,8 @@ var handle_keydown = function(e){
             to_right_sibling();
             break;
         case 40: // down
-            //arrow_down();
-            descend_from_soft_focus();
+            arrow_down();
+            //descend_from_soft_focus();
             break;
         default:
             break;
@@ -705,6 +710,19 @@ var display_tree = function(){
     tree.on('select',function(p){ reply(p.nodes[0]);});
 };
 
+var toggle_tree_view = function(){
+    var toggle_tree = $('#toggle-tree');
+    if(toggle_tree.html().indexOf("Show") > -1){
+        $('#chat-view').show();
+        toggle_tree.html("Hide Tree View");
+        $('#users-view').css({'top':'','bottom':'0'});
+    } else {
+        $('#chat-view').hide();
+        toggle_tree.html("Show Tree View");
+        $('#users-view').css({'top':'0','bottom':''});
+    }
+};
+
 var assign_colour = function(){
     for (var i = online.length-1; i>=0 ; i--){
         online[i].colour = colours[colour_pos % colours.length];
@@ -775,6 +793,8 @@ $(document).ready(function(){
     display_tree();
     $('body').on('click',function(){$('#message').focus();});
     $('#message').focus();
+
+    $('#toggle-tree').on('click',toggle_tree_view);
 
     if(queue.length > 0){
         new_message_flash = setInterval(message_flash, 700);
