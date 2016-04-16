@@ -11,7 +11,7 @@ var send_message = function () {
     var message = {
         'author'    : username,
         'channel'   : channel.name,
-        'msg_parent': cur_root,
+        'msg_parent': get_soft_focus(),
         'children'  : [], // can't have children yet...
         'content'   : $('#message').val().replace('&','&amp;')
                                          .replace('<','&lt;')
@@ -200,24 +200,30 @@ var reply = function(id,hnav){
             };
             var children = messages[id].children;
             var listitem;
+            var d, date;
             for(var i=0,len=children.length; i<len;i++){
+                cmsg = messages[children[i]];
+                d = new Date(cmsg.created_at);
+                date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
                 listitem_wrapper = $("<li>", {
                     class: "child-message",
-                    id: messages[children[i]]._id+'-wrapper'
+                    id: cmsg._id+'-wrapper'
                 });
                 listitem = $("<div>",{
                     class: "child-message",
+                    id: cmsg._id, 
+                    author: cmsg.author,
+                    created_at: date,
+                    replies: cmsg.children.length,
+                    user_visible_id: ids[cmsg._id] 
                 });
                 listitem.css({
-                    'background-color': get_colour(messages[children[i]].author)
+                    'background-color': get_colour(cmsg.author)
                 });
-                listitem.html(
-                    messages[children[i]].author +': '+
-                    messages[children[i]].content);
+                listitem.html("<br/>"+cmsg.content+"<br/>");
                 listitem_wrapper.append(listitem);
                 list.append(listitem_wrapper);
-                $('#child-'+messages[children[i]]._id).on('click',
-                   make_bind_func(messages[children[i]]._id) );
+                $('#child-'+cmsg._id).on('click', make_bind_func(cmsg._id) );
             }
         }
         list.slideToggle('fast');

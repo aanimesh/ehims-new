@@ -81,15 +81,15 @@ div.message {
 }
 
 div.child-message {
-    width: 80%;
+    width: 90%;
     margin: 5px 1px 0px 0px;
-    padding: 2px 2px 2px 2px; 
+    padding: 2px 2px 15px 2px; 
     color: #FFFFFF;
     border-radius: 3px;
     border-style: solid;
     border-width: 1px;
     display: inline-block;
-    font-size: 0.82222rem;
+    font-size: 0.92222rem;
     font-weight: normal;
     position: relative;
     color: #FFFFFF;
@@ -120,6 +120,26 @@ div.message::before {
 }
 
 div.message::after {
+    content: attr(created_at) " | ID: " attr(user_visible_id) " | Replies: " attr(replies);
+    bottom: 2px;
+    color: #fff !important;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    background: inherit;
+    line-height: .9;
+    opacity: 0.5;
+    position: absolute;
+}
+
+div.child-message::before {
+    content: attr(author);
+    color: #fff !important;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    background: inherit;
+    line-height: .9;
+    opacity: 0.5;
+}
+
+div.child-message::after {
     content: attr(created_at) " | ID: " attr(user_visible_id) " | Replies: " attr(replies);
     bottom: 2px;
     color: #fff !important;
