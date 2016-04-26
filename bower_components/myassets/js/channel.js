@@ -279,7 +279,7 @@ var reply = function(id,hnav){
 // get the id of the current soft focus message wrapper
 var get_soft_focus = function(){
     var id = $('#selected-arrow').parent().attr('id');
-    return id.substr(0,id.length-8); // strip the "-wrapper" 
+    return id?id.substr(0,id.length-8):null; // strip the "-wrapper" 
 };
 
 // places the soft-focus arrow on the div of message_id 'id'
