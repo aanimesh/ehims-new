@@ -603,8 +603,8 @@ var handle_keydown = function(e){
     }
     switch(code){
         case 13: // enter
-            //next_msg();
-            descend_from_soft_focus();
+            next_msg();
+            //descend_from_soft_focus();
             $('#message').val('');
             e.preventDefault();
             break;
