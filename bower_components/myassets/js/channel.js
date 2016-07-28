@@ -44,6 +44,23 @@ var message_flash = function(){
         "fa fa-envelope-o" : "fa fa-envelope";
 };
 
+
+var blink_new_message = function(id) {
+    var iterations = 2; // number of blinks
+    var callback = function(iter) {
+        if (iter > iterations) {
+            return;
+        }
+        $(id).fadeOut('fast', function(){
+            $(this).fadeIn('fast', function(){
+                callback(iter+1);
+            });
+        });
+    };
+    callback(1);
+};
+
+
 var update_queue_display = function(){
     $('#queue-length').html('('+queue.length+')');
     if(queue.length === 0 ){
@@ -105,6 +122,7 @@ var receive_msg = function(msg){
 var next_msg = function(){
     if(queue.length === 0) return;
     reply(queue[0]._id);
+    
 }; 
 
 // this method does not include the message it was called on
@@ -197,8 +215,11 @@ var reply = function(id,hnav){
         var list = $(this).parent().closest('div').find('.reveal-children');
         // if not filled, update
         if(list.is(':empty')){
-            var make_bind_func = function(this_id){
+            var make_bind_func = function(this_id) {
                 return function(){reply(this_id);};
+            };
+            var make_queue_tester = function(cid) {
+                return function(c){return c._id === cid;};
             };
             var children = messages[id].children;
             var listitem;
@@ -226,6 +247,11 @@ var reply = function(id,hnav){
                 listitem_wrapper.append(listitem);
                 list.append(listitem_wrapper);
                 $('#'+cmsg._id).on('click', make_bind_func(cmsg._id) );
+                // if message is new, blink it, then remove from queue
+                if(queue.some(make_queue_tester(cmsg._id))) {
+                    blink_new_message('#'+cmsg._id);
+                    remove_from_queue(cmsg._id);
+                }
             }
         }
         list.slideToggle('fast');
