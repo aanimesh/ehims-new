@@ -2,7 +2,9 @@
 // should be "hard_focus"
 var cur_root = null;
 var socket;
+var keys = {};
 var dropdown_delay = 250; // ms to children dropdown shows
+
 
 var send_message = function () {
     $('#message').prop('disabled',true);
@@ -601,6 +603,16 @@ var handle_keydown = function(e){
         if(code === 13) send_message();
         return;
     }
+    keys[code] = true;
+    if(Object.keys(keys).length > 1) {
+        // check shift+right arrow
+        // shift = 16, r arrow = 39
+       if (Object.keys(keys).length === 2 && keys[16] && keys[39]) {
+           // on shift arrow, make soft focus the hard focus
+           reply(get_soft_focus()); 
+           return;
+        }
+    }
     switch(code){
         case 13: // enter
             next_msg();
@@ -776,11 +788,9 @@ $(document).ready(function(){
     });
 
     $('.message').on('click',function(){
-        console.log('clicked');
         reply($(this).attr('id'));
     });
     $('#channel-name').on('click',function(){cur_root=null;go_to_root();});
-    //$('#back-arrow').on('click',back);
 
     $('#backward').on('click',back);
     $('#forward').on('click',forward);
@@ -788,6 +798,12 @@ $(document).ready(function(){
     $('a#mail').on('click',next_msg);
     
     $('textarea#message').on('keydown',handle_keydown);
+    // clear key in keys dict on key up
+    $('textarea#message').on('keyup', function(e){
+        var code = e.keyCode || e.which;
+        delete keys[code];
+    });
+
 
 
     assign_colour();
