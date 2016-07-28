@@ -225,7 +225,7 @@ var reply = function(id,hnav){
                 listitem.html("<br/>"+cmsg.content+"<br/>");
                 listitem_wrapper.append(listitem);
                 list.append(listitem_wrapper);
-                $('#child-'+cmsg._id).on('click', make_bind_func(cmsg._id) );
+                $('#'+cmsg._id).on('click', make_bind_func(cmsg._id) );
             }
         }
         list.slideToggle('fast');
