@@ -170,8 +170,15 @@ var make_msg_div = function(msg){
     msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
     wrapper.append(msg_div);
-    if(msg.children.length > 0)
+    if (msg.children.length > 0) {
         wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
+    }
+    if (
+        (messages[msg.msg_parent] && messages[msg.msg_parent].children.length > 1) ||
+        (msg.msg_parent === null && channel.top_lvl_messages.length > 1)
+    ){
+        wrapper.append('<div class="siblings-symbol"><i class="fa fa-sitemap"></i></div>');
+    }
     wrapper.append($("<ul>",{class: 'reveal-children',style: "display:none;"}));
     return wrapper;
 };
@@ -248,9 +255,13 @@ var reply = function(id,hnav){
                 list.append(listitem_wrapper);
                 $('#'+cmsg._id).on('click', make_bind_func(cmsg._id) );
                 // if message is new, blink it, then remove from queue
-                if(queue.some(make_queue_tester(cmsg._id))) {
+                if (queue.some(make_queue_tester(cmsg._id))) {
                     blink_new_message('#'+cmsg._id);
                     remove_from_queue(cmsg._id);
+                }
+                // add a plus sign to indicate that there are children
+                if (cmsg.children.length > 0) {
+                    listitem_wrapper.append('<div class="plus-minus-symbol"><i class="fa fa-plus"></i></div>');
                 }
             }
         }
@@ -839,6 +850,8 @@ $(document).ready(function(){
 
     build_tree();
     display_tree();
+    // default to closed tree view
+    toggle_tree_view();
     $('body').on('click',function(){$('#message').focus();});
     $('#message').focus();
 
@@ -856,6 +869,7 @@ $(document).ready(function(){
 
     // show help dialog
     $('#help-modal').foundation('reveal', 'open');
+
 
 });
 

@@ -193,8 +193,22 @@ div.plus-minus-button {
     position: relative;
     display: inline;
     float:right;
-    top: 20px;
+    top: 25px;
 }
+
+div.plus-minus-symbol {
+    position: relative;
+    display: inline;
+    top: -20px;
+}
+
+div.siblings-symbol {
+    display: inline;
+    float: right;
+    position: absolute;
+    top: 1px;
+}
+
 
 /*div.message-selected::before {
     content: 'Selected';
