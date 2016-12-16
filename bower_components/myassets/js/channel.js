@@ -1,10 +1,12 @@
 
 // should be "hard_focus"
-var cur_root = null;
+var hard_focus = null;
 var socket;
 var keys = {};
 var dropdown_delay = 250; // ms to children dropdown shows
 
+
+// ------ General Utilities ---------
 
 var send_message = function () {
     $('#message').prop('disabled',true);
@@ -35,59 +37,6 @@ var send_message = function () {
     });
 };
 
-var new_message_flash;
-
-var message_flash = function(){
-    var envelope = $('a#mail i')[0];
-    envelope.className = 
-        envelope.className === "fa fa-envelope" ? 
-        "fa fa-envelope-o" : "fa fa-envelope";
-};
-
-
-var blink_new_message = function(id) {
-    var iterations = 2; // number of blinks
-    var callback = function(iter) {
-        if (iter > iterations) {
-            return;
-        }
-        $(id).fadeOut('fast', function(){
-            $(this).fadeIn('fast', function(){
-                callback(iter+1);
-            });
-        });
-    };
-    callback(1);
-};
-
-
-var update_queue_display = function(){
-    $('#queue-length').html('('+queue.length+')');
-    if(queue.length === 0 ){
-        var envelope = $('a#mail i')[0];
-        envelope.className = "fa fa-envelope";
-        clearTimeout(new_message_flash);
-    }
-    $('#new-msg-list').empty();
-    for(i=queue.length-1;i>=0;i--)
-        add_msg_to_hover_list(queue[i]);
-
-    // now fix the progress bar
-    var percent = Math.ceil(100*seen.length/(queue.length + seen.length));
-    document.getElementById('progress-bar').style.width = percent + '%';
-};
-
-
-var add_msg_to_hover_list = function(msg){
-    $('#new-msg-list').prepend('<li id="list-'+
-            msg._id +'">'+
-            msg.author + ': ' +
-            msg.content.substring(0, 
-                (25-msg.author.length)>0? 25-msg.author.length : 0) +
-            '</li>');
-    $('#list-'+msg._id).on('click', function(){reply(msg._id);});
-};
-
 
 var receive_msg = function(msg){
     messages[msg._id] = msg;
@@ -113,47 +62,16 @@ var receive_msg = function(msg){
     tree_data.edges.push(new Edge(msg_parent,msg._id));
     display_tree();
     if(msg.author === username)
-        reply(msg._id);
+        set_hard_focus(msg._id);
     else
         add_msg_to_hover_list(msg);
 
 };
 
-var next_msg = function(){
-    if(queue.length === 0) return;
-    reply(queue[0]._id);
-    
-}; 
-
-// this method does not include the message it was called on
-var get_path_to_root = function (msg){
-    var ret = [];
-    msg = messages[msg.msg_parent];
-    while(msg){
-        ret.unshift(msg);
-        msg = messages[msg.msg_parent];
-    }
-    return ret;
+var is_visible = function(id){
+    return ($('#'+id+'-wrapper').length > 0);
 };
 
-
-var remove_from_queue = function(id){
-    var i;
-    for(i=queue.length-1;i>=0;i--){
-        if (queue[i]._id === id){
-            queue.splice(i,1);
-            break;
-        }
-    }
-    var queue_list = $('#new-msg-list').children();
-    for(i=queue_list.length-1;i>=0;i--){
-        if($(queue_list[i]).attr('id') === ('list-'+id)){
-            $(queue_list[i]).remove();
-            break;
-        }
-    }
-    update_queue_display();
-};
 
 var make_msg_div = function(msg){
     var class_str="message ",info_div; 
@@ -183,13 +101,165 @@ var make_msg_div = function(msg){
     return wrapper;
 };
 
-// navigating functions
+// this method does not include the message it was called on
+var get_path_to_root = function (msg){
+    var ret = [];
+    msg = messages[msg.msg_parent];
+    while(msg){
+        ret.unshift(msg);
+        msg = messages[msg.msg_parent];
+    }
+    return ret;
+};
 
-// maybe this should be renamed to "set focus"
-// This function takes an id and sets that message to the focal message,
-// also popping and displaying all siblings in the process
-var reply = function(id,hnav){
-    // if reply was called while naviaging history, do not add to history
+// -------------------------------
+
+
+// ------- User Login/off ---------
+
+var user_log_on = function(uname){
+    if(uname !== username){
+        // first assign a colour
+        var pos = online.length;
+        online.push({name:uname, colour: colours[colour_pos %57]});
+        colour_pos += 7;
+
+        $('#online-users').append(
+            '<li style="color:'+
+            online[pos].colour+
+            ';">'+uname+'</li>');
+    }
+};
+
+var user_log_off = function(uname){
+    $('#online-users').find("li:contains('"+uname+"')")
+                      .filter(function(){
+                         return $(this).html() === uname;
+                      }).remove();
+};
+
+var assign_colour = function(){
+    for (var i = online.length-1; i>=0 ; i--){
+        online[i].colour = colours[colour_pos % colours.length];
+        // increase by  so multiple users aren't too close 
+        // together. 7 chosen to be coprime ot length of
+        // colours (57) so that all colours are visited before
+        // a repeated colour.
+        colour_pos += 7; 
+    }
+};
+
+
+var update_online = function(){
+    $('#online-users').html('');
+    for (var i = online.length-1; i>=0 ; i--){
+        $('#online-users').append(
+                '<li style="color:'+
+                online[i].colour+
+                ';">'+online[i].name+'</li>');
+    }
+};
+
+var get_colour = function(uname){
+    for (var i = online.length-1; i>=0 ; i--){
+        if(online[i].name === uname){
+            return online[i].colour;
+        }
+    }
+    return "#000";
+};
+
+// -------------------------------
+
+
+
+// ---- Message Queue Stuff ------
+
+var new_message_flash;
+
+var message_flash = function(){
+    var envelope = $('a#mail i')[0];
+    envelope.className = 
+        envelope.className === "fa fa-envelope" ? 
+        "fa fa-envelope-o" : "fa fa-envelope";
+};
+
+
+var blink_new_message = function(id) {
+    var iterations = 2; // number of blinks
+    var callback = function(iter) {
+        if (iter > iterations) {
+            return;
+        }
+        $(id).fadeOut('fast', function(){
+            $(this).fadeIn('fast', function(){
+                callback(iter+1);
+            });
+        });
+    };
+    callback(1);
+};
+
+var update_queue_display = function(){
+    $('#queue-length').html('('+queue.length+')');
+    if(queue.length === 0 ){
+        var envelope = $('a#mail i')[0];
+        envelope.className = "fa fa-envelope";
+        clearTimeout(new_message_flash);
+    }
+    $('#new-msg-list').empty();
+    for(i=queue.length-1;i>=0;i--)
+        add_msg_to_hover_list(queue[i]);
+
+    // now fix the progress bar
+    var percent = Math.ceil(100*seen.length/(queue.length + seen.length));
+    document.getElementById('progress-bar').style.width = percent + '%';
+};
+
+
+var add_msg_to_hover_list = function(msg){
+    $('#new-msg-list').prepend('<li id="list-'+
+            msg._id +'">'+
+            msg.author + ': ' +
+            msg.content.substring(0, 
+                (25-msg.author.length)>0? 25-msg.author.length : 0) +
+            '</li>');
+    $('#list-'+msg._id).on('click', function(){set_hard_focus(msg._id);});
+};
+
+var next_msg = function(){
+    if(queue.length === 0) return;
+    set_hard_focus(queue[0]._id);
+    
+}; 
+
+var remove_from_queue = function(id){
+    var i;
+    for(i=queue.length-1;i>=0;i--){
+        if (queue[i]._id === id){
+            queue.splice(i,1);
+            break;
+        }
+    }
+    var queue_list = $('#new-msg-list').children();
+    for(i=queue_list.length-1;i>=0;i--){
+        if($(queue_list[i]).attr('id') === ('list-'+id)){
+            $(queue_list[i]).remove();
+            break;
+        }
+    }
+    update_queue_display();
+};
+
+// -------------------------------
+
+
+
+// ------ Focus Navigation --------
+
+// This function takes an id and sets that message to the hard focal message,
+var set_hard_focus = function(id, hnav){
+    // if set_hard_focus was called while naviaging history, do not add to history
     // if not, add to history and clear forward history
     if(!hnav){
         bhistory.push(id);
@@ -198,7 +268,7 @@ var reply = function(id,hnav){
 
     if(id === "0") return;
     var root = messages[id];
-    cur_root = id;
+    hard_focus = id;
     // show slection on tree
     display_path_to_root(id);
     //change_view_root(id);
@@ -208,7 +278,7 @@ var reply = function(id,hnav){
 
     // add listeners
     $('.message').on('click',function(){
-        reply($(this).attr('id'));
+        set_hard_focus($(this).attr('id'));
     });
 
 
@@ -223,7 +293,7 @@ var reply = function(id,hnav){
         // if not filled, update
         if(list.is(':empty')){
             var make_bind_func = function(this_id) {
-                return function(){reply(this_id);};
+                return function(){set_hard_focus(this_id);};
             };
             var make_queue_tester = function(cid) {
                 return function(c){return c._id === cid;};
@@ -269,25 +339,12 @@ var reply = function(id,hnav){
 
     });
 
-    // remove siblings from queue
-    // uncomment if using display_siblings
-    //var siblings;
-    //if(!(id === "0" || messages[id].msg_parent === null)){
-    //    siblings = messages[messages[id].msg_parent].children;
-    //} else{
-    //    siblings = channel.top_lvl_messages;
-    //}
+    // handle click of siblings symbol
+    $('.siblings-symbol').on('click',function(){
+        var id = $(this).parent().find('.message').attr('id');
+        display_parent_and_siblings(id);    
+    });
 
-    //var siblings_set = new Set(siblings);
-    //for(var i=0, len=queue.length; i<len; i++){
-    //    if(siblings_set.has(queue[i]._id)){
-    //        seen.push(queue.splice(i,1)[0]);
-    //        i--;
-    //        len -= 1;
-    //    }
-    //}
-    //tree.selectNodes(siblings); 
-    
     // remove self from queue
     for(var i=0, len=queue.length; i<len; i++){
         if(queue[i]._id === id){
@@ -340,13 +397,18 @@ var set_soft_focus = function (id){
             '</div>');
     // fix indenting
     var arrow_width = $('#selected-arrow').width();
-    var new_margin = ( (id===cur_root) ? 20 : 0) -$('#selected-arrow').width();
+    var new_margin = ( (id===hard_focus) ? 20 : 0) -$('#selected-arrow').width();
     $('#'+id+'-wrapper').css({
-        'margin-left':(((id===cur_root) ? 20 : 0) - arrow_width) +'px'
+        'margin-left':(((id===hard_focus) ? 20 : 0) - arrow_width) +'px'
     });
     $('#'+id+'-wrapper ul.reveal-children').css({
         'margin-left': 20+arrow_width+'px'});
 };
+
+// --------------------------------
+
+
+// -------- Navigation ------------
 
 // moves the soft-focus arrow visually up on screen
 var arrow_up = function(){
@@ -367,7 +429,7 @@ var arrow_up = function(){
         var siblings = messages[msg_parent].children;
         if(siblings.indexOf(soft_focus_id) === 0)
             // case 1a
-            set_soft_focus(cur_root);
+            set_soft_focus(hard_focus);
         else {
             // case 1b
             set_soft_focus(siblings[siblings.indexOf(soft_focus_id)-1]);
@@ -404,7 +466,7 @@ var arrow_down = function(){
         }
     } else {
         var children = messages[soft_focus_id].children;
-        if(soft_focus_id === cur_root){
+        if(soft_focus_id === hard_focus){
             //case 2a
             // expand children if needed
             if($('#'+soft_focus_id+'-wrapper div.plus-minus-button i')
@@ -437,7 +499,7 @@ var to_left_sibling = function(){
     if(is_visible(left))
             set_soft_focus(left);
     else
-        reply(left);
+        set_hard_focus(left);
 };
 
 var to_right_sibling = function(){
@@ -452,15 +514,15 @@ var to_right_sibling = function(){
     if(is_visible(right))
             set_soft_focus(right);
     else
-        reply(right);
+        set_hard_focus(right);
 };
 
 // make soft focus the hard focal node
 var descend_from_soft_focus = function(){
     var soft_focus = get_soft_focus();
     // if the soft focus isn't the hard focus, the change that
-    if(cur_root !== soft_focus){
-        reply(soft_focus);
+    if(hard_focus !== soft_focus){
+        set_hard_focus(soft_focus);
     }
     // set soft focus to last child
     var children = messages[soft_focus].children;
@@ -475,8 +537,9 @@ var descend_from_soft_focus = function(){
 var ascend_from_soft_focus = function(){
     msg_parent = messages[get_soft_focus()].msg_parent;
     if(msg_parent !== null)
-        reply(msg_parent);
+        set_hard_focus(msg_parent);
 };
+
 
 var display_path_to_root = function(id){
     if(id === "0")
@@ -498,28 +561,17 @@ var display_path_to_root = function(id){
     }
 };
 
-/* No longer used 
- * Uncomment to show all siblings of the focal message
-var display_siblings = function(id){
-    var msg_div;
-    var siblings;
-    if(!(id === "0" || messages[id].msg_parent === null)){
-        siblings = messages[messages[id].msg_parent].children;
+// Essentially just set the parent to the hard focus
+var display_parent_and_siblings = function(id){
+    // if it's a top level node, go to root
+    var parent = messages[id].msg_parent;
+    if(id === "0" || parent === null){
+        go_to_root();
     } else{
-        siblings = channel.top_lvl_messages;
-    }
-    var msg_view = $('#messages-view');
-    for(var i=0, len=siblings.length; i<len; i++){
-        msg_div = make_msg_div(messages[siblings[i]]);
-        msg_view.append(msg_div); 
-    }
-
-    for(i=0, len=siblings.length; i<len; i++){
-        document.getElementById(siblings[i]+'-wrapper').className += 
-            siblings[i] === id ? ' message-selected' : ' message-sibling';
+        set_hard_focus(parent);
     }
 };
-*/
+
 
 var display_message = function(id){
     $('#messages-view').append(make_msg_div(messages[id]));
@@ -538,18 +590,16 @@ var change_view_root = function(id){ // change root
             msg_view.append(make_msg_div(messages[view_root.children[i]]));
         }
         $('.message').on('click',function(){
-            reply($(this).attr('id'));
+            set_hard_focus($(this).attr('id'));
         });
     }
 };
 
-var is_visible = function(id){
-    return ($('#'+id+'-wrapper').length > 0);
-};
+
 
 
 var go_to_root = function(){ // change the chat to the root of the channel
-    //cur_root = null;
+    //hard_focus = null;
     var msg_view = $('#messages-view');
     msg_view.empty();
     var msg;
@@ -557,7 +607,7 @@ var go_to_root = function(){ // change the chat to the root of the channel
         msg_view.append(make_msg_div(messages[channel.top_lvl_messages[i]]));
     }
     $('.message').on('click',function(){
-        reply($(this).attr('id'));
+        set_hard_focus($(this).attr('id'));
     });
 }; 
 
@@ -567,15 +617,15 @@ var go_to_root = function(){ // change the chat to the root of the channel
 var back = function(){ // when back arrow is clicked
     // This version of back goes to the previous node in the tree:
     // if at root, logout and go to channels page
-//    if(!cur_root){
+//    if(!hard_focus){
 //        // logout();
 //        $('form#back-form input').val(username);
 //        $('#back-form').submit();
 //    } else {
-//        if(messages[cur_root].msg_parent === null)
+//        if(messages[hard_focus].msg_parent === null)
 //            go_to_root();
 //        else 
-//            reply(messages[cur_root].msg_parent);
+//            set_hard_focus(messages[hard_focus].msg_parent);
 //    }
 
     // This version of back goes to the last seen 
@@ -600,7 +650,7 @@ var back = function(){ // when back arrow is clicked
             }
         }
         if(seen.length>0){
-            reply(seen[seen.length-1]._id);
+            set_hard_focus(seen[seen.length-1]._id);
         }
         update_queue_display();
     }
@@ -612,11 +662,11 @@ var back = function(){
     if(bhistory.length > 0){
        var last = bhistory.pop();
        fhistory.push(last);
-       if(cur_root === last){
+       if(hard_focus === last){
         last = bhistory.pop();
         fhistory.push(last);
        }
-       reply(last,true);
+       set_hard_focus(last,true);
     }
 };
 
@@ -624,89 +674,19 @@ var forward = function(){
     if(fhistory.length > 0){
        var next = fhistory.pop();
        bhistory.push(next);
-       if(cur_root === next){
+       if(hard_focus === next){
         next = fhistory.pop();
         bhistory.push(next);
        }
-       reply(next,true); 
+       set_hard_focus(next,true); 
     }
 };
 
 
-var handle_keydown = function(e){
-    var code = e.keyCode || e.which;
-    // don't do anything if the user is typing
-    if($('#message').val().trim()){
-        if(code === 13) send_message();
-        return;
-    }
-    keys[code] = true;
-    if(Object.keys(keys).length > 1) {
-        // check shift+right arrow
-        // shift = 16, r arrow = 39
-       if (Object.keys(keys).length === 2 && keys[16] && keys[39]) {
-           // on shift arrow, make soft focus the hard focus
-           reply(get_soft_focus()); 
-           return;
-        }
-    }
-    switch(code){
-        case 13: // enter
-            next_msg();
-            //descend_from_soft_focus();
-            $('#message').val('');
-            e.preventDefault();
-            break;
-        case 37: // left
-            //ascend_from_soft_focus();
-            to_left_sibling();
-            break;
-        case 38: // up
-            arrow_up();
-            //ascend_from_soft_focus();
-            break;
-        case 39: // right
-            /* This is for the queue/seen behaviour
-            next_msg();
-            $('#message').val('');
-            e.preventDefault();
-            */
-            //descend_from_soft_focus();
-            to_right_sibling();
-            break;
-        case 40: // down
-            arrow_down();
-            //descend_from_soft_focus();
-            break;
-        default:
-            break;
-    }
-};
-
-var user_log_on = function(uname){
-    if(uname !== username){
-        // first assign a colour
-        var pos = online.length;
-        online.push({name:uname, colour: colours[colour_pos %57]});
-        colour_pos += 7;
-
-        $('#online-users').append(
-            '<li style="color:'+
-            online[pos].colour+
-            ';">'+uname+'</li>');
-    }
-};
-
-var user_log_off = function(uname){
-    $('#online-users').find("li:contains('"+uname+"')")
-                      .filter(function(){
-                         return $(this).html() === uname;
-                      }).remove();
-};
+// ----------------------------------------
 
 
-// Tree View Code
-// --------------
+// ------- Tree View ----------
 
 var tree_data, tree;
 
@@ -748,7 +728,7 @@ var display_node = function(params){
     var msg_id = params.nodes[0];
     var content = (msg_id === "0") ? '' : messages[msg_id].content;
     $('#content').html(content);
-    $('#view').on('click',function(){reply(msg_id);});
+    $('#view').on('click',function(){set_hard_focus(msg_id);});
 };
 
 var display_tree = function(){
@@ -762,7 +742,7 @@ var display_tree = function(){
         }
     };
     tree = new vis.Network(container, tree_data, options);
-    tree.on('select',function(p){ reply(p.nodes[0]);});
+    tree.on('select',function(p){ set_hard_focus(p.nodes[0]);});
 };
 
 var toggle_tree_view = function(){
@@ -778,36 +758,61 @@ var toggle_tree_view = function(){
     }
 };
 
-var assign_colour = function(){
-    for (var i = online.length-1; i>=0 ; i--){
-        online[i].colour = colours[colour_pos % colours.length];
-        // increase by  so multiple users aren't too close 
-        // together. 7 chosen to be coprime ot length of
-        // colours (57) so that all colours are visited before
-        // a repeated colour.
-        colour_pos += 7; 
+// -------------------------------
+
+
+
+var handle_keydown = function(e){
+    var code = e.keyCode || e.which;
+    // don't do anything if the user is typing
+    if($('#message').val().trim()){
+        if(code === 13) send_message();
+        return;
     }
-};
-
-
-var update_online = function(){
-    $('#online-users').html('');
-    for (var i = online.length-1; i>=0 ; i--){
-        $('#online-users').append(
-                '<li style="color:'+
-                online[i].colour+
-                ';">'+online[i].name+'</li>');
-    }
-};
-
-var get_colour = function(uname){
-    for (var i = online.length-1; i>=0 ; i--){
-        if(online[i].name === uname){
-            return online[i].colour;
+    keys[code] = true;
+    if(Object.keys(keys).length > 1) {
+        // check shift+right arrow
+        // shift = 16, r arrow = 39
+       if (Object.keys(keys).length === 2 && keys[16] && keys[39]) {
+           // on shift arrow, make soft focus the hard focus
+           set_hard_focus(get_soft_focus()); 
+           return;
         }
     }
-    return "#000";
+    switch(code){
+        case 13: // enter
+            next_msg();
+            //descend_from_soft_focus();
+            $('#message').val('');
+            e.preventDefault();
+            break;
+        case 37: // left
+            //ascend_from_soft_focus();
+            to_left_sibling();
+            break;
+        case 38: // up
+            arrow_up();
+            //ascend_from_soft_focus();
+            break;
+        case 39: // right
+            /* This is for the queue/seen behaviour
+            next_msg();
+            $('#message').val('');
+            e.preventDefault();
+            */
+            //descend_from_soft_focus();
+            to_right_sibling();
+            break;
+        case 40: // down
+            arrow_down();
+            //descend_from_soft_focus();
+            break;
+        default:
+            break;
+    }
 };
+
+
 
 $(document).ready(function(){
     var q = "username="+username+"&channel="+channel.name;
@@ -825,9 +830,9 @@ $(document).ready(function(){
     });
 
     $('.message').on('click',function(){
-        reply($(this).attr('id'));
+        set_hard_focus($(this).attr('id'));
     });
-    $('#channel-name').on('click',function(){cur_root=null;go_to_root();});
+    $('#channel-name').on('click',function(){hard_focus=null;go_to_root();});
 
     $('#backward').on('click',back);
     $('#forward').on('click',forward);
