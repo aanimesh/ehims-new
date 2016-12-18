@@ -56,9 +56,10 @@ html
                     li
                         a(href="#" data-reveal-id="help-modal")
                             i.fa.fa-question
-                    li
-                        a(href="#" id="toggle-tree")
-                            | Hide Tree View
+                    unless channel.chat_type == 'path'
+                        li
+                            a(href="#" id="toggle-tree")
+                                | Hide Tree View
                     li
                         a(href='/') Logout
 

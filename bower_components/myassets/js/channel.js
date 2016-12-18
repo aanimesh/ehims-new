@@ -868,7 +868,10 @@ $(document).ready(function(){
     $('.message').on('click',function(){
         set_hard_focus($(this).attr('id'));
     });
-    $('#channel-name').on('click',function(){hard_focus=null;go_to_root();});
+
+    // make the channel name go to the root if we're not in
+    if(chat_type !== 'path')
+        $('#channel-name').on('click',function(){hard_focus=null;go_to_root();});
 
     $('#backward').on('click',back);
     $('#forward').on('click',forward);
@@ -889,22 +892,31 @@ $(document).ready(function(){
     update_online();
 
 
-    build_tree();
-    display_tree();
-    // default to closed tree view
-    toggle_tree_view();
     $('body').on('click',function(){$('#message').focus();});
     $('#message').focus();
 
-    $('#toggle-tree').on('click',toggle_tree_view);
+    build_tree();
+    display_tree();
 
-    most_recent = queue[queue.length-1]._id;
+    if (chat_type === 'path'){
+        // Then hide the tree view for good
+        $('#chat-view').hide();
+        $('#users-view').css({'top':'0','bottom':''});
+
+    } else {
+        // default to closed tree view
+        toggle_tree_view();
+        $('#toggle-tree').on('click',toggle_tree_view);
+    }
+
+    most_recent = queue[queue.length-1];
+    // get id, if not undefined
+    if (most_recent) most_recent = most_recent._id;
 
     if (chat_type === 'path') {
         // In this case, just set the most recent message as the hard focus,
         //  which will display every other message along the way
         set_hard_focus(most_recent);
-        queue = []
     } else {
         // otherwise, if the queue is non-empty, set up the unseen message list
         if(queue.length > 0){
