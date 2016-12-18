@@ -1,10 +1,10 @@
 
-// should be "hard_focus"
 var hard_focus = null;
+var most_recent = null;
 var socket;
 var keys = {};
 var dropdown_delay = 250; // ms to children dropdown shows
-
+var chat_type = channel.chat_type;
 
 // ------ General Utilities ---------
 
@@ -12,10 +12,21 @@ var send_message = function () {
     $('#message').prop('disabled',true);
 
     // first we build the message
+    //    The parent will be different depending on the chat type
+    var msg_parent;
+    switch(chat_type){
+        case 'path':
+            msg_parent = most_recent;
+            break;
+        case 'tree':
+            msg_parent = get_soft_focus();
+            break;
+    }
+
     var message = {
         'author'    : username,
         'channel'   : channel.name,
-        'msg_parent': get_soft_focus(),
+        'msg_parent': msg_parent,
         'children'  : [], // can't have children yet...
         'content'   : $('#message').val().replace('&','&amp;')
                                          .replace('<','&lt;')
@@ -42,12 +53,15 @@ var receive_msg = function(msg){
     messages[msg._id] = msg;
     ids[msg._id] = cur_id;
     cur_id++;
+    most_recent = msg._id;
 
     if(msg.msg_parent)
         messages[msg.msg_parent].children.push(msg._id);
     else
         channel.top_lvl_messages.push(msg._id);
-    if(msg.author !== username){
+
+    // we don't use the queue for path type
+    if(msg.author !== username && chat_type !== 'path'){
         queue.push(msg);
         $('#queue-length').html('('+queue.length+')');
         clearInterval(new_message_flash);
@@ -61,7 +75,10 @@ var receive_msg = function(msg){
     var msg_parent = msg.msg_parent ? msg.msg_parent : '0';
     tree_data.edges.push(new Edge(msg_parent,msg._id));
     display_tree();
-    if(msg.author === username)
+
+    // If either the current user is the message author, or we're in linear mode,
+    //   then display the message right away
+    if(msg.author === username || chat_type === 'path')
         set_hard_focus(msg._id);
     else
         add_msg_to_hover_list(msg);
@@ -88,7 +105,7 @@ var make_msg_div = function(msg){
     msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
     wrapper.append(msg_div);
-    if (msg.children.length > 0) {
+    if (msg.children.length > 0 && chat_type != 'path') {
         wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
     }
     if (
@@ -201,6 +218,8 @@ var blink_new_message = function(id) {
 };
 
 var update_queue_display = function(){
+    // Nothing to do for path type chat
+    if (chat_type === 'path') return;
     $('#queue-length').html('('+queue.length+')');
     if(queue.length === 0 ){
         var envelope = $('a#mail i')[0];
@@ -266,6 +285,13 @@ var set_hard_focus = function(id, hnav){
         fhistory = [];
     }
 
+    // If the message view is scrolled all the way to the bottom,
+    //  make note of this so that it can be scrolled all the way down
+    //  after the new hard focus is set, otherwise the hard focus 
+    //  may be off the screen
+    var msg_view = document.getElementById('messages-view');
+    var scrolled = msg_view.scrollTop === (msg_view.scrollHeight - msg_view.offsetHeight);
+
     if(id === "0") return;
     var root = messages[id];
     hard_focus = id;
@@ -276,10 +302,11 @@ var set_hard_focus = function(id, hnav){
     //display_siblings(id);
     display_message(id);
 
-    // add listeners
-    $('.message').on('click',function(){
-        set_hard_focus($(this).attr('id'));
-    });
+    // add listeners if we're not in path mode
+    if (chat_type !== 'path') 
+        $('.message').on('click',function(){
+            set_hard_focus($(this).attr('id'));
+        });
 
 
     // handle children reveal
@@ -367,9 +394,15 @@ var set_hard_focus = function(id, hnav){
     set_soft_focus(id);
 
     // check to make sure displayed message is in view
-    var messages_view = document.getElementById("messages-view");
-    messages_view.scrollTop = // messages_view.scrollHeight;
-            $('#'+id+'-wrapper').position().top;
+    //var messages_view = document.getElementById("messages-view");
+    //messages_view.scrollTop = // messages_view.scrollHeight;
+    //        $('#'+id+'-wrapper').position().bottom;
+    
+    if(chat_type !== 'path' || scrolled){
+        $('#messages-view').animate({ scrollTop: msg_view.scrollHeight}, 500);
+    }
+
+ 
 };
 
 // get the id of the current soft focus message wrapper
@@ -546,8 +579,9 @@ var display_path_to_root = function(id){
         go_to_root();
     else{
         var path = get_path_to_root(messages[id]);
-        //only display the previous ten messages
-        if(path.length>10) path = path.slice(path.length-10,path.length);
+        // if not path mode, only display the previous ten messages
+        if (chat_type !== 'path')
+            if(path.length>10) path = path.slice(path.length-10,path.length);
         var msg_view = $('#messages-view');
         var msg_div;
 
@@ -555,7 +589,9 @@ var display_path_to_root = function(id){
         for(var i=0, len = path.length; i<len; i++){
             msg_div = make_msg_div(path[i]);
             //msg_div.css('opacity', i === len-1 ? '1':'0.'+(i+1+(10-len)));
-            msg_div.css('opacity', String((i+1)/(len+1)));
+            // If chat type is path, then don't adjust the opacity
+            if (chat_type !== 'path')
+                msg_div.css('opacity', String((i+1)/(len+1)));
             msg_view.append(msg_div);
         }
     }
@@ -862,15 +898,25 @@ $(document).ready(function(){
 
     $('#toggle-tree').on('click',toggle_tree_view);
 
-    if(queue.length > 0){
-        new_message_flash = setInterval(message_flash, 700);
-        for(var i=queue.length-1;i>=0;i--){
-            add_msg_to_hover_list(queue[i]);
-        }
-    }
+    most_recent = queue[queue.length-1]._id;
 
-    // get things started with the first message
-    next_msg();
+    if (chat_type === 'path') {
+        // In this case, just set the most recent message as the hard focus,
+        //  which will display every other message along the way
+        set_hard_focus(most_recent);
+        queue = []
+    } else {
+        // otherwise, if the queue is non-empty, set up the unseen message list
+        if(queue.length > 0){
+            new_message_flash = setInterval(message_flash, 700);
+            for(var i=queue.length-1;i>=0;i--){
+                add_msg_to_hover_list(queue[i]);
+            }
+        }
+    
+        // and get things started with the first message
+        next_msg();
+    }
 
     // show help dialog
     $('#help-modal').foundation('reveal', 'open');

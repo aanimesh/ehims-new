@@ -35,19 +35,20 @@ html
                     h1: a#channel-name !{channel.name}
 
             section.top-bar-section
-                ul.left
-                    li
-                        a#backward 
-                            i.fa.fa-backward
-                    li 
-                        a(data-dropdown="new-msg-list",
-                          data-options="is_hover:true; hover_timeout:5000")#mail
-                            i.fa.fa-envelope
-                            | &nbsp;
-                            span#queue-length (!{queue.length})
-                    li
-                        a#forward 
-                            i.fa.fa-forward
+                unless channel.chat_type == 'path'
+                    ul.left
+                        li
+                            a#backward 
+                                i.fa.fa-backward
+                        li 
+                            a(data-dropdown="new-msg-list",
+                              data-options="is_hover:true; hover_timeout:5000")#mail
+                                i.fa.fa-envelope
+                                | &nbsp;
+                                span#queue-length (!{queue.length})
+                        li
+                            a#forward 
+                                i.fa.fa-forward
                 //     li
                 ul.right
                     li

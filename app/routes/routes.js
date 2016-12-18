@@ -32,11 +32,13 @@ module.exports = function(io){
            var socket_url = process.env.NODE_ENV ? 'https://ehims-new.herokuapp.com/' : 'http://localhost:3000/';
            var context = { user: req.body.username,
                        channel: req.body.channel,
+                       ctype: req.body.ctype,
                        socket_url : socket_url};
            storage.get_or_create_user(context.user,function(results){
                var user = results;
                context.user = user;
-               storage.join_or_create_channel(user, context.channel,function(results){
+               storage.join_or_create_channel(user, context.channel, context.ctype,
+                    function(results){
                    var channel = results.channel;
                    context.channel = channel;
                    storage.get_messages_by_channel(channel.name,function(results){

@@ -5,7 +5,7 @@ html
         link(rel="stylesheet",href="/foundation/css/foundation.min.css")
         link(rel="stylesheet",href="/awesomplete/awesomplete.css")
         script(src="/jquery/dist/jquery.min.js")
-        script(src="/foundation/js/foundation.min.js")
+        script(src="/foundation/js/foundation.js")
         script.
             var channels = !{JSON.stringify(channels)};
             var user = !{JSON.stringify(user)};
@@ -17,8 +17,9 @@ html
                     input#user(type="hidden",
                                name="username",
                                value="#{user.name}")
+                    input#chat-type(type="hidden",name="ctype",value="tree")
                     .row
-                        .large-12.columns
+                        .large-9.columns
                             .row.collapse
                                 .small-10.columns
                                     input#channel(type="text",
@@ -26,21 +27,58 @@ html
                                           name="channel")
                                 .small-2.columns(style="text-align:center")
                                     button.postfix Join
+                        .large-3.columns
+                            a.button.secondary.right.tiny(href='#',data-reveal-id='advanced-modal') Advanced
+                .reveal-modal#advanced-modal(data-reveal,aria-hidden="true",role="dialog")
+                    form(action="/channel",method="POST")#advanced-channel-form
+                        input#user(type="hidden",
+                                name="username",
+                                value="#{user.name}")
+                        fieldset
+                            legend Create a Channel
+                            label 
+                                | Channel Name
+                                input(type="text",
+                                    placeholder="Enter a channel name...",
+                                    name="channel")
+                            .row
+                                .large-6.columns
+                                    label Channel Type
+                                    input#ctype-path(type='radio',
+                                                    name='ctype',
+                                                    value='path')
+                                    label(for='ctype-path') Sequential
+                                    input#ctype-tree(type='radio',
+                                                    name='ctype',
+                                                    checked,
+                                                    value='tree')
+                                    label(for='ctype-tree') Tree
+                                    input#ctype-graph(type='radio',
+                                                    name='ctype',
+                                                    value='graph')
+                                    label(for='ctype-graph') Graph
+                                .large-6.columns
+                                    button.right.small Go
+
+                    a.close-reveal-modal &#215; 
                 hr
                 h4  Or choose from a previously joined channel
                 ul.side-nav
                     each channel in user.channels
                         li: h6
-                            a(onclick="open_channel('#{channel.name}')")= channel.name
+                            a(onclick="open_channel('#{channel.name}', '#{channel.chat_type}')")
+                                | #{channel.name} (#{channel.chat_type})
                             
         script(src="/awesomplete/awesomplete.min.js")
         script.
+            $(document).foundation();
             var channel_input = document.getElementById("channel");
             new Awesomplete(channel_input,{
                 list : user.channels.map(function(item){item.name})
                 });
-                var open_channel = function(channel){
+                var open_channel = function(channel, chat_type){
                     $('#channel').val(channel);
+                    $('#chat-type').val(chat_type);
                     $('#channel-form').submit();
                 }
 

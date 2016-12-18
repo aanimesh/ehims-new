@@ -6,7 +6,8 @@ var ChannelSchema = new Schema({
     id: ObjectId,
     name: {type: String, required: true, unique: true},
     online_users : [{type: ObjectId, ref: 'User'}],
-    top_lvl_messages : [{type: ObjectId, ref: 'Message'}]
+    top_lvl_messages : [{type: ObjectId, ref: 'Message'}],
+    chat_type: {type: String, enum: ['path', 'tree', 'graph'], default: 'tree'},
 });
 
 ChannelSchema.methods.log_user_in = function(user){

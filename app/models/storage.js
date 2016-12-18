@@ -71,21 +71,24 @@ var get_channels = function(callback){
  * join or create channel
  * @param {Object} User
  * @param {String} channel name
+ * @param {String} chat type (line, tree, or graph)
  * @param {function} callback to be called on {user, channel}
  */
-var join_or_create_channel = function(user, channel_name, callback){
+var join_or_create_channel = function(user, channel_name, chat_type, callback){
     
-    Channel.findOne({'name':channel_name},function(err, channel){
-        assert.equal(null,err);
-        if(!channel){
-            channel = new Channel({'name': channel_name,
+    Channel.findOne({'name':channel_name, 'chat_type': chat_type},
+            function(err, channel){
+                assert.equal(null,err);
+                if(!channel){
+                    channel = new Channel({'name': channel_name,
+                                   'chat_type': chat_type,
                                    'online_users': [],
                                    'top_lvl_messages': []});
-            channel.save();
-        }
-        user.join_channel(channel);
-        channel.log_user_in(user);
-        callback({'user':user,'channel':channel});
+                    channel.save();
+            }
+            user.join_channel(channel);
+            channel.log_user_in(user);
+            callback({'user':user,'channel':channel});
     });
 };
     

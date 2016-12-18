@@ -5,7 +5,10 @@ var ObjectId = Schema.ObjectId;
 var UserSchema = new Schema({
     id: ObjectId,
     name: { type: String, required: true, unique: true},
-    channels : [{name: {type: String}, id:{type: ObjectId, ref: 'Channel'}}]
+    channels : [{
+        name: {type: String}, 
+        chat_type: {type: String}, 
+        id:{type: ObjectId, ref: 'Channel'}}]
 });
 
 UserSchema.methods.join_channel = function(channel){
@@ -15,7 +18,8 @@ UserSchema.methods.join_channel = function(channel){
             seen = true;
 
     if(!seen)
-        this.channels.push({name:channel.name, id:channel._id});
+        this.channels.push({
+            name:channel.name, chat_type:channel.chat_type, id:channel._id});
 
     this.save();
 };
