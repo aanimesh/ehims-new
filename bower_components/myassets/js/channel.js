@@ -413,6 +413,9 @@ var get_soft_focus = function(){
 
 // places the soft-focus arrow on the div of message_id 'id'
 var set_soft_focus = function (id){
+    if (chat_type === 'path')
+        // then we have no concept of soft focus
+        return;
     // first remove margin from current soft focus
     var cur_soft = $('#selected-arrow').parent().attr("id");
     $('#'+cur_soft).css({'margin-left':''});
@@ -611,7 +614,9 @@ var display_parent_and_siblings = function(id){
 
 var display_message = function(id){
     $('#messages-view').append(make_msg_div(messages[id]));
-     document.getElementById(id+'-wrapper').className += ' message-selected';
+    // no indent in path mode
+    if (chat_type !== 'path')
+        document.getElementById(id+'-wrapper').className += ' message-selected';
 };
 
 var change_view_root = function(id){ // change root
