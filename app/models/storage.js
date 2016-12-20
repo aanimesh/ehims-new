@@ -92,6 +92,21 @@ var join_or_create_channel = function(user, channel_name, chat_type, callback){
             function(err, channel){
                 assert.equal(null,err);
                 if(!channel){
+                    // when creating a new channel, add the chat type
+                    // to the name
+                    //      Ensures name uniqueness and also makes it
+                    //      clear to the user the type of chat they're in
+                    switch(chat_type){
+                        case 'path':
+                            channel_name += ' (Sequential)';
+                            break;
+                        case 'tree':
+                            channel_name += ' (Tree)';
+                            break;
+                        case 'graph':
+                            channel_name += ' (Graph)';
+                            break;
+                    }
                     channel = new Channel({'name': channel_name,
                                    'chat_type': chat_type,
                                    'online_users': [],
@@ -160,6 +175,7 @@ var get_message = function(message_id, callback){
  * @param {function} callback to be called on the resulting message
  */
 var create_message = function(msg, callback){
+    console.log(msg)
     var message = new Message(msg);
     message.save();
     // add message to top lvl messages if it doesn't have a parent
