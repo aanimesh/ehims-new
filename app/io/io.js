@@ -19,7 +19,7 @@ module.exports = function(io){
                 console.log(q.username+" left "+q.channel);
                 io.to(q.channel).emit('log-off',q.username);
                 storage.get_or_create_user(q.username,function(user){
-                    storage.get_channel_by_name(q.channel,function(channel){
+                    storage.get_channel_by_id(q.channel,function(channel){
                         channel.log_user_out(user);
                     });
                 });

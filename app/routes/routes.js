@@ -41,7 +41,7 @@ module.exports = function(io){
                     function(results){
                    var channel = results.channel;
                    context.channel = channel;
-                   storage.get_messages_by_channel(channel.name,function(results){
+                   storage.get_messages_by_channel(channel._id, function(results){
                        context.messages = results;
                        var message_keys = Object.keys(results);
                        var queue = [];
@@ -52,6 +52,7 @@ module.exports = function(io){
                            return new Date(a.created_at) - new Date(b.created_at);
                        });
                        context.queue = queue;
+                       console.log("Connected Users");
                        console.log(channel.online_users);
                        storage.get_usernames(channel.online_users,function(results){
                            context.online = results;

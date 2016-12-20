@@ -5,7 +5,7 @@ var ObjectId = Schema.ObjectId;
 var MessageSchema = new Schema({
     id: ObjectId,
     content: String,
-    channel: String,
+    channel: {type: ObjectId, ref: 'Channel'},
     author: String,
     msg_parent: this,
     children: [ this ],

@@ -10,7 +10,6 @@ var chat_type = channel.chat_type;
 
 var send_message = function () {
     $('#message').prop('disabled',true);
-
     // first we build the message
     //    The parent will be different depending on the chat type
     var msg_parent;
@@ -25,7 +24,7 @@ var send_message = function () {
 
     var message = {
         'author'    : username,
-        'channel'   : channel.name,
+        'channel'   : channel._id,
         'msg_parent': msg_parent,
         'children'  : [], // can't have children yet...
         'content'   : $('#message').val().replace('&','&amp;')
@@ -857,7 +856,7 @@ var handle_keydown = function(e){
 
 
 $(document).ready(function(){
-    var q = "username="+username+"&channel="+channel.name;
+    var q = "username="+username+"&channel="+channel._id;
     socket = io(socket_url, {query:q});
     socket.on('message',receive_msg);
 
