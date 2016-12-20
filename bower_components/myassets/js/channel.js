@@ -358,7 +358,8 @@ var set_hard_focus = function(id, hnav){
                 }
                 // add a plus sign to indicate that there are children
                 if (cmsg.children.length > 0) {
-                    listitem_wrapper.append('<div class="plus-minus-symbol"><i class="fa fa-plus"></i></div>');
+                    listitem_wrapper.append('<div id="'+cmsg._id+'-pm" class="plus-minus-symbol"><i class="fa fa-plus"></i></div>');
+                $('#'+cmsg._id+'-pm').on('click', make_bind_func(cmsg._id) );
                 }
             }
         }
