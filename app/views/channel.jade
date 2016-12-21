@@ -56,7 +56,7 @@ html
                     li
                         a(href="#" data-reveal-id="help-modal")
                             i.fa.fa-question
-                    unless channel.chat_type == 'path'
+                    // unless channel.chat_type == 'path'
                         li
                             a(href="#" id="toggle-tree")
                                 | Hide Tree View
@@ -93,19 +93,42 @@ html
                     a.button.success.expand#message-send Send
 
         #view-column
-            #chat-view
-                h5(style='width:100%;text-align:center')
-                    | Tree View
-                #tree
-                //#node-select
-                //    p#content
-                //    #actions
-                //        a.button(style="vertical-align:middle;height:70px;")#view View
+            ul.tabs(data-tab)#tabs-list
+                li.tab-title.active
+                    a(href='#online') Online Users
+                if chat_type == 'graph'
+                    li.tab-title
+                        a(href='#parents') Add Parents
+                unless chat_type == 'path'
+                    li.tab-title
+                        a(href='#treeview') Tree View
+            .tabs-content
+                .content.active#online
+                    .tab
+                        //h5(style='width:100%;text-align:center')
+                            | Online Users
+                        ul(style='padding-left:20px;')#online-users
+                .content#treeview
+                    .tab
+                        //h5(style='width:100%;text-align:center')
+                            | Tree View
+                        #tree
+                .content#parents
+                    .tab
+                        //h5(style='width:100%;text-align:center')
+                            | Add a parent
+                        #parent-view
+                            form#other-parent
+                                .row.collapse
+                                    .small-9.columns
+                                        input(type='text',
+                                            placeholder="Message ID",
+                                            name="message")
+                                    .small-2.columns
+                                        button.postfix Add
+                            ul#other-parents
 
-            #users-view
-                h5(style='width:100%;text-align:center')
-                    | Online Users
-                ul(style='padding-left:20px;')#online-users
+
 
         // Help modal
         #help-modal.reveal-modal(data-reveal 

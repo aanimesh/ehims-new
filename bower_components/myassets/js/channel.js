@@ -910,8 +910,8 @@ $(document).ready(function(){
 
     } else {
         // default to closed tree view
-        toggle_tree_view();
-        $('#toggle-tree').on('click',toggle_tree_view);
+        //toggle_tree_view();
+        //$('#toggle-tree').on('click',toggle_tree_view);
     }
 
     most_recent = queue[queue.length-1];
@@ -934,6 +934,11 @@ $(document).ready(function(){
         // and get things started with the first message
         next_msg();
     }
+
+    // resize tabs
+    var vwidth = $('#view-column').width();
+    var tabs = $('.tab-title').length;
+    $('.tab-title').css({'width': (vwidth / tabs) + 'px'});
 
     // show help dialog
     $('#help-modal').foundation('reveal', 'open');
