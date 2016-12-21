@@ -169,13 +169,31 @@ var get_message = function(message_id, callback){
     });
 };
 
+
+/**
+ * Get message
+ * @param {String} message id
+ * @param {function} callback to be called on message_id
+ */
+
+var get_messages = function(message_ids, callback){
+    ids = message_ids.map(mongoose.Types.ObjectId);
+    console.log(ids);
+    Message.find({
+        '_id' : { $in : ids }
+    }, function(err, messages){
+        assert.equal(null, err);
+        callback(messages);
+    });
+};
+
+
 /**
  * Create message
  * @param {json} Message data
  * @param {function} callback to be called on the resulting message
  */
 var create_message = function(msg, callback){
-    console.log(msg)
     var message = new Message(msg);
     message.save();
     // add message to top lvl messages if it doesn't have a parent
@@ -186,9 +204,12 @@ var create_message = function(msg, callback){
             callback(message);
         });
     } else {
-        get_message(message.msg_parent,function(p){
-            p.children.push(message._id);
-            p.save();
+        // get all the parents and make this message a child
+        get_messages([message.msg_parent].concat(message.other_parents),function(ps){
+            for(var i=ps.length-1; i >= 0; i--){ 
+                ps[i].children.push(message._id);
+                ps[i].save();
+            }
             callback(message);
         });
     }

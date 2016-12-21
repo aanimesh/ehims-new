@@ -5,6 +5,8 @@ var socket;
 var keys = {};
 var dropdown_delay = 250; // ms to children dropdown shows
 var chat_type = channel.chat_type;
+var other_parents = [];
+
 
 // ------ General Utilities ---------
 
@@ -12,20 +14,26 @@ var send_message = function () {
     $('#message').prop('disabled',true);
     // first we build the message
     //    The parent will be different depending on the chat type
-    var msg_parent;
+    var msg_parent, parents;
     switch(chat_type){
         case 'path':
             msg_parent = most_recent;
+            parents = [];
             break;
         case 'tree':
             msg_parent = get_soft_focus();
+            parents = [];
             break;
+        case 'graph':
+            msg_parent = get_soft_focus();
+            parents = other_parents.slice();
     }
 
     var message = {
         'author'    : username,
         'channel'   : channel._id,
         'msg_parent': msg_parent,
+        'other_parents': parents,
         'children'  : [], // can't have children yet...
         'content'   : $('#message').val().replace('&','&amp;')
                                          .replace('<','&lt;')
@@ -41,6 +49,7 @@ var send_message = function () {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
     }).always(function(){
+        reset_other_parents();
         $('#message').val('');
         $('#message').prop('disabled',false);
         $('#message').focus();
@@ -49,13 +58,18 @@ var send_message = function () {
 
 
 var receive_msg = function(msg){
+    var i;
     messages[msg._id] = msg;
     ids[msg._id] = cur_id;
+    dbid_to_userid[cur_id] = msg._id;
     cur_id++;
     most_recent = msg._id;
 
     if(msg.msg_parent)
         messages[msg.msg_parent].children.push(msg._id);
+    if(chat_type === 'graph' && msg.other_parents)
+        for(i = msg.other_parents.length-1; i >= 0; i--)
+           messages[msg.other_parents[i]].children.push(msg._id); 
     else
         channel.top_lvl_messages.push(msg._id);
 
@@ -73,6 +87,9 @@ var receive_msg = function(msg){
     tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...'));
     var msg_parent = msg.msg_parent ? msg.msg_parent : '0';
     tree_data.edges.push(new Edge(msg_parent,msg._id));
+    if(chat_type === 'graph' && msg.other_parents)
+        for(i = msg.other_parents.length-1; i >= 0; i--)
+            tree_data.edges.push(new Edge(msg.other_parents[i], msg_id));
     display_tree();
 
     // If either the current user is the message author, or we're in linear mode,
@@ -726,6 +743,29 @@ var forward = function(){
 
 // ----------------------------------------
 
+// ---------- Graph Mode Functions --------
+
+// takes a user visible ID and adds a parent to the currently 
+// being composed message
+var add_parent = function(id){
+    msg_id = dbid_to_userid[id];
+    if(!msg_id){
+        alert("No message with id "+id+" exists");
+        return;
+    }
+    msg = messages[msg_id];
+    other_parents.unshift(msg_id);
+    $('#other-parents').append('<li> <b> Message ' + id +':</b>  ' + msg.content + '</li>');
+};
+
+var reset_other_parents = function (){
+    $('#other-parents').html('');
+    other_parents = [];
+};
+
+// ----------------------------------------
+
+
 
 // ------- Tree View ----------
 
@@ -775,6 +815,11 @@ var display_node = function(params){
 var display_tree = function(){
     var container = document.getElementById('tree');
     var options = {
+        edges : {
+            arrows : {
+                to: {enabled: true, scaleFactor:1, type:'arrow'}
+            }
+        },
         layout: {
             hierarchical: {
                 direction: 'UD',
@@ -897,7 +942,12 @@ $(document).ready(function(){
     update_online();
 
 
-    $('body').on('click',function(){$('#message').focus();});
+    $('body').on('click',function(){
+        // unless the user has clicked to add a parent, then
+        // automatically refocus to the main message
+        if(!$('#extra-parent').is(':focus'))
+            $('#message').focus();
+    });
     $('#message').focus();
 
     build_tree();
@@ -939,6 +989,18 @@ $(document).ready(function(){
     var vwidth = $('#view-column').width();
     var tabs = $('.tab-title').length;
     $('.tab-title').css({'width': (vwidth / tabs) + 'px'});
+
+    // handle when the "other parents" form is submitted
+    if (chat_type === 'graph') {
+        $('#other-parent').submit(function(event){
+            event.preventDefault();
+            var msg_id = parseInt($('#extra-parent').val());
+            if (isNaN(msg_id))
+                return;
+            $('#extra-parent').val('');
+            add_parent(msg_id);
+        });
+    }
 
     // show help dialog
     $('#help-modal').foundation('reveal', 'open');

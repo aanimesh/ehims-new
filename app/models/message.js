@@ -8,6 +8,7 @@ var MessageSchema = new Schema({
     channel: {type: ObjectId, ref: 'Channel'},
     author: String,
     msg_parent: this,
+    other_parents: [ this ],
     children: [ this ],
     seen_by : [ {type: ObjectId, ref: 'User'} ]
 }, { timestamps: { createdAt: 'created_at' } });

@@ -12,10 +12,13 @@ html
             var online   = !{JSON.stringify(online)};
             var queue    = !{JSON.stringify(queue)};
             var ids = {}
+            var dbid_to_userid = {}
             var cur_id = 0;
             // set up ids dict for search ids visible to the user
-            for(len=queue.length; cur_id<len; cur_id++)
+            for(len=queue.length; cur_id<len; cur_id++) {
                 ids[queue[cur_id]._id] = cur_id;
+                dbid_to_userid[cur_id] = queue[cur_id]._id;
+            }
             // stack used for back-button
             var seen     = []
             var bhistory  = []
@@ -96,10 +99,10 @@ html
             ul.tabs(data-tab)#tabs-list
                 li.tab-title.active
                     a(href='#online') Online Users
-                if chat_type == 'graph'
+                if channel.chat_type == 'graph'
                     li.tab-title
                         a(href='#parents') Add Parents
-                unless chat_type == 'path'
+                unless channel.chat_type == 'path'
                     li.tab-title
                         a(href='#treeview') Tree View
             .tabs-content
@@ -121,10 +124,10 @@ html
                             form#other-parent
                                 .row.collapse
                                     .small-9.columns
-                                        input(type='text',
+                                        input#extra-parent(type='text',
                                             placeholder="Message ID",
                                             name="message")
-                                    .small-2.columns
+                                    .small-3.columns
                                         button.postfix Add
                             ul#other-parents
 
