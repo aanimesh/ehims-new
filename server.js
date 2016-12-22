@@ -45,6 +45,9 @@ app.post('/channels', routes.channels);
 // log on to a channel and chat
 app.post('/channel', routes.channel);
 
+// login redirect
+app.get('/channel', routes.channel_redirect);
+
 // send a message
 app.post('/message',routes.message);
 

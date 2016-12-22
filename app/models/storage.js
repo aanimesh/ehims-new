@@ -118,7 +118,21 @@ var join_or_create_channel = function(user, channel_name, chat_type, callback){
             callback({'user':user,'channel':channel});
     });
 };
-    
+
+var join_channel = function(user, channel_id, callback){
+    console.log("Joining channel from redirect:");
+    console.log(channel_id);
+    Channel.findOne({'_id': channel_id},
+            function(err, channel){
+                assert.equal(null,err);
+                if (!channel)
+                    return;
+                user.join_channel(channel);
+                channel.log_user_in(user);
+                callback({'user':user,'channel':channel});
+            });
+};
+
 
 /**
  * Get users
@@ -218,6 +232,7 @@ var create_message = function(msg, callback){
 exports.get_or_create_user = get_or_create_user;
 exports.get_channels = get_channels;
 exports.join_or_create_channel = join_or_create_channel;
+exports.join_channel = join_channel;
 exports.get_messages_by_channel = get_messages_by_channel;
 exports.get_usernames = get_usernames;
 exports.create_message = create_message;
