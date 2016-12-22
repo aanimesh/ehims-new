@@ -1040,7 +1040,8 @@ $(document).ready(function(){
     if (chat_type === 'path') {
         // In this case, just set the most recent message as the hard focus,
         //  which will display every other message along the way
-        set_hard_focus(most_recent);
+        if(most_recent)
+            set_hard_focus(most_recent);
     } else {
         // otherwise, if the queue is non-empty, set up the unseen message list
         if(queue.length > 0){
