@@ -97,6 +97,29 @@ div.child-message {
     top: 0px;
 }
 
+div.multiple-parent {
+    height: 100%;
+    margin: 5px 1px 0px 1px;
+    padding: 2px 2px 2px 2px; 
+    color: #FFFFFF;
+    border-radius: 7px;
+    border-style: solid;
+    border-width: 1px;
+    display: inline-block;
+    font-size: 0.72222rem;
+    font-weight: normal;
+    position: relative;
+    color: #FFFFFF;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    top: 0px;
+}
+
+div.soft-focus-multiple-parent {
+    border-style: outset;
+    border-color: gray;
+    border-width: 4px;
+}
+
 li.child-message {
     position: relative;
     width: 80%;
@@ -150,6 +173,26 @@ div.child-message::after {
     position: absolute;
 }
 
+div.multiple-parent::before {
+    content: attr(author);
+    color: #fff !important;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    background: inherit;
+    line-height: .9;
+    opacity: 0.5;
+}
+
+div.multiple-parent::after {
+    content: attr(created_at) " | ID: " attr(user_visible_id); 
+    bottom: 2px;
+    color: #fff !important;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    background: inherit;
+    line-height: .9;
+    opacity: 0.5;
+    position: absolute;
+}
+
 /* other users are blue */
 div.message-other {
 /*    background-color: #008CBA; 
@@ -168,6 +211,13 @@ div.message-selected {
 }
 
 div.message-wrapper {
+    position: relative;
+    width: 80%;
+    display: block;
+    float: left;
+}
+
+div.multiple-parents {
     position: relative;
     width: 80%;
     display: block;

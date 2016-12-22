@@ -29,6 +29,10 @@ var send_message = function () {
             parents = other_parents.slice();
     }
 
+    if (parents.indexOf(msg_parent) > -1)
+        parents.splice(parents.indexOf(msg_parent), 1);
+
+
     var message = {
         'author'    : username,
         'channel'   : channel._id,
@@ -73,7 +77,9 @@ var receive_msg = function(msg){
     else
         channel.top_lvl_messages.push(msg._id);
 
-    // we don't use the queue for path type
+    // don't put in the queue if:
+    //   - Message authos is current user
+    //   - We're in path mode
     if(msg.author !== username && chat_type !== 'path'){
         queue.push(msg);
         $('#queue-length').html('('+queue.length+')');
@@ -121,7 +127,10 @@ var make_msg_div = function(msg){
     msg_div.css({'background-color':get_colour(msg.author)});
     msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
     wrapper.append(msg_div);
-    if (msg.children.length > 0 && chat_type != 'path') {
+    // Note that if the message is not the hard focus and has only 1 child
+    // Then that child is guarenteed to be displayed anyways, so we don't
+    // bother with a plus
+    if ( ((msg._id === hard_focus && msg.children.length > 0) || msg.children.length > 1) && chat_type != 'path') {
         wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
     }
     if (
@@ -133,6 +142,35 @@ var make_msg_div = function(msg){
     wrapper.append($("<ul>",{class: 'reveal-children',style: "display:none;"}));
     return wrapper;
 };
+
+var make_mulitple_parents_div = function(msg){
+    var i, p_div, d, date, p;
+    var all_parents = [messages[msg.msg_parent]];
+    for (i = 0; i < msg.other_parents.length; i++)
+        all_parents.push(messages[msg.other_parents[i]]);
+    var wrapper = $("<div>", {class: 'multiple-parents'});
+    for (i = 0; i < all_parents.length; i++){
+        p = all_parents[i];
+        d = new Date(p.created_at);
+        date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
+        p_div = $("<div>",{class: 'multiple-parent', 
+            id: p._id, 
+            author: p.author,
+            created_at: date,
+            replies: p.children.length,
+            user_visible_id: ids[p._id]});  
+        p_div.css({
+            'background-color':get_colour(p.author), 
+            'width': 99/all_parents.length +'%',
+        });
+        if (i === 0)
+            p_div.css({'float': 'left'});
+        p_div.append("<p>"+p.content.replace("\n","<br/>")+"</p>");
+        wrapper.append(p_div);
+    }
+    return wrapper;
+};
+
 
 // this method does not include the message it was called on
 var get_path_to_root = function (msg){
@@ -320,7 +358,7 @@ var set_hard_focus = function(id, hnav){
 
     // add listeners if we're not in path mode
     if (chat_type !== 'path') 
-        $('.message').on('click',function(){
+        $('.message, .multiple-parent').on('click',function(){
             set_hard_focus($(this).attr('id'));
         });
 
@@ -344,7 +382,13 @@ var set_hard_focus = function(id, hnav){
             var children = messages[id].children;
             var listitem;
             var d, date;
+            var displayed = get_path_to_root(messages[hard_focus]).map(
+                function(m){return m._id;});
+            displayed.push(hard_focus);
             for(var i=0,len=children.length; i<len;i++){
+                if (displayed.indexOf(children[i]) > -1)
+                    // this message is already displayed, do don't display it
+                    continue;
                 cmsg = messages[children[i]];
                 d = new Date(cmsg.created_at);
                 date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
@@ -424,8 +468,16 @@ var set_hard_focus = function(id, hnav){
 
 // get the id of the current soft focus message wrapper
 var get_soft_focus = function(){
-    var id = $('#selected-arrow').parent().attr('id');
-    return id?id.substr(0,id.length-8):null; // strip the "-wrapper" 
+    var arrow = $('#selected-arrow');
+    var id;
+    if (arrow.length === 0 && chat_type === 'graph') {
+        // then we grab the multiple parent soft focus
+        id = $('.soft-focus-multiple-parent').attr('id');
+    } else {
+        id = $('#selected-arrow').parent().attr('id');
+        id = id?id.substr(0,id.length-8):null; // strip the "-wrapper" 
+    }
+    return id;
 };
 
 // places the soft-focus arrow on the div of message_id 'id'
@@ -434,28 +486,34 @@ var set_soft_focus = function (id){
         // then we have no concept of soft focus
         return;
     // first remove margin from current soft focus
-    var cur_soft = $('#selected-arrow').parent().attr("id");
-    $('#'+cur_soft).css({'margin-left':''});
-    $('#'+cur_soft + ' ul.reveal-children').css({'margin-left':'20px'});
-    
+    var cur_soft = get_soft_focus();
+    if($('#'+cur_soft).length > 0 && $('#'+cur_soft).attr('class').indexOf('multiple-parent') === -1) {
+        $('#'+cur_soft+'-wrapper').css({'margin-left':''});
+        $('#'+cur_soft+'-wrapper ul.reveal-children').css({'margin-left':'20px'});
+    }
 
-
-    // delete current arrow
+    // delete current arrow/focus
     $('#selected-arrow').remove();
+    $('.soft-focus-multiple-parent').removeClass('soft-focus-multiple-parent');
 
-    // add the new one
-    $('#'+id+'-wrapper').prepend(
-            '<div id="selected-arrow">'+
-                '<i class="fa fa-chevron-circle-right"></i>'+
-            '</div>');
-    // fix indenting
-    var arrow_width = $('#selected-arrow').width();
-    var new_margin = ( (id===hard_focus) ? 20 : 0) -$('#selected-arrow').width();
-    $('#'+id+'-wrapper').css({
-        'margin-left':(((id===hard_focus) ? 20 : 0) - arrow_width) +'px'
-    });
-    $('#'+id+'-wrapper ul.reveal-children').css({
-        'margin-left': 20+arrow_width+'px'});
+    // If not a multiple-parent, add the arrow back
+    if($('#'+id).attr('class').indexOf('multiple-parent') === -1 || chat_type !== 'graph'){ 
+        $('#'+id+'-wrapper').prepend(
+                '<div id="selected-arrow">'+
+                    '<i class="fa fa-chevron-circle-right"></i>'+
+                '</div>');
+        // fix indenting
+        var arrow_width = $('#selected-arrow').width();
+        var new_margin = ( (id===hard_focus) ? 20 : 0) -$('#selected-arrow').width();
+        $('#'+id+'-wrapper').css({
+            'margin-left':(((id===hard_focus) ? 20 : 0) - arrow_width) +'px'
+        });
+        $('#'+id+'-wrapper ul.reveal-children').css({
+            'margin-left': 20+arrow_width+'px'});
+    } else {
+        // otherwise, we just add the soft focus class
+        $('#'+id).addClass('soft-focus-multiple-parent');
+    }
 };
 
 // --------------------------------
@@ -463,82 +521,45 @@ var set_soft_focus = function (id){
 
 // -------- Navigation ------------
 
+var move_arrow = function(dir){
+    var move;
+    switch(dir){
+        case 'up':
+            move = -1;
+            break;
+        case 'down':
+            move = 1;
+            break;
+        default:
+            return;
+    }
+    // get all currently visible messages in their document order
+    var current_display = $('.message, .multiple-parent, div.child-message:visible');
+    var soft_focus = get_soft_focus();
+    
+    var cur_order = $.map(current_display, function(m){return m.id;});
+    var pos = cur_order.indexOf(soft_focus);
+    // if we're at the top or bottom, do nothing
+    if ((move === -1 && pos === 0) || (move === 1 && pos === cur_order.length-1)) {
+        return;
+    }
+
+    // otherwise move
+    set_soft_focus(cur_order[pos+move]);
+};
+
+
+
+
 // moves the soft-focus arrow visually up on screen
 var arrow_up = function(){
-    /* three cases:
-     *  1 -> child
-     *      two sub cases:
-     *       a -> top child: go to hard focus
-     *       b -> else: go to prev child
-     *  2 -> on path to root: go to parent
-     *  3 -> root: do nothing
-     */
-    
-    var soft_focus_wrapper = $('#selected-arrow').parent();
-    var soft_focus_id = soft_focus_wrapper.attr("id");
-    soft_focus_id = soft_focus_id.substr(0,soft_focus_id.length-8);
-    if(soft_focus_wrapper.is('li')){
-        var msg_parent = messages[soft_focus_id].msg_parent;
-        var siblings = messages[msg_parent].children;
-        if(siblings.indexOf(soft_focus_id) === 0)
-            // case 1a
-            set_soft_focus(hard_focus);
-        else {
-            // case 1b
-            set_soft_focus(siblings[siblings.indexOf(soft_focus_id)-1]);
-        }
-    } else 
-        if(messages[soft_focus_id].msg_parent !== null)
-           // case 2
-           set_soft_focus(messages[soft_focus_id].msg_parent);
-       
+    move_arrow('up');
+
 };
 
 // moves the soft-focus arrow visually down on screen
 var arrow_down = function(){
-    /* two cases:
-     *  1 -> child
-     *      two subcases:
-     *       a -> bottom child: do nothing
-     *       b -> else: go to next child
-     *  2 -> on path to root:
-     *      two subcases:
-     *       a -> hard focus node: go to first child if exists (display if needed)
-     *       b -> go to child which is displayed
-     */
-
-    var soft_focus_wrapper = $('#selected-arrow').parent();
-    var soft_focus_id = soft_focus_wrapper.attr("id");
-    soft_focus_id = soft_focus_id.substr(0,soft_focus_id.length-8);
-    if(soft_focus_wrapper.is('li')){
-        var msg_parent = messages[soft_focus_id].msg_parent;
-        var siblings = messages[msg_parent].children;
-        if(siblings.indexOf(soft_focus_id) !== (siblings.length-1)){
-            // case 1b
-            set_soft_focus(siblings[siblings.indexOf(soft_focus_id)+1]);
-        }
-    } else {
-        var children = messages[soft_focus_id].children;
-        if(soft_focus_id === hard_focus){
-            //case 2a
-            // expand children if needed
-            if($('#'+soft_focus_id+'-wrapper div.plus-minus-button i')
-                    .attr('class')
-                    .indexOf('minus') === -1){
-                $('#'+soft_focus_id+'-wrapper .plus-minus-button').trigger("click");
-            }
-            if(children.length > 0)
-                set_soft_focus(children[0]);
-        } else {
-            // case 2b
-            for(var i = children.length-1; i>=0; i--){
-                if($('#'+children[i]).length !== 0){
-                    set_soft_focus(children[i]);
-                    break;
-                    }
-            }
-        }
-    }
+    move_arrow('down');
 };
 
 var to_left_sibling = function(){
@@ -595,17 +616,46 @@ var ascend_from_soft_focus = function(){
 
 
 var display_path_to_root = function(id){
-    if(id === "0")
+    if (id === "0")
         go_to_root();
-    else{
+
+    var msg_view = $('#messages-view');
+    var msg_div;
+
+    msg_view.empty();
+
+    if (chat_type === 'graph' && messages[id].other_parents.length > 0) {
+        // in this case we don't want to display a path to root, 
+        // just show the multiple parents
+        msg_view.append("<h4> Multiple Parents</h4>");
+        msg_view.append(make_mulitple_parents_div(messages[id]));
+    } else {
         var path = get_path_to_root(messages[id]);
         // if not path mode, only display the previous ten messages
         if (chat_type !== 'path')
             if(path.length>10) path = path.slice(path.length-10,path.length);
-        var msg_view = $('#messages-view');
-        var msg_div;
 
-        msg_view.empty();
+        if (chat_type === 'graph') {
+            // only display until we have a message with multiple parents
+            var multiple_parents = false;
+            // index of the first message to have multiple parents
+            for(var first_mp = path.length-1; first_mp>=0; first_mp--)
+                if (path[first_mp].other_parents.length > 0) {
+                    multiple_parents = true;
+                    path = path.slice(first_mp, path.length);
+                    break;
+                }
+            if(multiple_parents) {
+                // If there were multiple parents, display them
+                var title = $("<h4>");
+                title.css('opacity', String(1/(path.length+1)));
+                title.append("Multiple Parents");
+                var parents_div = make_mulitple_parents_div(path[0]);
+                parents_div.css('opacity', String(1/(path.length+1)));
+                msg_view.append(title);
+                msg_view.append(parents_div);
+            }
+        }
         for(var i=0, len = path.length; i<len; i++){
             msg_div = make_msg_div(path[i]);
             //msg_div.css('opacity', i === len-1 ? '1':'0.'+(i+1+(10-len)));
@@ -754,8 +804,10 @@ var add_parent = function(id){
         return;
     }
     msg = messages[msg_id];
-    other_parents.unshift(msg_id);
-    $('#other-parents').append('<li> <b> Message ' + id +':</b>  ' + msg.content + '</li>');
+    if(other_parents.indexOf(msg_id) === -1) {
+        other_parents.push(msg_id);
+        $('#other-parents').append('<li> <b> Message ' + id +':</b>  ' + msg.content + '</li>');
+    }
 };
 
 var reset_other_parents = function (){
@@ -817,7 +869,7 @@ var display_tree = function(){
     var options = {
         edges : {
             arrows : {
-                to: {enabled: true, scaleFactor:1, type:'arrow'}
+                to: {enabled: true, scaleFactor:1}
             }
         },
         layout: {
