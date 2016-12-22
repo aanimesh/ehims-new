@@ -183,6 +183,11 @@ var get_path_to_root = function (msg){
     return ret;
 };
 
+var get_invite_link = function(username){
+    var base = location.protocol + '//' + location.host + location.pathname;
+    return base + '?username=' + encodeURIComponent(username) + '&channel=' + encodeURIComponent(channel._id);
+};
+
 // -------------------------------
 
 
@@ -994,10 +999,22 @@ $(document).ready(function(){
     update_online();
 
 
+    $('#invite-link').on('click',function (e) {
+        // select the whole link on a click
+        var link = document.getElementById('invite-link');
+        var range = document.createRange();
+        range.selectNodeContents(link);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        // don't run the body click listener (will deselect...)
+        e.stopPropagation();
+    });
+
     $('body').on('click',function(){
-        // unless the user has clicked to add a parent, then
+        // unless the user has clicked to add a parent or invite someone, then
         // automatically refocus to the main message
-        if(!$('#extra-parent').is(':focus'))
+        if(!$('#extra-parent').is(':focus') && !$('#invite-username').is(':focus'))
             $('#message').focus();
     });
     $('#message').focus();
@@ -1054,8 +1071,22 @@ $(document).ready(function(){
         });
     }
 
+
+    $('#gen-link').on('click',function(){
+        var username = $('#invite-username').val();
+        var link = get_invite_link(username);
+        $('#invite-link').html(link);
+    });
+
+    $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
+        $('#invite-username').val('');
+        $('#invite-link').html('');
+    });
+
+
     // show help dialog
     $('#help-modal').foundation('reveal', 'open');
+
 
 
 });

@@ -64,6 +64,9 @@ html
                             a(href="#" id="toggle-tree")
                                 | Hide Tree View
                     li
+                        a(href='#' data-reveal-id="invite-modal")
+                            i.fa.fa-plus-circle
+                    li
                         a(href='/') Logout
 
         ul#new-msg-list.f-dropdown(data-dropdown-content,
@@ -197,6 +200,24 @@ html
                             | and click on one to jump ahead.
 
 
+                a.close-reveal-modal(aria-label="Close")  &#215;
+        #invite-modal.reveal-modal.small(data-reveal 
+                                 aria-hidden="true" 
+                                 role="dialog")
+            h3#help-title Invite Someone
+                .row
+                    .large-12.columns
+                        .row.collapse
+                            .small-9.columns
+                                input#invite-username(type="text",
+                                    placeholder="Username")
+                            .small-3.columns
+                                a.button.postfix#gen-link Generate Link
+                    .large-12.columns
+                        h6.subheader Link: 
+                        div(style="postition:relative;width:90%;white-space:nowrap;overflow-x:scroll")
+                            p
+                                span#invite-link
                 a.close-reveal-modal(aria-label="Close")  &#215;
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
