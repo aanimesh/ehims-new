@@ -890,9 +890,14 @@ var display_tree = function(){
         },
     };
     tree = new vis.Network(container, tree_data, options);
-    tree.on('doubleClick',function(e){
+    tree.on('doubleClick', function(e){
         if (e.nodes.length > 0)
             set_hard_focus(e.nodes[0]);
+    });
+    tree.on('deselectNode', function(e){
+        // if nothin new is selected, then don't deselect
+        if(e.nodes.length === 0)
+            tree.setSelection(e.previousSelection);
     });
 };
 
