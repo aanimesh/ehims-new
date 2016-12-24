@@ -90,7 +90,7 @@ var receive_msg = function(msg){
         tree.destroy();
     }
     // add the message to the tree_data and display
-    tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...'));
+    tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...', msg.content));
     var msg_parent = msg.msg_parent ? msg.msg_parent : '0';
     tree_data.edges.push(new Edge(msg_parent,msg._id));
     if(chat_type === 'graph' && msg.other_parents)
@@ -828,9 +828,10 @@ var reset_other_parents = function (){
 
 var tree_data, tree;
 
-function Node(id, label){
+function Node(id, label, title){
     this.id    = id;
     this.label = label;
+    this.title = title;
 }
 
 function Edge(from, to){
@@ -840,7 +841,8 @@ function Edge(from, to){
 
 var build_tree = function(){
     var msg;
-    var root = new Node('0',channel.name); 
+    // supply an 'undefined' title so that no tooltip comes up
+    var root = new Node('0',channel.name, undefined); 
     var msg_array = Object.keys(messages);
     tree_data = {
     nodes: [],
@@ -849,7 +851,7 @@ var build_tree = function(){
     tree_data.nodes.push(root);
     for(var i=0, len=msg_array.length; i<len; i++){
         msg = messages[msg_array[i]]; 
-        tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...'));
+        tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...', msg.content));
         for(var j=0,leng=msg.children.length;j<leng; j++){
             tree_data.edges.push(new Edge(msg._id,msg.children[j]));
         }
@@ -882,10 +884,16 @@ var display_tree = function(){
                 direction: 'UD',
                 sortMethod: 'directed'
             } 
-        }
+        },
+        interaction: {
+            multiselect: true
+        },
     };
     tree = new vis.Network(container, tree_data, options);
-    tree.on('select',function(p){ set_hard_focus(p.nodes[0]);});
+    tree.on('doubleClick',function(e){
+        if (e.nodes.length > 0)
+            set_hard_focus(e.nodes[0]);
+    });
 };
 
 var toggle_tree_view = function(){
