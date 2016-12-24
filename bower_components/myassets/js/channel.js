@@ -95,7 +95,7 @@ var receive_msg = function(msg){
     tree_data.edges.push(new Edge(msg_parent,msg._id));
     if(chat_type === 'graph' && msg.other_parents)
         for(i = msg.other_parents.length-1; i >= 0; i--)
-            tree_data.edges.push(new Edge(msg.other_parents[i], msg_id));
+            tree_data.edges.push(new Edge(msg.other_parents[i], msg._id));
     display_tree();
 
     // If either the current user is the message author, or we're in linear mode,
