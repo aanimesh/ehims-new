@@ -808,11 +808,38 @@ var add_parent = function(id){
         alert("No message with id "+id+" exists");
         return;
     }
-    msg = messages[msg_id];
     if(other_parents.indexOf(msg_id) === -1) {
         other_parents.push(msg_id);
-        $('#other-parents').append('<li> <b> Message ' + id +':</b>  ' + msg.content + '</li>');
+        $('#other-parents').append(make_op_li(msg_id));
+        // Add this node to the selection in the tree view
+        var selection = tree.getSelection();
+        selection.nodes.push(msg_id);
+        tree.selectNodes(selection.nodes);
     }
+};
+
+var make_op_li = function(msg_id){
+    msg = messages[msg_id];
+    id = ids[msg_id];
+    return '<li id="opli-' + msg_id +
+                '"> <b> Message ' + id +
+                ':</b>  ' + msg.content +
+                '<span id="op-' + msg_id +
+                '" class="op-x" >&#215;</span></li>';
+};
+
+
+// takes a proper message id, not a user visible one
+var remove_parent = function(id){
+    $('#opli-'+id).remove();
+    var selection = tree.getSelection();
+    var i = other_parents.indexOf(id);
+    if (i > -1)
+        other_parents.splice(i, 1);
+    i = selection.nodes.indexOf(id);
+    if (i > -1)
+        selection.nodes.splice(i, 1);
+    tree.selectNodes(selection.nodes);
 };
 
 var reset_other_parents = function (){
@@ -894,10 +921,29 @@ var display_tree = function(){
         if (e.nodes.length > 0)
             set_hard_focus(e.nodes[0]);
     });
+    tree.on('selectNode', function(e){
+        for (var i = 0; i < e.nodes.length; i++)
+            if(other_parents.indexOf(e.nodes[i]) === -1) {
+                msg_id = e.nodes[i];
+                other_parents.push(msg_id);
+                $('#other-parents').append(make_op_li(msg_id));
+            }
+    });
     tree.on('deselectNode', function(e){
         // if nothin new is selected, then don't deselect
         if(e.nodes.length === 0)
             tree.setSelection(e.previousSelection);
+        else {
+            for (var i = 0; i < e.previousSelection.nodes.length; i++){
+                if (e.nodes.indexOf(e.previousSelection.nodes[i]) === -1){
+                    var id = e.previousSelection.nodes[i];
+                    $('#opli-'+id).remove();
+                    var index = other_parents.indexOf(id);
+                    if (index > -1)
+                        other_parents.splice(index, 1);
+                }
+            }
+        }
     });
 };
 
@@ -1096,6 +1142,14 @@ $(document).ready(function(){
         $('#invite-username').val('');
         $('#invite-link').html('');
     });
+
+    $(document).on('click', '.op-x', function(e) {
+        var msg_id = $(this).attr('id').substr(3);
+        remove_parent(msg_id);
+    });
+        
+
+
 
 
     // show help dialog

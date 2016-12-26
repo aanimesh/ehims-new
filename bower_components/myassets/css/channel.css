@@ -345,4 +345,14 @@ ul#keybinding-help li::before {
     content: attr(key) ': ';
 }
 
+span.op-x {
+    float: right;
+    padding-right: 15px;
+    color: gray;
+    cursor: pointer;
+}
+
+span.op-x:hover {
+    color: black;
+}
 
