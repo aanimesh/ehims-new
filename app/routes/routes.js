@@ -97,6 +97,24 @@ module.exports = function(io){
 
         },
 
+        download_channel : function(req, res) {
+            var channel = req.query.channel;
+            console.log(channel);
+            storage.get_channel_by_id(channel, function(ch) {
+                storage.get_messages_by_channel(channel, function(messages) {
+                    if(!ch || !messages) 
+                        res.status(400).json({'error': 'Bad request'});
+                    else
+                        res.json({
+                            'channel_id': channel,
+                            'chat_type': ch.chat_type,
+                            'name': ch.name,
+                            'messages': messages
+                        });
+                });
+            });
+        },
+
     
     };
 

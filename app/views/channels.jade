@@ -4,6 +4,7 @@ html
     head
         link(rel="stylesheet",href="/foundation/css/foundation.min.css")
         link(rel="stylesheet",href="/awesomplete/awesomplete.css")
+        link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
         script.
@@ -66,8 +67,13 @@ html
                 ul.side-nav
                     each channel in user.channels
                         li: h6
-                            a(onclick="open_channel('#{channel.name}', '#{channel.chat_type}')")
-                                | #{channel.name}
+                            div
+                                a(onclick="open_channel('#{channel.name}', '#{channel.chat_type}')"
+                                style="float:left;")
+                                    | #{channel.name} 
+                                a(href="/download?channel=#{channel.id}"
+                                    target="_blank") 
+                                    i.fa.fa-arrow-circle-down
                             
         script(src="/awesomplete/awesomplete.min.js")
         script.

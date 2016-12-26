@@ -51,6 +51,9 @@ app.get('/channel', routes.channel_redirect);
 // send a message
 app.post('/message',routes.message);
 
+// download messages for a channel
+app.get('/download', routes.download_channel);
+
 // ---------------------------------
 
 /**
