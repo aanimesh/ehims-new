@@ -12,6 +12,7 @@ var get_socket_url = function(){
 var join_channel = function(context, res){
     return function(results){
      var channel = results.channel;
+     channel.log_user_in(context.user);
      context.channel = channel;
      storage.get_messages_by_channel(channel._id, function(results){
          context.messages = results;
