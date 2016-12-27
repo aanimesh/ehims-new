@@ -803,6 +803,7 @@ var forward = function(){
 // takes a user visible ID and adds a parent to the currently 
 // being composed message
 var add_parent = function(id){
+    if (chat_type !== 'graph') return;
     msg_id = dbid_to_userid[id];
     if(!msg_id){
         alert("No message with id "+id+" exists");
@@ -913,7 +914,8 @@ var display_tree = function(){
             } 
         },
         interaction: {
-            multiselect: true
+            // only multiselect for a graph
+            multiselect: (chat_type === 'graph')
         },
     };
     tree = new vis.Network(container, tree_data, options);
@@ -922,18 +924,20 @@ var display_tree = function(){
             set_hard_focus(e.nodes[0]);
     });
     tree.on('selectNode', function(e){
-        for (var i = 0; i < e.nodes.length; i++)
-            if(other_parents.indexOf(e.nodes[i]) === -1) {
-                msg_id = e.nodes[i];
-                other_parents.push(msg_id);
-                $('#other-parents').append(make_op_li(msg_id));
-            }
+        if (chat_type === 'graph') {
+            for (var i = 0; i < e.nodes.length; i++)
+                if(other_parents.indexOf(e.nodes[i]) === -1) {
+                    msg_id = e.nodes[i];
+                    other_parents.push(msg_id);
+                    $('#other-parents').append(make_op_li(msg_id));
+                }
+        }
     });
     tree.on('deselectNode', function(e){
         // if nothin new is selected, then don't deselect
         if(e.nodes.length === 0)
             tree.setSelection(e.previousSelection);
-        else {
+        else if (chat_type === 'graph') {
             for (var i = 0; i < e.previousSelection.nodes.length; i++){
                 if (e.nodes.indexOf(e.previousSelection.nodes[i]) === -1){
                     var id = e.previousSelection.nodes[i];
