@@ -28,7 +28,7 @@ var Message = require('./message.js').Message;
 var get_or_create_user = function(name,callback){
 
     User.findOne({'name': name},function(err, user){
-        assert.equal(null, err);
+        // assert.equal(null, err);
         if(!user){
             user = new User({'name':name, channels: []});
             user.save();
@@ -44,7 +44,7 @@ var get_or_create_user = function(name,callback){
  */
 var get_channel_by_name = function(channel_name, callback){
     Channel.findOne({ 'name': channel_name },function(err, channel){
-        assert.equal(null, err);
+        // assert.equal(null, err);
         callback(channel);
     });
 };
@@ -56,28 +56,33 @@ var get_channel_by_name = function(channel_name, callback){
  */
 var get_channel_by_id = function(channel_id, callback){
     Channel.findOne({ '_id': channel_id },function(err, channel){
-        assert.equal(null, err);
+        // assert.equal(null, err);
         callback(channel);
     });
 };
 
 /**
  * get channels
- * @param {function} callback to be called on list of channel names
+ * @param {function} callback to be called on list of channel objects
  */
-var get_channels = function(callback){
+var get_all_channels = function(callback){
     Channel.find({},function(err, channels){
-        assert.equal(null, err);
-        channel_names = [];
-
-        channels.forEach(function(channel){
-            channel_names.push(channel.name);
-        });
-
-        callback(channel_names);
+        // assert.equal(null, err);
+        callback(channels);
     });
 };
 
+
+/**
+ * get messages
+ * @param {function} callback to be called on list of message objects
+ */
+var get_all_messages = function(callback){
+    Message.find({},function(err, messages){
+        // assert.equal(null, err);
+        callback(messages);
+    });
+};
 
 /**
  * join or create channel
@@ -90,7 +95,7 @@ var join_or_create_channel = function(user, channel_name, chat_type, callback){
     
     Channel.findOne({'name':channel_name, 'chat_type': chat_type},
             function(err, channel){
-                assert.equal(null,err);
+                // assert.equal(null,err);
                 if(!channel){
                     // when creating a new channel, add the chat type
                     // to the name
@@ -124,7 +129,7 @@ var join_channel = function(user, channel_id, callback){
     console.log(channel_id);
     Channel.findOne({'_id': channel_id},
             function(err, channel){
-                assert.equal(null,err);
+                // assert.equal(null,err);
                 if (!channel)
                     return;
                 user.join_channel(channel);
@@ -144,7 +149,7 @@ var get_usernames = function(ids, callback){
     User.find({
         '_id' : { $in : ids }
     }, function(err, users){
-        assert.equal(null, err);
+        // assert.equal(null, err);
         var user_list = [];
         users.forEach(function(u){user_list.push({name:u.name});});
         callback(user_list);
@@ -161,7 +166,7 @@ var get_messages_by_channel = function(channel_id, callback){
     Message.find({
         channel : channel_id
     }, function(err, message_objs){
-        assert.equal(null, err);
+        // assert.equal(null, err);
         var messages = {};
         message_objs.forEach(function(m){messages[m._id] = m;});
         callback(messages);
@@ -178,7 +183,7 @@ var get_message = function(message_id, callback){
     Message.findOne({
         '_id' : message_id
     }, function(err, message){
-        assert.equal(null, err);
+        // assert.equal(null, err);
         callback(message);
     });
 };
@@ -196,7 +201,7 @@ var get_messages = function(message_ids, callback){
     Message.find({
         '_id' : { $in : ids }
     }, function(err, messages){
-        assert.equal(null, err);
+        // assert.equal(null, err);
         callback(messages);
     });
 };
@@ -230,7 +235,8 @@ var create_message = function(msg, callback){
 };
 
 exports.get_or_create_user = get_or_create_user;
-exports.get_channels = get_channels;
+exports.get_all_channels = get_all_channels;
+exports.get_all_messages = get_all_messages;
 exports.join_or_create_channel = join_or_create_channel;
 exports.join_channel = join_channel;
 exports.get_messages_by_channel = get_messages_by_channel;

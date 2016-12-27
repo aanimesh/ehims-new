@@ -31,6 +31,8 @@ app.use(bodyParser.json());
 // for parsing application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
 
+
+
 // ---------------------------------
 
 /**
@@ -53,6 +55,8 @@ app.post('/message',routes.message);
 
 // download messages for a channel
 app.get('/download', routes.download_channel);
+
+app.get('/admin', routes.admin);
 
 // ---------------------------------
 

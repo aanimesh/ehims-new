@@ -3,12 +3,10 @@ doctype html
 html
     head
         link(rel="stylesheet",href="/foundation/css/foundation.min.css")
-        link(rel="stylesheet",href="/awesomplete/awesomplete.css")
         link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
         script.
-            var channels = !{JSON.stringify(channels)};
             var user = !{JSON.stringify(user)};
     body
         .row(style="margin-top:5%")
@@ -78,14 +76,10 @@ html
         script(src="/awesomplete/awesomplete.min.js")
         script.
             $(document).foundation();
-            var channel_input = document.getElementById("channel");
-            new Awesomplete(channel_input,{
-                list : user.channels.map(function(item){item.name})
-                });
-                var open_channel = function(channel, chat_type){
-                    $('#channel').val(channel);
-                    $('#chat-type').val(chat_type);
-                    $('#channel-form').submit();
-                }
+            var open_channel = function(channel, chat_type){
+                $('#channel').val(channel);
+                $('#chat-type').val(chat_type);
+                $('#channel-form').submit();
+            }
 
 

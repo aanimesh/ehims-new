@@ -48,11 +48,7 @@ module.exports = function(io){
            // first get the user
            storage.get_or_create_user(user,function(results){
                user = results;
-               // then get all the channels
-               storage.get_channels(function(results){
-                   channels = results;
-                   res.render("channels",{ user: user, channels: channels});
-               });
+               res.render("channels",{ user: user});
            });
        
         },
@@ -99,22 +95,58 @@ module.exports = function(io){
         },
 
         download_channel : function(req, res) {
+            try{
             var channel = req.query.channel;
-            console.log(channel);
-            storage.get_channel_by_id(channel, function(ch) {
-                storage.get_messages_by_channel(channel, function(messages) {
-                    if(!ch || !messages) 
-                        res.status(400).json({'error': 'Bad request'});
-                    else
-                        res.json({
-                            'channel_id': channel,
-                            'chat_type': ch.chat_type,
-                            'name': ch.name,
-                            'messages': messages
+            console.log("Channel download: " + channel);
+            if(channel === 'all'){
+                storage.get_all_channels(function(channels){
+                    storage.get_all_messages(function(messages){
+                        ret = {'channels': []};
+                        channels.forEach(function(ch){
+                            ret.channels.push({
+                                'channel_id': ch._id,
+                                'chat_type': ch.chat_type,
+                                'name': ch.name,
+                                'messages': messages.filter(function(m){
+                                    return m.channel.equals(ch._id);
+                                    }),
+                            });
                         });
+                        res.json(ret);
+                    });
                 });
-            });
+            }
+            else {
+                storage.get_channel_by_id(channel, function(ch) {
+                    if(ch === null || ch === undefined) 
+                        res.status(400).json({'error': 'Bad request'});
+                    storage.get_messages_by_channel(channel, function(messages) {
+                        if(messages === null || messages === undefined) 
+                            res.status(400).json({'error': 'Bad request'});
+                        else
+                            res.json({
+                                'channel_id': channel,
+                                'chat_type': ch.chat_type,
+                                'name': ch.name,
+                                'messages': messages
+                            });
+                    });
+                });
+            }
+            } catch(err) {
+                res.status(500).json({'error': 'Server Error'});
+            }
+
         },
+
+       admin : function(req, res){
+           // first get the user
+           storage.get_all_channels(function(results){
+               res.render("admin",{channels: results});
+           });
+       
+        },
+
 
     
     };
