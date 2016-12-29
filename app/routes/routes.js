@@ -141,14 +141,20 @@ module.exports = function(io){
 
        admin : function(req, res){
            // first get the user
-           storage.get_all_channels(function(results){
-               res.render("admin",{channels: results});
-           });
-       
+           var pass = req.body.pass;
+           if(pass === 'ehims2016'){
+               storage.get_all_channels(function(results){
+                   res.render("admin",{channels: results});
+               });
+           } else {
+               res.render("admin_login", {message:"Incorrect Password"});
+           }
         },
 
+       admin_login : function(req, res){
+            res.render("admin_login");
+        },
 
-    
     };
 
     return routes;

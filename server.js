@@ -56,7 +56,9 @@ app.post('/message',routes.message);
 // download messages for a channel
 app.get('/download', routes.download_channel);
 
-app.get('/admin', routes.admin);
+app.get('/admin', routes.admin_login);
+
+app.post('/admin', routes.admin);
 
 // ---------------------------------
 
