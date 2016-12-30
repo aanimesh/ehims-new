@@ -74,26 +74,6 @@ module.exports = function(io){
            });
         },
 
-        channel_redirect : function(req, res) {
-            console.log("Redirect: "+req.body);
-            var socket_url = get_socket_url();
-            var context = { user: req.query.username,
-                channel: req.query.channel,
-                socket_url : socket_url};
-            if(!context.user) {
-                res.status(400);
-                res.send('Bad Request');
-            }
-            storage.get_or_create_user(context.user,function(results){
-                var user = results;
-                context.user = user;
-                console.log("Created user");
-                storage.join_channel(user, context.channel, 
-                    join_channel(context, res));
-            });
-
-        },
-
         download_channel : function(req, res) {
             try{
             var channel = req.query.channel;
@@ -140,7 +120,6 @@ module.exports = function(io){
         },
 
        admin : function(req, res){
-           // first get the user
            var pass = req.body.pass;
            if(pass === 'ehims2016'){
                storage.get_all_channels(function(results){
@@ -155,7 +134,61 @@ module.exports = function(io){
             res.render("admin_login");
         },
 
+       make_invite : function(req, res){
+            var channel = req.body.channel;
+            var username = req.body.username;
+            var password = req.body.password;
+
+            storage.create_invite(channel, username, password, function(invite){
+                res.json({'invite': invite._id});
+            });
+        },
+
+       invite_login : function(req, res){
+            storage.get_invite(req.query.i, function(invite){
+                if (!invite)
+                    res.status(404).send("Page not found");
+                else
+                    res.render('invite_login', {
+                        'channel': invite.channel,
+                        'username': invite.username,
+                        'invite': invite._id,
+                    });
+            });
+        },
+
+       invite : function(req, res){
+            storage.get_invite(req.body.invite, function(invite){
+                if(!invite)
+                    res.status(404).send("Page not found");
+                else if(invite.password !== req.body.pass) {
+                    res.render('invite_login', {
+                            'channel': invite.channel,
+                            'username': invite.username,
+                            'invite': invite._id,
+                            'message': "Incorrect password",
+                        });
+                } else {
+                    var socket_url = get_socket_url();
+                    var context = { 
+                        user: invite.username,
+                        channel: invite.channel,
+                        socket_url : socket_url};
+                    storage.get_or_create_user(context.user,function(results){
+                        var user = results;
+                        context.user = user;
+                        console.log("Created user");
+                        storage.join_channel(user, context.channel, 
+                            join_channel(context, res));
+                    });
+                }
+            });
+       
+       },
+
     };
+
+
 
     return routes;
 };

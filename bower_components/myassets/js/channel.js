@@ -183,9 +183,9 @@ var get_path_to_root = function (msg){
     return ret;
 };
 
-var get_invite_link = function(username){
-    var base = location.protocol + '//' + location.host + location.pathname;
-    return base + '?username=' + encodeURIComponent(username) + '&channel=' + encodeURIComponent(channel._id);
+var get_invite_link = function(invite){
+    var base = location.protocol + '//' + location.host + '/invite';
+    return base + '?i=' + encodeURIComponent(invite);
 };
 
 // -------------------------------
@@ -1077,7 +1077,9 @@ $(document).ready(function(){
     $('body').on('click',function(){
         // unless the user has clicked to add a parent or invite someone, then
         // automatically refocus to the main message
-        if(!$('#extra-parent').is(':focus') && !$('#invite-username').is(':focus'))
+        if(!$('#extra-parent').is(':focus') && 
+            !$('#invite-username').is(':focus') &&
+            !$('#invite-password').is(':focus'))
             $('#message').focus();
     });
     $('#message').focus();
@@ -1136,14 +1138,35 @@ $(document).ready(function(){
     }
 
 
-    $('#gen-link').on('click',function(){
+    
+
+    $('#invite-form').submit(function(e){
+        e.preventDefault();
         var username = $('#invite-username').val();
-        var link = get_invite_link(username);
-        $('#invite-link').html(link);
+        var password = $('#invite-password').val();
+        $('#gen-link').prop('disabled', true);
+        $('#invite-link').html("Loading...");
+        var data = {
+              'channel': channel._id,
+              'username': username,
+              'password': password
+        };
+        $.ajax({
+            type : "POST",
+            url  : '/makeinvite',
+            data : JSON.stringify(data),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+        }).success(function(data){
+            $('#invite-link').html(get_invite_link(data.invite));
+        }).always(function(){
+            $('#gen-link').prop('disabled', false);
+            });
     });
 
     $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
         $('#invite-username').val('');
+        $('#invite-password').val('');
         $('#invite-link').html('');
     });
 

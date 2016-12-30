@@ -47,9 +47,6 @@ app.post('/channels', routes.channels);
 // log on to a channel and chat
 app.post('/channel', routes.channel);
 
-// login redirect
-app.get('/channel', routes.channel_redirect);
-
 // send a message
 app.post('/message',routes.message);
 
@@ -59,6 +56,12 @@ app.get('/download', routes.download_channel);
 app.get('/admin', routes.admin_login);
 
 app.post('/admin', routes.admin);
+
+app.post('/makeinvite', routes.make_invite);
+
+app.get('/invite', routes.invite_login);
+
+app.post('/invite', routes.invite);
 
 // ---------------------------------
 

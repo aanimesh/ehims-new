@@ -19,6 +19,7 @@ mongoose.connect(_mongo_url);
 var User = require('./user.js').User;
 var Channel = require('./channel.js').Channel;
 var Message = require('./message.js').Message;
+var Invite = require('./invite.js').Invite;
 
 /**
  * Get or create user
@@ -234,6 +235,26 @@ var create_message = function(msg, callback){
     }
 };
 
+
+var create_invite = function(channel, username, password, callback){
+    var invite = new Invite({
+        'channel': channel,
+        'username': username,
+        'password': password
+    });
+    invite.save();
+    callback(invite);
+};
+
+var get_invite = function(invite_id, callback){
+    Invite.findOne({
+        '_id' :  invite_id
+    }, function(err, messages){
+        // assert.equal(null, err);
+        callback(messages);
+    });
+};
+
 exports.get_or_create_user = get_or_create_user;
 exports.get_all_channels = get_all_channels;
 exports.get_all_messages = get_all_messages;
@@ -244,3 +265,5 @@ exports.get_usernames = get_usernames;
 exports.create_message = create_message;
 exports.get_channel_by_name = get_channel_by_name;
 exports.get_channel_by_id = get_channel_by_id;
+exports.create_invite = create_invite;
+exports.get_invite = get_invite;

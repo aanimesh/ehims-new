@@ -207,12 +207,19 @@ html
             h3#help-title Invite Someone
                 .row
                     .large-12.columns
-                        .row.collapse
-                            .small-9.columns
-                                input#invite-username(type="text",
-                                    placeholder="Username")
-                            .small-3.columns
-                                a.button.postfix#gen-link Generate Link
+                        form#invite-form
+                            fieldset
+                                legend Create an Invite
+
+                                label Username
+                                    input#invite-username(type="text",
+                                        required
+                                        placeholder="Username")
+                                label Password
+                                    input#invite-password(type="text",
+                                        required
+                                        placeholder="Password")
+                                button#gen-link Generate Link
                     .large-12.columns
                         h6.subheader Link: 
                         div(style="postition:relative;width:90%;white-space:nowrap;overflow-x:scroll")
