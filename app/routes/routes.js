@@ -9,6 +9,11 @@ var get_socket_url = function(){
     return process.env.NODE_ENV ? 'https://ehims-new.herokuapp.com/' : 'http://localhost:3000/';
 };
 
+var get_help_popup = function() {
+    var hp = process.env.HELP_POPUP;
+    return hp ? hp : false;
+};
+
 var join_channel = function(context, res){
     return function(results){
      var channel = results.channel;
@@ -58,6 +63,7 @@ module.exports = function(io){
             var context = { user: req.body.username,
                 channel: req.body.channel,
                 ctype: req.body.ctype,
+                help_popup: get_help_popup(),
                 socket_url : socket_url};
             storage.get_or_create_user(context.user,function(results){
                 var user = results;
@@ -173,6 +179,7 @@ module.exports = function(io){
                     var context = { 
                         user: invite.username,
                         channel: invite.channel,
+                        help_popup: get_help_popup(),
                         socket_url : socket_url};
                     storage.get_or_create_user(context.user,function(results){
                         var user = results;
