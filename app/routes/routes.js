@@ -104,11 +104,15 @@ module.exports = function(io){
             }
             else {
                 storage.get_channel_by_id(channel, function(ch) {
-                    if(ch === null || ch === undefined) 
+                    if(ch === null || ch === undefined) { 
                         res.status(400).json({'error': 'Bad request'});
+                        return;
+                    }
                     storage.get_messages_by_channel(channel, function(messages) {
-                        if(messages === null || messages === undefined) 
+                        if(messages === null || messages === undefined) {
                             res.status(400).json({'error': 'Bad request'});
+                            return;
+                        }
                         else
                             res.json({
                                 'channel_id': channel,
@@ -175,18 +179,22 @@ module.exports = function(io){
                             'message': "Incorrect password",
                         });
                 } else {
-                    var socket_url = get_socket_url();
-                    var context = { 
-                        user: invite.username,
-                        channel: invite.channel,
-                        help_popup: get_help_popup(),
-                        socket_url : socket_url};
-                    storage.get_or_create_user(context.user,function(results){
-                        var user = results;
-                        context.user = user;
-                        console.log("Created user");
-                        storage.join_channel(user, context.channel, 
-                            join_channel(context, res));
+                    storage.get_channel_by_id(invite.channel, function(channel) {
+                        var socket_url = get_socket_url();
+                        var context = { 
+                            user: invite.username,
+                            channel: invite.channel,
+                            ctype: channel.chat_type,
+                            help_popup: get_help_popup(),
+                            socket_url : socket_url};
+                        console.log(context);
+                        storage.get_or_create_user(context.user,function(results){
+                            var user = results;
+                            context.user = user;
+                            console.log("Created user");
+                            storage.join_channel(user, context.channel, 
+                                join_channel(context, res));
+                        });
                     });
                 }
             });

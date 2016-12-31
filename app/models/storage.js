@@ -113,16 +113,26 @@ var join_or_create_channel = function(user, channel_name, chat_type, callback){
                             channel_name += ' (Graph)';
                             break;
                     }
-                    channel = new Channel({'name': channel_name,
-                                   'chat_type': chat_type,
-                                   'online_users': [],
-                                   'top_lvl_messages': []});
-                    channel.save();
-            }
-            user.join_channel(channel);
-            channel.log_user_in(user);
-            callback({'user':user,'channel':channel});
-    });
+                    // now see if the new name channel exists
+                    Channel.findOne({'name':channel_name, 'chat_type': chat_type},
+                        function(err, channel){
+                            if(!channel){
+                                channel = new Channel({'name': channel_name,
+                                                    'chat_type': chat_type,
+                                                    'online_users': [],
+                                                    'top_lvl_messages': []});
+                                channel.save();
+                            }
+                            user.join_channel(channel);
+                            channel.log_user_in(user);
+                            callback({'user':user,'channel':channel});
+                        });
+                } else { // the channel original channel name existed
+                    user.join_channel(channel);
+                    channel.log_user_in(user);
+                    callback({'user':user,'channel':channel});
+                }
+            });
 };
 
 var join_channel = function(user, channel_id, callback){

@@ -66,10 +66,9 @@ html
                     each channel in user.channels
                         li: h6
                             div
-                                a(onclick="open_channel('#{channel.name}', '#{channel.chat_type}')"
-                                style="float:left;")
+                                a(onclick="open_channel('#{channel.name}', '#{channel.chat_type}')")
                                     | #{channel.name} 
-                                a(href="/download?channel=#{channel.id}"
+                                //a(href="/download?channel=#{channel.id}"
                                     target="_blank") 
                                     i.fa.fa-arrow-circle-down
                             

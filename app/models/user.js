@@ -14,12 +14,12 @@ var UserSchema = new Schema({
 UserSchema.methods.join_channel = function(channel){
     var seen = false;
     for(var i = this.channels.length-1;  i >= 0; i--)
-        if(this.channels[i].id.equals(channel._id))
+        if(this.channels[i]._id.equals(channel._id))
             seen = true;
 
     if(!seen)
         this.channels.push({
-            name:channel.name, chat_type:channel.chat_type, id:channel._id});
+            name:channel.name, chat_type:channel.chat_type, _id:channel._id});
 
     this.save();
 };
