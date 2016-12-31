@@ -1180,7 +1180,8 @@ $(document).ready(function(){
 
 
     // show help dialog
-    $('#help-modal').foundation('reveal', 'open');
+    if(help_popup)
+        $('#help-modal').foundation('reveal', 'open');
 
 
 

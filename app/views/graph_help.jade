@@ -1,0 +1,60 @@
+h2#help-title Welcome to EHIMS (Graph Mode)
+    p
+        | EHIMS (Encapsulated Hierarchical Instant Messaging System) is
+        | is a tree-structred chat. Rather than in the traditional
+        | chronological fashion, messages are organizied by which
+        | message they are in response to.
+        br
+        | At all times there are two distinguished messages.
+        br
+        | The
+        b hard focal
+        |  message is the message highlighted in the tree view, and the
+        | bottom of the large messages on the screen. When you send a
+        | message, you will be responding to the hard focal message.
+        br
+        | The
+        b soft focal
+        |  message is the message with a small arrow to its left. This
+        | arrow is used primarily for navigation of the chat. See the
+        | keyboard shortcuts below for more information about how to
+        | navigate.
+    hr
+    p Here are the naviagtion shortcuts:
+        ul#keybinding-help
+            li(key="Enter")
+                | If the message field is empty, the enter key will
+                | advance you to the next message. Otherwise, you may
+                | use the enter key to send yout message.
+            li(key="Up")
+                | The up key will move the soft focus arrow up
+                | on the screen.
+            li(key="Down")
+                | The down key will move the soft focus arrow down
+                | on the screen.
+            li(key="Left")
+                | The left key will make the parent of the current
+                | soft focus node the hard focal node.
+            li(key="Right")
+                | The right key will make the current soft focus node
+                | the hard focal node.
+    hr
+    p Other useful hints:
+        ul
+            li Use the
+                i.fa.fa-plus
+                |  and
+                i.fa.fa-minus
+                |  to the left of a message to show/hide its replies.
+            li
+                | Click anywhere in the tree view to
+                | jump to a message.
+            li
+                | The envolope on the top left will tell you how many
+                | messages there are in the chat that you haven't read.
+                | Click it to see the next message, or
+                | hover over it to see a list unread messages
+                | and click on one to jump ahead.
+
+
+    a.close-reveal-modal(aria-label="Close")  &#215;
