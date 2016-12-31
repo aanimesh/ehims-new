@@ -11,7 +11,7 @@ var get_socket_url = function(){
 
 var get_help_popup = function() {
     var hp = process.env.HELP_POPUP;
-    return hp ? hp : false;
+    return hp === "true";
 };
 
 var join_channel = function(context, res){
