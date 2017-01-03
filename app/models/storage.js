@@ -22,21 +22,36 @@ var Message = require('./message.js').Message;
 var Invite = require('./invite.js').Invite;
 
 /**
- * Get or create user
+ * Get user
  * @param {String} username
- * @param {function} callback, to be called with user document
+ * @param {function} callback, to be called with err as first arg, user document 2nd 
  */
-var get_or_create_user = function(name,callback){
+var get_user = function(name,callback){
 
     User.findOne({'name': name},function(err, user){
         // assert.equal(null, err);
         if(!user){
-            user = new User({'name':name, channels: []});
-            user.save();
+            callback({err: "User doesn't exist"});
+            return;
         }
-        callback(user);
+        callback(null, user);
     });
 };
+
+/**
+ * Create User
+ * @param {String} username
+ * @param {String} password
+ * @param {function} callback, to be called on the new user document
+ */
+
+var create_user = function(name, pass, callback) {
+    var user = new User({'name':name, 'password': pass, channels: []});
+    user.save();
+    callback(user);
+};
+
+
 
 /**
  * get channel by name
@@ -265,7 +280,8 @@ var get_invite = function(invite_id, callback){
     });
 };
 
-exports.get_or_create_user = get_or_create_user;
+exports.get_user = get_user;
+exports.create_user = create_user;
 exports.get_all_channels = get_all_channels;
 exports.get_all_messages = get_all_messages;
 exports.join_or_create_channel = join_or_create_channel;

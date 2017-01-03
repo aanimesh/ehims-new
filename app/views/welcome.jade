@@ -17,6 +17,18 @@ html
                                                     required
                                                     placeholder="Username",
                                                     name="username")
-                            button.input-group-button.button Go
+                            if message
+                                input.input-group-field(type="password",
+                                                        required
+                                                        placeholder="Password",
+                                                        class="error"
+                                                        name="password")
+                                small.error #{message}
+                            else
+                                input.input-group-field(type="password",
+                                                        required
+                                                        placeholder="Password",
+                                                        name="password")
+                            button.input-group-button.button Sign Up/Log In
 
 

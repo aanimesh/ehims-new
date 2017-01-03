@@ -48,12 +48,37 @@ module.exports = function(io){
        
        channels : function(req, res){
            var user = req.body.username;
+           var pass = req.body.password;
+           
            var channels;
        
            // first get the user
-           storage.get_or_create_user(user,function(results){
-               user = results;
-               res.render("channels",{ user: user});
+           storage.get_user(user,function(err, results){
+               if(err){
+                    storage.create_user(user, pass, function(results){
+                        res.render("channels",{ user: {
+                            name: results.name,
+                            channels: results.channels
+                        }});
+                    });
+               } else { 
+                    results.comparePassword(pass, function(err, match){
+                        if(err){
+                            console.log(err);
+                            res.status(500).send("Whoops, we had an error");
+                            return;
+                        }
+                        if (match) {
+                            res.render("channels",{ user: {
+                                name: results.name,
+                                channels: results.channels
+                            }});
+                        } else {
+                            res.render("welcome", 
+                                { message: "This username exists, and the password is incorrect"});
+                        }
+                    });
+               }
            });
        
         },
@@ -65,7 +90,12 @@ module.exports = function(io){
                 ctype: req.body.ctype,
                 help_popup: get_help_popup(),
                 socket_url : socket_url};
-            storage.get_or_create_user(context.user,function(results){
+            storage.get_user(context.user,function(err, results){
+                if(err){
+                    console.log(err);
+                    res.status(500).send("Whoops, we had an error");
+                    return;
+                }
                 var user = results;
                 context.user = user;
                 storage.join_or_create_channel(user, context.channel, context.ctype,
@@ -188,7 +218,12 @@ module.exports = function(io){
                             help_popup: get_help_popup(),
                             socket_url : socket_url};
                         console.log(context);
-                        storage.get_or_create_user(context.user,function(results){
+                        storage.get_user(context.user,function(err, results){
+                            if(err){
+                                console.log(err);
+                                res.status(500).send("Whoops, we had an error");
+                                return;
+                            }
                             var user = results;
                             context.user = user;
                             console.log("Created user");
