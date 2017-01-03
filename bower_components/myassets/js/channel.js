@@ -29,9 +29,12 @@ var send_message = function () {
             parents = other_parents.slice();
     }
 
+    // remove actual parent and root from parents
     if (parents.indexOf(msg_parent) > -1)
         parents.splice(parents.indexOf(msg_parent), 1);
 
+    if (parents.indexOf("0") > -1)
+        parents.splice(parents.indexOf("0"), 1);
 
     var message = {
         'author'    : username,
@@ -71,11 +74,11 @@ var receive_msg = function(msg){
 
     if(msg.msg_parent)
         messages[msg.msg_parent].children.push(msg._id);
+    else
+        channel.top_lvl_messages.push(msg._id);
     if(chat_type === 'graph' && msg.other_parents)
         for(i = msg.other_parents.length-1; i >= 0; i--)
            messages[msg.other_parents[i]].children.push(msg._id); 
-    else
-        channel.top_lvl_messages.push(msg._id);
 
     // don't put in the queue if:
     //   - Message authos is current user
@@ -945,7 +948,8 @@ var display_tree = function(){
     });
     tree.on('deselectNode', function(e){
         // if nothing new is selected, then don't deselect
-        if(e.nodes.length === 0)
+        // If the root was selected, then don't deselect
+        if(e.nodes.length === 0 || e.nodes.indexOf("0") > -1)
             tree.setSelection(e.previousSelection);
         else if (chat_type === 'graph') {
             for (var i = 0; i < e.previousSelection.nodes.length; i++){
