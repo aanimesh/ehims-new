@@ -866,10 +866,19 @@ function Edge(from, to){
     this.to   = to;
 }
 
+var trim_name = function(n) {
+    var l = {
+        'path': ' (Sequential)'.length,
+        'tree': ' (Tree)'.length, 
+        'graph': ' (Graph)'.length
+        }[chat_type];
+    return n.substr(0, n.length - l);
+};
+
 var build_tree = function(){
     var msg;
     // supply an 'undefined' title so that no tooltip comes up
-    var root = new Node('0',channel.name, undefined); 
+    var root = new Node('0',trim_name(channel.name), undefined); 
     var msg_array = Object.keys(messages);
     tree_data = {
     nodes: [],
@@ -919,7 +928,9 @@ var display_tree = function(){
     };
     tree = new vis.Network(container, tree_data, options);
     tree.on('doubleClick', function(e){
-        if (e.nodes.length > 0)
+        if (e.nodes.length === 1 && e.nodes[0] === "0")
+            go_to_root();
+        else if (e.nodes.length > 0)
             set_hard_focus(e.nodes[0]);
     });
     tree.on('selectNode', function(e){
@@ -933,7 +944,7 @@ var display_tree = function(){
         }
     });
     tree.on('deselectNode', function(e){
-        // if nothin new is selected, then don't deselect
+        // if nothing new is selected, then don't deselect
         if(e.nodes.length === 0)
             tree.setSelection(e.previousSelection);
         else if (chat_type === 'graph') {
