@@ -632,7 +632,6 @@ var display_path_to_root = function(id){
     if (chat_type === 'graph' && messages[id].other_parents.length > 0) {
         // in this case we don't want to display a path to root, 
         // just show the multiple parents
-        msg_view.append("<h4> Multiple Parents</h4>");
         msg_view.append(make_mulitple_parents_div(messages[id]));
     } else {
         var path = get_path_to_root(messages[id]);
