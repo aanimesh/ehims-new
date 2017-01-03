@@ -178,7 +178,8 @@ module.exports = function(io){
             var channel = req.body.channel;
             var username = req.body.username;
             var password = req.body.password;
-
+            
+            // TODO, check that the user exists and return an error if not.
             storage.create_invite(channel, username, password, function(invite){
                 res.json({'invite': invite._id});
             });
@@ -201,6 +202,7 @@ module.exports = function(io){
             storage.get_invite(req.body.invite, function(invite){
                 if(!invite)
                     res.status(404).send("Page not found");
+                // TODO check the pass against the user's password, not the invite
                 else if(invite.password !== req.body.pass) {
                     res.render('invite_login', {
                             'channel': invite.channel,
