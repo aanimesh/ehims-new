@@ -267,15 +267,21 @@ var message_flash = function(){
 
 
 var blink_new_message = function(id) {
-    var iterations = 2; // number of blinks
+    // identify the message as new
+    $(id).addClass('new-blink-message');
+
+    var sleep = 2000; // 2 seconds between blinks
     var callback = function(iter) {
-        if (iter > iterations) {
+        // stop if the message is no longer new
+        if (!$(id).hasClass('new-blink-message')) {
             return;
         }
         $(id).fadeOut('fast', function(){
             $(this).fadeIn('fast', function(){
-                callback(iter+1);
-            });
+            $(this).fadeOut('fast', function(){
+            $(this).fadeIn('fast', function(){
+                setTimeout(function(){callback(iter+1);}, sleep);
+            });});});
         });
     };
     callback(1);
@@ -447,6 +453,7 @@ var set_hard_focus = function(id, hnav){
     for(var i=0, len=queue.length; i<len; i++){
         if(queue[i]._id === id){
             seen.push(queue.splice(i,1)[0]);
+            blink_new_message('#'+id);
             break;
         }
     }
@@ -472,8 +479,6 @@ var set_hard_focus = function(id, hnav){
     if(chat_type !== 'path' || scrolled){
         $('#messages-view').animate({ scrollTop: msg_view.scrollHeight}, 500);
     }
-
- 
 };
 
 // get the id of the current soft focus message wrapper
