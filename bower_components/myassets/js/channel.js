@@ -1091,9 +1091,9 @@ $(document).ready(function(){
     $('body').on('click',function(){
         // unless the user has clicked to add a parent or invite someone, then
         // automatically refocus to the main message
-        if(!$('#extra-parent').is(':focus') && 
-            !$('#invite-username').is(':focus') &&
-            !$('#invite-password').is(':focus'))
+        if(!$('#extra-parent').is(':focus'))
+            //!$('#invite-username').is(':focus') &&
+            //!$('#invite-password').is(':focus'))
             $('#message').focus();
     });
     $('#message').focus();
@@ -1154,6 +1154,8 @@ $(document).ready(function(){
 
     
 
+    // invite form stuff no longer in use 
+    /*
     $('#invite-form').submit(function(e){
         e.preventDefault();
         var username = $('#invite-username').val();
@@ -1183,6 +1185,7 @@ $(document).ready(function(){
         $('#invite-password').val('');
         $('#invite-link').html('');
     });
+    */
 
     $(document).on('click', '.op-x', function(e) {
         var msg_id = $(this).attr('id').substr(3);
