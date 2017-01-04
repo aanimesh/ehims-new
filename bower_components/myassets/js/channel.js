@@ -7,6 +7,8 @@ var dropdown_delay = 250; // ms to children dropdown shows
 var chat_type = channel.chat_type;
 var other_parents = [];
 
+var PLUS_CLICKABLE = false;
+
 
 // ------ General Utilities ---------
 
@@ -379,14 +381,8 @@ var set_hard_focus = function(id, hnav){
         });
 
 
-    // handle children reveal
-    $('.plus-minus-button').on('click',function(){
-        var id = $(this).parent().find('.message').attr('id');
-        // toggle symbol
-        $(this).find('i').attr('class',
-            $(this).find('i').attr('class').indexOf('plus')>-1 ? 
-            'fa fa-minus':'fa fa-plus');
-        var list = $(this).parent().closest('div').find('.reveal-children');
+    var show_children = function(id) {
+        var list = $('#'+id).parent().closest('div').find('.reveal-children');
         // if not filled, update
         if(list.is(':empty')){
             var make_bind_func = function(this_id) {
@@ -435,19 +431,41 @@ var set_hard_focus = function(id, hnav){
                 // add a plus sign to indicate that there are children
                 if (cmsg.children.length > 0) {
                     listitem_wrapper.append('<div id="'+cmsg._id+'-pm" class="plus-minus-symbol"><i class="fa fa-plus"></i></div>');
-                $('#'+cmsg._id+'-pm').on('click', make_bind_func(cmsg._id) );
+                if(PLUS_CLICKABLE)
+                    $('#'+cmsg._id+'-pm').on('click', make_bind_func(cmsg._id) );
                 }
             }
         }
         list.slideToggle('fast');
+    };
 
-    });
+
+    // handle children reveal
+    if(PLUS_CLICKABLE) {
+        $('.plus-minus-button').on('click',function(){
+            var id = $(this).parent().find('.message').attr('id');
+            // toggle symbol
+            $(this).find('i').attr('class',
+                $(this).find('i').attr('class').indexOf('plus')>-1 ? 
+                'fa fa-minus':'fa fa-plus');
+            show_children(id);
+        });
+    } else { 
+        // still expand the children even if "+" isn't clickable
+        setTimeout(function(){show_children(id);}, dropdown_delay);
+    }
+
+
+
 
     // handle click of siblings symbol
+    // Uncomment for siblings symbol
+    /*
     $('.siblings-symbol').on('click',function(){
         var id = $(this).parent().find('.message').attr('id');
         display_parent_and_siblings(id);    
     });
+    */
 
     // remove self from queue
     for(var i=0, len=queue.length; i<len; i++){
@@ -464,9 +482,10 @@ var set_hard_focus = function(id, hnav){
     $('#message').trigger("focus");
 
     //automatically expand children
-    setTimeout(function() {
-        $('#'+id+'-wrapper .plus-minus-button').trigger("click");
-    },dropdown_delay);
+    if(PLUS_CLICKABLE)
+        setTimeout(function() {
+            $('#'+id+'-wrapper .plus-minus-button').trigger("click");
+        },dropdown_delay);
 
     // set soft focus arrow
     set_soft_focus(id);
