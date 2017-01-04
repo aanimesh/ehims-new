@@ -143,12 +143,12 @@ html
                                  aria-labelledby="help-title" 
                                  aria-hidden="true" 
                                  role="dialog")
-            if ctype == "path"
-                include path_help
-            if ctype == "tree"
-                include tree_help
-            if ctype == "graph"
-                include graph_help
+            if channel.chat_type == "path"
+                include help_popup/path_help
+            if channel.chat_type == "tree"
+                include help_popup/tree_help
+            if channel.chat_type == "graph"
+                include help_popup/graph_help
         #invite-modal.reveal-modal.small(data-reveal 
                                  aria-hidden="true" 
                                  role="dialog")
