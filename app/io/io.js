@@ -18,7 +18,7 @@ module.exports = function(io){
             socket.on('disconnect', function(){
                 console.log(q.username+" left "+q.channel);
                 io.to(q.channel).emit('log-off',q.username);
-                storage.get_or_create_user(q.username,function(user){
+                storage.get_user(q.username,function(err, user){
                     storage.get_channel_by_id(q.channel,function(channel){
                         if (channel)
                             channel.log_user_out(user);

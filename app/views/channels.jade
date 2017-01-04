@@ -10,38 +10,53 @@ html
             var user = !{JSON.stringify(user)};
     body
         .row(style="margin-top:5%")
-            .large-6.medium-6.columns.large-offset-3.medium-offset-3
-                h3 Hi #{user.name}, join/create a channel
-                form(action="/channel",method="POST")#channel-form
+            .large-12.medium-12.small-12.columns
+            h2 Hi #{user.name}
+        .row
+            .large-6.columns.medium-6
+                h3 Join a channel
+                form(action="/join", method="POST")#join-channel-form
                     input#user(type="hidden",
                                name="username",
                                value="#{user.name}")
-                    input#chat-type(type="hidden",name="ctype",value="tree")
                     .row
                         .large-9.columns
                             .row.collapse
                                 .small-10.columns
-                                    input#channel(type="text",
-                                          placeholder="Channel...",
-                                          name="channel")
+                                    if messages && messages.join
+                                        input#join-channel(type="text",
+                                                placeholder="Channel ID...",
+                                                class="error"
+                                                name="channel")
+                                        small.error #{messages.join}             
+                                    else
+                                        input#join-channel(type="text",
+                                                placeholder="Channel...",
+                                                name="channel")
                                 .small-2.columns(style="text-align:center")
                                     button.postfix Join
-                        .large-3.columns
-                            a.button.secondary.right.tiny(href='#',data-reveal-id='advanced-modal') Advanced
-                .reveal-modal#advanced-modal(data-reveal,aria-hidden="true",role="dialog")
-                    form(action="/channel",method="POST")#advanced-channel-form
+                    
+                hr
+                h3 Create a Channel
+                    form(action="/create",method="POST")#create-channel-form
                         input#user(type="hidden",
                                 name="username",
                                 value="#{user.name}")
                         fieldset
-                            legend Create a Channel
                             label 
                                 | Channel Name
-                                input(type="text",
-                                    placeholder="Enter a channel name...",
-                                    name="channel")
+                                if messages && messages.create
+                                    input(type="text",
+                                        placeholder="Enter a channel name...",
+                                        class="error"
+                                        name="channel")
+                                    small.error #{messages.create}
+                                else
+                                    input(type="text",
+                                        placeholder="Enter a channel name...",
+                                        name="channel")
                             .row
-                                .large-6.columns
+                                .large-12.columns
                                     label Channel Type
                                     input#ctype-path(type='radio',
                                                     name='ctype',
@@ -56,17 +71,14 @@ html
                                                     name='ctype',
                                                     value='graph')
                                     label(for='ctype-graph') Graph
-                                .large-6.columns
-                                    button.right.small Go
-
-                    a.close-reveal-modal &#215; 
-                hr
+                            button.right.small Create
+            .large-6.medium-6.columns
                 h4  Or choose from a previously joined channel
                 ul.side-nav
                     each channel in user.channels
                         li: h6
                             div
-                                a(onclick="open_channel('#{channel.name}', '#{channel.chat_type}')")
+                                a(onclick="open_channel('#{channel._id}')")
                                     | #{channel.name} 
                                 //a(href="/download?channel=#{channel.id}"
                                     target="_blank") 
@@ -76,9 +88,8 @@ html
         script.
             $(document).foundation();
             var open_channel = function(channel, chat_type){
-                $('#channel').val(channel);
-                $('#chat-type').val(chat_type);
-                $('#channel-form').submit();
+                $('#join-channel').val(channel);
+                $('#join-channel-form').submit();
             }
 
 

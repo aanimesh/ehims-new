@@ -44,8 +44,9 @@ app.get('/', routes.landing);
 // list of channels, redirected to by landing
 app.post('/channels', routes.channels);
 
-// log on to a channel and chat
-app.post('/channel', routes.channel);
+app.post('/join', routes.join_channel);
+
+app.post('/create', routes.create_channel);
 
 // send a message
 app.post('/message',routes.message);

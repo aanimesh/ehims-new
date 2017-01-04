@@ -56,7 +56,7 @@ var create_user = function(name, pass, callback) {
 /**
  * get channel by name
  * @param {String} channel name
- * @param {function} callback to be called on channel name
+ * @param {function} callback to be called on channel
  */
 var get_channel_by_name = function(channel_name, callback){
     Channel.findOne({ 'name': channel_name },function(err, channel){
@@ -68,7 +68,7 @@ var get_channel_by_name = function(channel_name, callback){
 /**
  * get channel by id
  * @param {String} channel id
- * @param {function} callback to be called on channel name
+ * @param {function} callback to be called on channel
  */
 var get_channel_by_id = function(channel_id, callback){
     Channel.findOne({ '_id': channel_id },function(err, channel){
@@ -101,66 +101,53 @@ var get_all_messages = function(callback){
 };
 
 /**
- * join or create channel
+ * create channel
  * @param {Object} User
  * @param {String} channel name
  * @param {String} chat type (line, tree, or graph)
- * @param {function} callback to be called on {user, channel}
+ * @param {function} callback to be called on (err, channel)
  */
-var join_or_create_channel = function(user, channel_name, chat_type, callback){
-    
-    Channel.findOne({'name':channel_name, 'chat_type': chat_type},
-            function(err, channel){
-                // assert.equal(null,err);
-                if(!channel){
-                    // when creating a new channel, add the chat type
-                    // to the name
-                    //      Ensures name uniqueness and also makes it
-                    //      clear to the user the type of chat they're in
-                    switch(chat_type){
-                        case 'path':
-                            channel_name += ' (Sequential)';
-                            break;
-                        case 'tree':
-                            channel_name += ' (Tree)';
-                            break;
-                        case 'graph':
-                            channel_name += ' (Graph)';
-                            break;
-                    }
-                    // now see if the new name channel exists
-                    Channel.findOne({'name':channel_name, 'chat_type': chat_type},
-                        function(err, channel){
-                            if(!channel){
-                                channel = new Channel({'name': channel_name,
-                                                    'chat_type': chat_type,
-                                                    'online_users': [],
-                                                    'top_lvl_messages': []});
-                                channel.save();
-                            }
-                            user.join_channel(channel);
-                            channel.log_user_in(user);
-                            callback({'user':user,'channel':channel});
-                        });
-                } else { // the channel original channel name existed
-                    user.join_channel(channel);
-                    channel.log_user_in(user);
-                    callback({'user':user,'channel':channel});
-                }
-            });
+var create_channel = function(channel_name, chat_type, callback){
+     // when creating a new channel, add the chat type
+     // to the name
+     //      Ensures name uniqueness and also makes it
+     //      clear to the user the type of chat they're in
+     switch(chat_type){
+         case 'path':
+             channel_name += ' (Sequential)';
+             break;
+         case 'tree':
+             channel_name += ' (Tree)';
+             break;
+         case 'graph':
+             channel_name += ' (Graph)';
+             break;
+     }
+     get_channel_by_name(channel_name, function(channel) {
+         if(channel){
+             callback({err: "Channel exists"});
+             return;
+         }
+        channel = new Channel({'name': channel_name,
+                             'chat_type': chat_type,
+                             'online_users': [],
+                             'top_lvl_messages': []});
+        channel.save();
+        callback(null, channel);
+     });
 };
 
 var join_channel = function(user, channel_id, callback){
-    console.log("Joining channel from redirect:");
-    console.log(channel_id);
     Channel.findOne({'_id': channel_id},
             function(err, channel){
                 // assert.equal(null,err);
-                if (!channel)
+                if (!channel){
+                    callback({err: "Channel does not exist"});
                     return;
+                }
                 user.join_channel(channel);
                 channel.log_user_in(user);
-                callback({'user':user,'channel':channel});
+                callback(null, {'user':user,'channel':channel});
             });
 };
 
@@ -284,7 +271,7 @@ exports.get_user = get_user;
 exports.create_user = create_user;
 exports.get_all_channels = get_all_channels;
 exports.get_all_messages = get_all_messages;
-exports.join_or_create_channel = join_or_create_channel;
+exports.create_channel = create_channel;
 exports.join_channel = join_channel;
 exports.get_messages_by_channel = get_messages_by_channel;
 exports.get_usernames = get_usernames;

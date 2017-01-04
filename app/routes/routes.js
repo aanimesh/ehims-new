@@ -14,10 +14,15 @@ var get_help_popup = function() {
     return hp === "true";
 };
 
-var join_channel = function(context, res){
-    return function(results){
+var join_channel = function(context, res, err_func){
+    return function(err, results){
+     if(err){
+         err_func(err);
+         return;
+     }
      var channel = results.channel;
      channel.log_user_in(context.user);
+     channel.save();
      context.channel = channel;
      storage.get_messages_by_channel(channel._id, function(results){
          context.messages = results;
@@ -82,12 +87,11 @@ module.exports = function(io){
            });
        
         },
-       
-        channel : function(req, res){
+
+        create_channel : function(req, res){
             var socket_url = get_socket_url();
             var context = { user: req.body.username,
                 channel: req.body.channel,
-                ctype: req.body.ctype,
                 help_popup: get_help_popup(),
                 socket_url : socket_url};
             storage.get_user(context.user,function(err, results){
@@ -98,8 +102,49 @@ module.exports = function(io){
                 }
                 var user = results;
                 context.user = user;
-                storage.join_or_create_channel(user, context.channel, context.ctype,
-                    join_channel(context, res));
+                storage.create_channel(context.channel, req.body.ctype,
+                    function(err, channel) {
+                        if(err){
+                            console.log(err);
+                            context.messages = {
+                                create: "The channel you tried to create already exists"};
+                            res.render("channels", context); 
+                            return;
+                        }
+
+                        context.channel = channel._id;
+                        storage.join_channel(user, context.channel,
+                            join_channel(context, res, function(err){
+                                console.log(err);
+                                context.messages = {
+                                    create: "There was an error, try again"};
+                                res.render("channels", context); 
+                            }));
+                    });
+            });
+        },
+       
+        join_channel : function(req, res){
+            var socket_url = get_socket_url();
+            var context = { user: req.body.username,
+                channel: req.body.channel,
+                help_popup: get_help_popup(),
+                socket_url : socket_url};
+            storage.get_user(context.user,function(err, results){
+                if(err){
+                    console.log(err);
+                    res.status(500).send("Whoops, we had an error");
+                    return;
+                }
+                var user = results;
+                context.user = user;
+                storage.join_channel(user, context.channel,
+                    join_channel(context, res, function(err){
+                        console.log(err);
+                        context.messages = {
+                            join: "The channel you tried to join does not exist"};
+                        res.render("channels", context); 
+                    }));
             });
         },
        
@@ -230,7 +275,12 @@ module.exports = function(io){
                             context.user = user;
                             console.log("Created user");
                             storage.join_channel(user, context.channel, 
-                                join_channel(context, res));
+                                join_channel(context, res,
+                                    function(err){
+                                        console.log(err);
+                                        res.status(500).send("Whoops, we had an error");
+                                        return;
+                                    }));
                         });
                     });
                 }

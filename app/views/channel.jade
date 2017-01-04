@@ -32,8 +32,6 @@ html
             var colour_pos = 0;
     body
         - var trim_name = function(n) { var l = {'path': ' (Sequential)'.length, 'tree': ' (Tree)'.length, 'graph': ' (Graph)'.length}[channel.chat_type]; return n.substr(0, n.length - l);}
-        form(action="/channels",method="POST")#back-form
-            input(type="hidden",name="username")
         nav.top-bar#navbar
             ul.title-area
                 li.name
