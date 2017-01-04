@@ -1015,7 +1015,7 @@ var handle_keydown = function(e){
             break;
         case 37: // left
             //ascend_from_soft_focus();
-            to_left_sibling();
+            //to_left_sibling();
             break;
         case 38: // up
             arrow_up();
@@ -1028,7 +1028,18 @@ var handle_keydown = function(e){
             e.preventDefault();
             */
             //descend_from_soft_focus();
-            to_right_sibling();
+            //to_right_sibling();
+            // If the message has a plus, then make it the hard focus
+            // Two cases to have a plus:
+            //    On the path to root and have >= 2 children
+            //    A child message with >= 1 children
+            var sf = get_soft_focus();
+            var sf_children = messages[sf].children.length;
+
+            if(sf_children > 1 || 
+               ($('#'+sf).hasClass('child-message') && sf_children > 0)){
+                set_hard_focus(sf);
+            }
             break;
         case 40: // down
             arrow_down();
