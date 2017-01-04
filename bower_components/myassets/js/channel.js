@@ -136,12 +136,14 @@ var make_msg_div = function(msg){
     if ( ((msg._id === hard_focus && msg.children.length > 0) || msg.children.length > 1) && chat_type != 'path') {
         wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
     }
+    /* Uncomment for a tree symbol next to all messages which have siblings
     if (
         (messages[msg.msg_parent] && messages[msg.msg_parent].children.length > 1) ||
         (msg.msg_parent === null && channel.top_lvl_messages.length > 1)
     ){
         wrapper.append('<div class="siblings-symbol"><i class="fa fa-sitemap"></i></div>');
     }
+    */
     wrapper.append($("<ul>",{class: 'reveal-children',style: "display:none;"}));
     return wrapper;
 };
