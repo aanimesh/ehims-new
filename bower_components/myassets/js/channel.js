@@ -6,6 +6,8 @@ var keys = {};
 var dropdown_delay = 250; // ms to children dropdown shows
 var chat_type = channel.chat_type;
 var other_parents = [];
+var online_count = 0;
+
 
 var PLUS_CLICKABLE = false;
 
@@ -206,26 +208,34 @@ var user_log_on = function(uname){
         var pos = online.length;
         online.push({name:uname, colour: colours[colour_pos %57]});
         colour_pos += 7;
+        online_count += 1;
 
-        $('#online-users').append(
+        $('#online-users-list').append(
             '<li style="color:'+
             online[pos].colour+
             ';">'+uname+'</li>');
+        $('#num-online').html(
+                '('+online_count+')'
+                );
     }
 };
 
 var user_log_off = function(uname){
-    $('#online-users').find("li:contains('"+uname+"')")
+    online_count -= 1;
+    $('#online-users-list').find("li:contains('"+uname+"')")
                       .filter(function(){
                          return $(this).html() === uname;
                       }).remove();
+    $('#num-online').html(
+            '('+online_count+')'
+            );
 };
 
 var assign_colour = function(){
     for (var i = online.length-1; i>=0 ; i--){
         online[i].colour = colours[colour_pos % colours.length];
-        // increase by  so multiple users aren't too close 
-        // together. 7 chosen to be coprime ot length of
+        // increase by 7 so multiple users aren't too close 
+        // together. 7 chosen to be coprime to the length of
         // colours (57) so that all colours are visited before
         // a repeated colour.
         colour_pos += 7; 
@@ -234,13 +244,16 @@ var assign_colour = function(){
 
 
 var update_online = function(){
-    $('#online-users').html('');
+    $('#online-users-list').html('');
     for (var i = online.length-1; i>=0 ; i--){
-        $('#online-users').append(
+        $('#online-users-list').append(
                 '<li style="color:'+
                 online[i].colour+
                 ';">'+online[i].name+'</li>');
     }
+    $('#num-online').html(
+            '('+online_count+')'
+            );
 };
 
 var get_colour = function(uname){
@@ -1109,6 +1122,15 @@ $(document).ready(function(){
 
 
     assign_colour();
+
+    // unique online users (hack to fix bug that has duplicated ids)
+    var seen = {};
+    for (var i = channel.online_users.length-1; i>=0; i--){
+        if (seen.hasOwnProperty(channel.online_users[i]))
+            continue;
+        seen[channel.online_users[i]] = 1;
+        online_count += 1;
+    }
 
     update_online();
 

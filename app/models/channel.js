@@ -13,25 +13,24 @@ var ChannelSchema = new Schema({
 ChannelSchema.methods.log_user_in = function(user){
     var seen = false;
     for(var i = this.online_users.length-1; i >= 0; i--)
-        if(this.online_users[i].equals(user._id)){
+        if(this.online_users[i].equals(user._id) || this.online_users[i] === user._id){
             seen = true;
             break;
         }
-    if(!seen)
+    if(!seen) {
+        console.log("Logging user in");
         this.online_users.push(user._id);
+    }
 
     this.save();
 };
 
 ChannelSchema.methods.log_user_out = function(user){
-    var index = -1;
     for(var i = this.online_users.length-1; i >= 0; i--)
         if(this.online_users[i].equals(user._id)){
-            index = i;
-            break;
+            this.online_users.splice(i, 1);
+
         }
-    if(index >= 0)
-        this.online_users.splice(index, 1);
 
     this.save();
 };

@@ -54,6 +54,11 @@ html
                                 i.fa.fa-forward
                 //     li
                 ul.right
+                    li 
+                        a(data-dropdown="online-users-list",
+                          data-options="is_hover:true; hover_timeout:5000")#online-users
+                            | Online &nbsp;
+                            span#num-online (!{channel.online_users.length})
                     li
                         a Chatting as: !{user.name}
                     if help_popup == true
@@ -71,6 +76,9 @@ html
                         a(href='/') Logout
 
         ul#new-msg-list.f-dropdown(data-dropdown-content,
+            style="height=200px;overflow-y:scroll;")
+
+        ul#online-users-list.f-dropdown(data-dropdown-content,
             style="height=200px;overflow-y:scroll;")
 
 
