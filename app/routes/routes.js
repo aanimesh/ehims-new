@@ -224,7 +224,13 @@ module.exports = function(io){
             var username = req.body.username;
             var password = req.body.password;
             
-            // TODO, check that the user exists and return an error if not.
+            // TODO
+            //     With the addition of passwords for a user, there are two ways this
+            //     could work:
+            //          - Invites must be for an existing user, so we must check
+            //              that the user exists
+            //          - Invites create a new user, so we must check the user does
+            //              not exist, and create it.
             storage.create_invite(channel, username, password, function(invite){
                 res.json({'invite': invite._id});
             });
@@ -247,7 +253,13 @@ module.exports = function(io){
             storage.get_invite(req.body.invite, function(invite){
                 if(!invite)
                     res.status(404).send("Page not found");
-                // TODO check the pass against the user's password, not the invite
+                // TODO
+                //      Originally, the invites had a password independent of the user
+                //      passwords.
+                //      Depending on how the invites could work, we would either
+                //      check the the correct user is logged in and check the
+                //      invite password against the supplied one,
+                //      or just check the invited user's password here.
                 else if(invite.password !== req.body.pass) {
                     res.render('invite_login', {
                             'channel': invite.channel,
