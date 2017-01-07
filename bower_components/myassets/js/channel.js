@@ -489,7 +489,8 @@ var set_hard_focus = function(id, hnav){
         }
     }
 
-    tree.selectNodes([id]);
+    if(chat_type !== 'path')
+        tree.selectNodes([id]);
     update_queue_display();
 
     $('#message').trigger("focus");
@@ -950,6 +951,9 @@ var display_node = function(params){
 };
 
 var display_tree = function(){
+    if(chat_type === 'path'){
+        return;
+    }
     var container = document.getElementById('tree');
     var options = {
         edges : {

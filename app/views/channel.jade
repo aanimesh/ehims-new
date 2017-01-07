@@ -108,7 +108,13 @@ html
                     a.button.success.expand#message-send Send
 
         #view-column
-            ul.tabs(data-tab)#tabs-list
+            if channel.chat_type == "path"
+                include side_columns/path
+            if channel.chat_type == "tree"
+                include side_columns/tree
+            if channel.chat_type == "graph"
+                include side_columns/graph
+            //ul.tabs(data-tab)#tabs-list
                 li.tab-title.active
                     a(href='#online') Online Users
                 if channel.chat_type == 'graph'
@@ -118,7 +124,8 @@ html
                 unless channel.chat_type == 'path'
                     li.tab-title
                         a(href='#treeview') Tree View
-            .tabs-content
+
+            //.tabs-content
                 .content.active#online
                     .tab
                         //h5(style='width:100%;text-align:center')
