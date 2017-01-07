@@ -434,6 +434,10 @@ var set_hard_focus = function(id, hnav){
                 });
                 listitem.html("<br/>"+cmsg.content+"<br/>");
                 listitem_wrapper.append(listitem);
+                if(cmsg.other_parents.length > 0)
+                    listitem_wrapper.append(
+                        '<div class="mp-symbol"><i class="fa fa-clone"></i></div>'
+                    );
                 list.append(listitem_wrapper);
                 $('#'+cmsg._id).on('click', make_bind_func(cmsg._id) );
                 // if message is new, blink it, then remove from queue
@@ -1188,8 +1192,8 @@ $(document).ready(function(){
         // otherwise, if the queue is non-empty, set up the unseen message list
         if(queue.length > 0){
             new_message_flash = setInterval(message_flash, 700);
-            for(var i=queue.length-1;i>=0;i--){
-                add_msg_to_hover_list(queue[i]);
+            for(var j=queue.length-1;j>=0;j--){
+                add_msg_to_hover_list(queue[j]);
             }
         }
     

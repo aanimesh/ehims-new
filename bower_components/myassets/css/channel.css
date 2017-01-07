@@ -259,6 +259,12 @@ div.siblings-symbol {
     top: 1px;
 }
 
+div.mp-symbol {
+    display: inline;
+    float: right;
+    position: absolute;
+    bottom: 5px;
+}
 
 /*div.message-selected::before {
     content: 'Selected';
