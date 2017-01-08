@@ -51,6 +51,7 @@ iteration of the site didn't have password protection, however, a user could gen
 a password protected "Invite" link. The addition of password protection broke this,
 but there are notes in the code about how to reconsile issues should this
 functionallity be desired again.
+- The current join bar uses the actual ID of the channel in the DB. Might be a good idea to abstract this a little since while they aren't exactly sequential, someone could potentially guess an ID. 
 
 
 
