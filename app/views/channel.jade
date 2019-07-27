@@ -167,21 +167,28 @@ html
         #invite-modal.reveal-modal.small(data-reveal 
                                  aria-hidden="true" 
                                  role="dialog")
-            h6.subheader Channel ID:
-            p
+            //h6.subheader Channel ID:
+            //p
                 span#invite-link #{channel._id}
-            //h3#help-title Invite Someone
+            h3#help-title Invite Someone
                 .row
                     .large-12.columns
-                        form#invite-form
+                        //form#invite-form
+                        form#invite-form(action="/makeinvite",method="POST")
                             fieldset
                                 legend Create an Invite
 
+                                label Channel ID
+                                    br
+                                    span
+                                        #{channel._id}
+                                br
                                 label Username
                                     input#invite-username(type="text",
                                         required
                                         placeholder="Username")
-                                label Password
+                                    p#error 
+                                //label Password
                                     input#invite-password(type="text",
                                         required
                                         placeholder="Password")
@@ -191,6 +198,7 @@ html
                         div(style="postition:relative;width:90%;white-space:nowrap;overflow-x:scroll")
                             p
                                 span#invite-link
+                                    //#{channel._id}
             a.close-reveal-modal(aria-label="Close")  &#215;
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")

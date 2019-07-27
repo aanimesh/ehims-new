@@ -248,14 +248,20 @@ var create_message = function(msg, callback){
 };
 
 
-var create_invite = function(channel, username, password, callback){
-    var invite = new Invite({
-        'channel': channel,
-        'username': username,
-        'password': password
+var create_invite = function(channel, username, callback){
+    get_user(username, function(err, results){
+       if(!results){
+            callback(null);
+       } else {
+            var invite = new Invite({
+                'channel': channel,
+                'username': username,
+                //'password': password
+            });
+            invite.save();
+            callback(invite);
+       }
     });
-    invite.save();
-    callback(invite);
 };
 
 var get_invite = function(invite_id, callback){

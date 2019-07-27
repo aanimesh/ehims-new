@@ -222,7 +222,7 @@ module.exports = function(io){
        make_invite : function(req, res){
             var channel = req.body.channel;
             var username = req.body.username;
-            var password = req.body.password;
+            //var password = req.body.password;
             
             // TODO
             //     With the addition of passwords for a user, there are two ways this
@@ -231,9 +231,14 @@ module.exports = function(io){
             //              that the user exists
             //          - Invites create a new user, so we must check the user does
             //              not exist, and create it.
-            storage.create_invite(channel, username, password, function(invite){
-                res.json({'invite': invite._id});
+            // NOW
+            //  Invites must be for an existing user
+            //######### cy_
+            storage.create_invite(channel, username, function(invite){
+               if(invite)
+                    res.json({'invite': invite._id,'username': username});
             });
+            //######### cy_
         },
 
        invite_login : function(req, res){
@@ -250,8 +255,10 @@ module.exports = function(io){
         },
 
        invite : function(req, res){
-            storage.get_invite(req.body.invite, function(invite){
-                if(!invite)
+            var invite = req.body.invite;
+            var pass = req.body.pass;
+            storage.get_invite(invite, function(result){
+                if(!result)
                     res.status(404).send("Page not found");
                 // TODO
                 //      Originally, the invites had a password independent of the user
@@ -259,45 +266,59 @@ module.exports = function(io){
                 //      Depending on how the invites could work, we would either
                 //      check the the correct user is logged in and check the
                 //      invite password against the supplied one,
-                //      or just check the invited user's password here.
-                else if(invite.password !== req.body.pass) {
-                    res.render('invite_login', {
-                            'channel': invite.channel,
-                            'username': invite.username,
-                            'invite': invite._id,
-                            'message': "Incorrect password",
-                        });
-                } else {
-                    storage.get_channel_by_id(invite.channel, function(channel) {
-                        var socket_url = get_socket_url();
-                        var context = { 
-                            user: invite.username,
-                            channel: invite.channel,
-                            ctype: channel.chat_type,
-                            help_popup: get_help_popup(),
-                            socket_url : socket_url};
-                        console.log(context);
-                        storage.get_user(context.user,function(err, results){
-                            if(err){
-                                console.log(err);
-                                res.status(500).send("Whoops, we had an error");
-                                return;
-                            }
-                            var user = results;
-                            context.user = user;
-                            console.log("Created user");
-                            storage.join_channel(user, context.channel, 
-                                join_channel(context, res,
-                                    function(err){
-                                        console.log(err);
-                                        res.status(500).send("Whoops, we had an error");
-                                        return;
-                                    }));
-                        });
-                    });
-                }
+                //      or just check the invited user's password here.(just check the user's pw)
+                //######### cy_
+                else {
+                    storage.get_user(result.username, function(err, results){
+                       if(results){
+                            results.comparePassword(pass, function(err, match){
+                                if(err){
+                                    console.log(err);
+                                    res.status(500).send("Whoops, we had an error");
+                                    return;
+                                }
+                                if (match) {  
+                                    storage.get_channel_by_id(req.body.channel, function(channel) {
+                                        var socket_url = get_socket_url();
+                                        var context = { 
+                                            user: req.body.username,
+                                            channel: req.body.channel,
+                                            ctype: channel.chat_type,
+                                            help_popup: get_help_popup(),
+                                            socket_url : socket_url};
+                                        console.log(context);
+                                        storage.get_user(context.user,function(err, results){
+                                            if(err){
+                                                console.log(err);
+                                                res.status(500).send("Whoops, we had an error");
+                                                return;
+                                            }
+                                            var user = results;
+                                            context.user = user;
+                                            console.log("Created user");
+                                            storage.join_channel(user, context.channel, 
+                                                join_channel(context, res,
+                                                    function(err){
+                                                        console.log(err);
+                                                        res.status(500).send("Whoops, we had an error");
+                                                        return;
+                                                    }));
+                                        });
+                                    });
+                                } else {
+                                res.render('invite_login', {
+                                        'channel': req.body.channel,
+                                        'username': req.body.username,
+                                        'invite': invite,
+                                        'message': "Incorrect password",
+                                    });
+                                }
+                            });
+                       };
+                   });
+                };
+                //######### cy_
             });
-       
        },
 
     };

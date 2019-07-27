@@ -6,7 +6,7 @@ var InviteSchema = new Schema({
     id: ObjectId,
     channel: {type: ObjectId, ref: 'Channel'},
     username: String,
-    password: String,
+    //password: String,
 }, { timestamps: { createdAt: 'created_at' } });
 
 exports.Invite = mongoose.model('Invite', InviteSchema);

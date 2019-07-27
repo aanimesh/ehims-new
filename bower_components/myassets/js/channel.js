@@ -1222,17 +1222,18 @@ $(document).ready(function(){
     
 
     // invite form stuff no longer in use 
-    /*
+    
     $('#invite-form').submit(function(e){
         e.preventDefault();
         var username = $('#invite-username').val();
-        var password = $('#invite-password').val();
+        //var password = $('#invite-password').val();
         $('#gen-link').prop('disabled', true);
         $('#invite-link').html("Loading...");
+        $('#error').html("");
         var data = {
               'channel': channel._id,
               'username': username,
-              'password': password
+              //'password': password
         };
         $.ajax({
             type : "POST",
@@ -1241,18 +1242,21 @@ $(document).ready(function(){
             contentType: "application/json; charset=utf-8",
             dataType: "json",
         }).success(function(data){
-            $('#invite-link').html(get_invite_link(data.invite));
+            $('#invite-link').html(get_invite_link(data.invite))
+        }).fail(function(){
+            $('#error').html("User doesn't exists");
+            $('#invite-link').html("");
         }).always(function(){
             $('#gen-link').prop('disabled', false);
-            });
+        });
     });
 
     $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
         $('#invite-username').val('');
-        $('#invite-password').val('');
+        //$('#invite-password').val('');
         $('#invite-link').html('');
     });
-    */
+    
 
     $(document).on('click', '.op-x', function(e) {
         var msg_id = $(this).attr('id').substr(3);

@@ -10,6 +10,8 @@ html
             .large-4.medium-4.columns.large-offset-4.medium-offset-4
                 .panel
                     h3 EHIMS Login
+                    br
+                    p(name="username" style='left:0%, position:relative') Channel ID: #{username}
                     form(action="/invite",method="POST")
                         input(type="hidden", name="invite", value="#{invite}")
                         input(type="hidden", name="username", value="#{username}")

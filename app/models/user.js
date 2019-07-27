@@ -1,11 +1,11 @@
 var mongoose = require('mongoose');
-var bcrypt = require('bcrypt');
+var bcryptjs = require('bcryptjs');
 var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 var SALT_WORK_FACTOR = 10;
 
 // Password stuff taken from: 
-// http://devsmash.com/blog/password-authentication-with-mongoose-and-bcrypt
+// http://devsmash.com/blog/password-authentication-with-mongoose-and-bcryptjs
 
 
 var UserSchema = new Schema({
@@ -38,11 +38,11 @@ UserSchema.pre('save', function(next) {
     if (!user.isModified('password')) return next();
 
     // generate a salt
-    bcrypt.genSalt(SALT_WORK_FACTOR, function(err, salt) {
+    bcryptjs.genSalt(SALT_WORK_FACTOR, function(err, salt) {
         if (err) return next(err);
 
         // hash the password along with our new salt
-        bcrypt.hash(user.password, salt, function(err, hash) {
+        bcryptjs.hash(user.password, salt, function(err, hash) {
             if (err) return next(err);
 
             // override the cleartext password with the hashed one
@@ -53,7 +53,7 @@ UserSchema.pre('save', function(next) {
 });
 
 UserSchema.methods.comparePassword = function(candidatePassword, cb) {
-    bcrypt.compare(candidatePassword, this.password, function(err, isMatch) {
+    bcryptjs.compare(candidatePassword, this.password, function(err, isMatch) {
         if (err) return cb(err);
         cb(null, isMatch);
     });
