@@ -11,7 +11,6 @@ div#navbar{
 a#back-arrow {
 }
 
-
 div#messages-column {
     position: absolute;
     min-height: 95%;
@@ -80,6 +79,57 @@ div.message {
     top: 0px;
 }
 
+div.msg_likes {
+    position: relative;
+    display: inline;
+    float:right;
+    cursor: pointer;
+}
+
+div.msg_likes > i{
+    display: inline;
+    position: relative;
+    left: 20%;
+}
+
+div.msg_likes > p{
+    font-size:11px;
+    display: inline;
+    position: relative;
+    left: 30%;
+}
+
+div.likes {
+    position: relative;
+    display: inline;
+    float:right;
+    cursor: pointer;
+}
+
+div.likes > i{
+    display: inline;
+    position: relative;
+    left: 20%;
+}
+
+div.likes > p{
+    font-size:11px;
+    display: inline;
+    position: relative;
+    left: 30%;
+}
+
+div.msg_content{
+    word-wrap: break-word;
+    word-break: break-all;
+    overflow: hidden;
+}
+
+div.likes-ranking {
+    width: 100%;
+    margin: 0px 0px 0px 0px;
+}
+
 div.child-message {
     width: 90%;
     margin: 5px 1px 0px 0px;
@@ -132,6 +182,25 @@ ul.reveal-children {
     margin-left: 20px;
 }
 
+ul.reveal-children-ranking {
+    list-style-type: none;
+    margin-left: 20px;
+}
+
+div#msg-likes-ranking-parent > div {
+    opacity: 0.5;
+}
+
+div.bookmarked {
+    position: absolute;
+    top: 0;
+    right: 5%;
+}
+
+div#ranking-back {
+    position:fixed;
+    bottom: 0;
+}
 
 div.message::before {
     content: attr(author);
@@ -140,6 +209,27 @@ div.message::before {
     background: inherit;
     line-height: .9;
     opacity: 0.5;
+}
+
+div#ranking-back {
+    position: absolute;
+    bottom: 0;
+    right:10%;
+    display: inline;
+    float:right;
+    cursor: pointer;
+}
+
+div#ranking-back > i{
+    position: relative;
+    bottom: 10%;
+    right:10%;
+    display: inline-block;
+    float:left;
+}
+
+div#ranking-back > p{
+    font-size:15px;
 }
 
 div.message::after {

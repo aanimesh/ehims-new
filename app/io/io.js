@@ -13,22 +13,18 @@ module.exports = function(io){
             var q = socket.handshake.query;
             console.log(q.username+" connected to "+q.channel);
             socket.join(q.channel);
-            io.to(q.channel).emit('log-on',q.username);
-        
+            //io.to(q.channel).emit('log-on',q.username);
+            storage.add_online_users(q.channel, q.username, function(err, online_users){
+                io.to(q.channel).emit('log-on',q.username, online_users);
+            });
+            
             socket.on('disconnect', function(){
                 console.log(q.username+" left "+q.channel);
-                io.to(q.channel).emit('log-off',q.username);
-                storage.get_user(q.username,function(err, user){
-                    storage.get_channel_by_id(q.channel,function(channel){
-                        if (channel)
-                            channel.log_user_out(user);
-                        else
-                            console.log("Got null channel for "+q);
-                    });
+                storage.sub_online_users(q.channel, q.username, function(err, online_users){
+                    io.to(q.channel).emit('log-off',q.username, online_users);
                 });
             });
-        
-        },
+        },  
     };
 
     return methods;

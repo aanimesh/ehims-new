@@ -46,7 +46,7 @@ var get_user = function(name,callback){
  */
 
 var create_user = function(name, pass, callback) {
-    var user = new User({'name':name, 'password': pass, channels: []});
+    var user = new User({'name':name, 'password': pass, channels: [], bookmarked:[]});
     user.save();
     callback(user);
 };
@@ -123,32 +123,43 @@ var create_channel = function(channel_name, chat_type, callback){
              channel_name += ' (Graph)';
              break;
      }
-     get_channel_by_name(channel_name, function(channel) {
-         if(channel){
-             callback({err: "Channel exists"});
-             return;
-         }
-        channel = new Channel({'name': channel_name,
+    channel = new Channel({'name': channel_name,
                              'chat_type': chat_type,
                              'online_users': [],
                              'top_lvl_messages': []});
-        channel.save();
+    channel.save().then(function(channel){
         callback(null, channel);
-     });
+    });
 };
 
 var join_channel = function(user, channel_id, callback){
-    Channel.findOne({'_id': channel_id},
-            function(err, channel){
-                // assert.equal(null,err);
-                if (!channel){
-                    callback({err: "Channel does not exist"});
-                    return;
-                }
-                user.join_channel(channel);
-                channel.log_user_in(user);
-                callback(null, {'user':user,'channel':channel});
-            });
+    Channel.findOne({'_id':channel_id},
+        function(err, channel){
+            // assert.equal(null,err);
+            if (!channel){
+                callback({err: "Channel does not exist"});
+                return;
+            }
+            //user.join_channel(channel);
+            user_join_channel(user, channel);
+            channel.log_user_in(user);
+            add_online_users(channel_id, user.name, function(){});
+            callback(null, {'user':user,'channel':channel});
+            //callback(err);
+        });
+};
+
+var user_join_channel = function(user, channel){
+    var seen = false;
+    var channels = user.channels;
+    for(var i = channels.length-1;  i >= 0; i--)
+        if(channels[i]._id.equals(channel._id))
+            seen = true;
+    if(!seen){
+        channels.push({
+            name:channel.name, chat_type:channel.chat_type, _id:channel._id});
+        User.update({_id:user._id}, {$set:{channels:channels}}, {upsert:true},function(err){})
+    }
 };
 
 
@@ -210,7 +221,7 @@ var get_message = function(message_id, callback){
 
 var get_messages = function(message_ids, callback){
     ids = message_ids.map(mongoose.Types.ObjectId);
-    console.log(ids);
+    //console.log(ids);
     Message.find({
         '_id' : { $in : ids }
     }, function(err, messages){
@@ -218,6 +229,7 @@ var get_messages = function(message_ids, callback){
         callback(messages);
     });
 };
+
 
 
 /**
@@ -230,19 +242,21 @@ var create_message = function(msg, callback){
     message.save();
     // add message to top lvl messages if it doesn't have a parent
     if(message.msg_parent === null || message.msg_parent === undefined){
-        get_channel_by_id(message.channel,function (channel){
-            channel.top_lvl_messages.push(message._id);
-            channel.save();
-            callback(message);
+        get_channel_by_id(message.channel, function (channel){
+            channel.top_lvl_messages.push(message);
+            Channel.update({_id:channel._id}, {$set: { top_lvl_messages: channel.top_lvl_messages}}, {upsert: true}, function(err){});
+            callback(message, channel.top_lvl_messages);
         });
     } else {
         // get all the parents and make this message a child
         get_messages([message.msg_parent].concat(message.other_parents),function(ps){
             for(var i=ps.length-1; i >= 0; i--){ 
                 ps[i].children.push(message._id);
-                ps[i].save();
+                Message.update({_id:ps[i]._id}, {$set: { children: ps[i].children }}, {upsert: true}, function(err){});
             }
-            callback(message);
+            get_channel_by_id(message.channel, function(channel){
+                callback(message, channel.top_lvl_messages);
+            });
         });
     }
 };
@@ -273,6 +287,100 @@ var get_invite = function(invite_id, callback){
     });
 };
 
+var get_ranking = function(channel_id, callback){
+    /*Message.sort_by_likes(function(msg_queue){
+        callback(err, msg_queue);
+    });*/
+    Message.find({channel:channel_id}).sort({'likes':-1}).exec(function(err, msg_queue){
+        callback(err, msg_queue);
+    })
+};
+
+var likes = function(msg_id, user, callback){
+    Message.findOne({'_id': msg_id}, function(err, msg){
+        //console.log(msg);
+        if(msg.likes.includes(user)){
+            msg_likes = msg.likes.filter( function(value){
+                    return value !== user;
+            });
+            Message.update({_id:msg_id}, {$set: { likes: msg_likes}}, {upsert: true}, function(err){});
+            callback(err, msg.likes.length-1, msg_likes);
+        }
+        else{
+            msg.likes.push(user);
+            Message.update({_id:msg_id}, {$set: { likes: msg.likes }}, {upsert: true}, function(err){});
+            callback(err, msg.likes.length, msg.likes);
+        }
+    });
+}
+
+var add_online_users = function(channel_id, username, callback){
+    get_user(username, function(err, user){
+         get_channel_by_id(channel_id, function(channel){
+            var seen = false;
+            online_users = channel.online_users;
+            online_users.forEach(function(tuser){
+                if(user._id.toString() == tuser.toString()){
+                    seen = true;
+                }
+            })
+            if(seen === false)
+                online_users.push(user);
+            Channel.update({_id:channel_id}, {$set: { online_users: online_users }}, 
+                {upsert: true}, function(err){});
+            callback(err, online_users);
+         });
+    });
+}
+
+var sub_online_users = function(channel_id, username, callback){
+    get_user(username, function(err, user){
+        get_channel_by_id(channel_id, function(channel){
+            var seen = false;
+            online_users = channel.online_users.filter(function(tuser){
+                return tuser.toString() !== user._id.toString();
+            });
+            Channel.update({_id:channel_id}, {$set: { online_users: online_users}}, {upsert: true}, function(err){
+                //console.log(JSON.stringify(online_users));
+                callback(err, online_users);
+            });
+         });
+    });
+}
+
+var bookmark = function(msg_id, username, callback){
+    get_user(username, function(err, user){
+        Message.findOne({"_id": msg_id}, function(err, msg){
+            var bookmarked = new Boolean(false);
+            if (user.bookmarked !== undefined & user.bookmarked !== null)
+                user.bookmarked.forEach(function(tmsg){
+                    if (tmsg == msg_id)
+                        bookmarked = true; 
+                })
+            
+            if (bookmarked === true){
+                bookmarked = false;
+                User.update({_id: user._id}, {$set: { bookmarked: user.bookmarked.filter(tmsg => tmsg != msg_id)}}, {upsert:true}, function(){});
+                Message.update({_id: msg_id}, {$set: { bookmarked: msg.bookmarked.filter(tuser => tuser != username)}}, {upsert:true}, function(){});
+            }
+            else{
+                bookmarked = true;
+                user.bookmarked.push(msg_id);
+                msg.bookmarked.push(username);
+                User.update({_id: user._id}, {$set: { bookmarked: user.bookmarked}}, {upsert:true}, function(){});
+                Message.update({_id: msg_id}, {$set: { bookmarked: msg.bookmarked}}, {upsert:true}, function(){});
+            }
+            callback(err, bookmarked);
+        })
+    })
+}
+
+var bookmark_list = function(username, callback){
+    get_user(username, function(err, user){
+        callback(err, user.bookmarked);
+    })
+}
+
 exports.get_user = get_user;
 exports.create_user = create_user;
 exports.get_all_channels = get_all_channels;
@@ -286,3 +394,11 @@ exports.get_channel_by_name = get_channel_by_name;
 exports.get_channel_by_id = get_channel_by_id;
 exports.create_invite = create_invite;
 exports.get_invite = get_invite;
+exports.get_ranking = get_ranking;
+exports.likes = likes;
+exports.add_online_users = add_online_users;
+exports.sub_online_users = sub_online_users;
+exports.user_join_channel = user_join_channel;
+exports.bookmark = bookmark;
+exports.bookmark_list = bookmark_list;
+

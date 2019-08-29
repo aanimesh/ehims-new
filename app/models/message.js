@@ -10,8 +10,11 @@ var MessageSchema = new Schema({
     msg_parent: this,
     other_parents: [ this ],
     children: [ this ],
-    seen_by : [ {type: ObjectId, ref: 'User'} ]
+    seen_by : [ {type: ObjectId, ref: 'User'} ],
+    likes: [String],
+    bookmarked: [ String ],
 }, { timestamps: { createdAt: 'created_at' } });
+
 
 exports.Message = mongoose.model('Message', MessageSchema);
 

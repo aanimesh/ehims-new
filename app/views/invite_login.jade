@@ -11,7 +11,7 @@ html
                 .panel
                     h3 EHIMS Login
                     br
-                    p(name="username" style='left:0%, position:relative') Channel ID: #{username}
+                    p(name="username" style='left:0%, position:relative') Username: #{username}
                     form(action="/invite",method="POST")
                         input(type="hidden", name="invite", value="#{invite}")
                         input(type="hidden", name="username", value="#{username}")

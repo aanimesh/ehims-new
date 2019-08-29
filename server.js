@@ -64,6 +64,17 @@ app.get('/invite', routes.invite_login);
 
 app.post('/invite', routes.invite);
 
+app.post('/ranking', routes.ranking);
+
+app.post('/likes', routes.likes);
+
+app.post('/back_channels', routes.back_channels);
+
+app.post('/bookmark', routes.bookmark);
+
+app.post('/bookmark_list', routes.bookmark_list);
+
+
 // ---------------------------------
 
 /**

@@ -7,6 +7,8 @@ var dropdown_delay = 250; // ms to children dropdown shows
 var chat_type = channel.chat_type;
 var other_parents = [];
 var online_count = 0;
+var ranking_layout = 0; // 0 for full path; 1 for only parent
+var list_layout = 0;    // 0 for full path; 1 for only parent
 
 
 var PLUS_CLICKABLE = false;
@@ -45,7 +47,9 @@ var send_message = function () {
         'channel'   : channel._id,
         'msg_parent': msg_parent,
         'other_parents': parents,
-        'children'  : [], // can't have children yet...
+        'children'  : [], 
+        'likes'     : [],
+        'bookmarked': [],
         'content'   : $('#message').val().replace('&','&amp;')
                                          .replace('<','&lt;')
                                          .replace('>','&gt;')
@@ -68,13 +72,14 @@ var send_message = function () {
 };
 
 
-var receive_msg = function(msg){
+var receive_msg = function(msg, top_lvl_messages){
     var i;
     messages[msg._id] = msg;
     ids[msg._id] = cur_id;
     dbid_to_userid[cur_id] = msg._id;
     cur_id++;
     most_recent = msg._id;
+    channel.top_lvl_messages = top_lvl_messages;
 
     if(msg.msg_parent)
         messages[msg.msg_parent].children.push(msg._id);
@@ -111,7 +116,6 @@ var receive_msg = function(msg){
         set_hard_focus(msg._id);
     else
         add_msg_to_hover_list(msg);
-
 };
 
 var is_visible = function(id){
@@ -120,7 +124,7 @@ var is_visible = function(id){
 
 
 var make_msg_div = function(msg){
-    var class_str="message ",info_div; 
+    var class_str="message view",info_div; 
     //class_str += msg.author===username?"message-user":"message-other";
     var wrapper = $("<div>",{class: 'message-wrapper', id: msg._id+'-wrapper'});
     var d = new Date(msg.created_at);
@@ -131,8 +135,34 @@ var make_msg_div = function(msg){
         created_at: date,
         replies: msg.children.length,
         user_visible_id: ids[msg._id]});  
+    msg_div.append("<div class='row'><div class='columns medium-12 msg_content'><p>"+
+        msg.content.replace("\n","<br/>")+"</p></div>");
     msg_div.css({'background-color':get_colour(msg.author)});
-    msg_div.append("<p>"+msg.content.replace("\n","<br/>")+"</p>");
+
+    var bookmarked = new Boolean(false);
+    msg.bookmarked.forEach(function(tmsg){
+        if (tmsg == username)
+            bookmarked = true; 
+    });
+
+    var msg_bookmarked = $("<div>", {class: 'bookmarked', id: 'bookmarked-'+msg._id, user: msg.author});
+    if(bookmarked === true)
+        msg_bookmarked.append('<i class="fa fa-bookmark fa-lg"></i>');
+    else
+        msg_bookmarked.append('<i class="fa fa-bookmark-o fa-lg"></i>');
+    msg_div.append(msg_bookmarked);
+
+    var liked = false;
+    msg.likes.forEach(function(user){
+        if(user === username)
+            liked = true;
+    });
+    var msg_likes = $("<div>", {class: 'columns small-2 msg_likes', id: 'msg_likes-'+msg._id, msg_id: msg._id, user: msg.author});
+    if(liked)
+        msg_likes.append('<i class="fa fa-thumbs-up fa-lg"></i><p id="likes-p-'+msg._id+'">  '+msg.likes.length+' likes</div>');
+    else
+        msg_likes.append('<i class="fa fa-thumbs-o-up fa-lg"></i><p id="likes-p-'+msg._id+'">  '+msg.likes.length+' likes</p></div>');
+    msg_div.append(msg_likes);
     wrapper.append(msg_div);
     // Note that if the message is not the hard focus and has only 1 child
     // Then that child is guarenteed to be displayed anyways, so we don't
@@ -140,6 +170,8 @@ var make_msg_div = function(msg){
     if ( ((msg._id === hard_focus && msg.children.length > 0) || msg.children.length > 1) && chat_type != 'path') {
         wrapper.append('<div class="plus-minus-button"><i class="fa fa-plus"></i></div>');
     }
+
+
     /* Uncomment for a tree symbol next to all messages which have siblings
     if (
         (messages[msg.msg_parent] && messages[msg.msg_parent].children.length > 1) ||
@@ -159,7 +191,7 @@ var make_mulitple_parents_div = function(msg){
         all_parents.push(messages[msg.other_parents[i]]);
     var wrapper = $("<div>", {class: 'multiple-parents'});
     for (i = 0; i < all_parents.length; i++){
-        p = all_parents[i];
+        p = all_parents[i]
         d = new Date(p.created_at);
         date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
         p_div = $("<div>",{class: 'multiple-parent', 
@@ -202,26 +234,26 @@ var get_invite_link = function(invite){
 
 // ------- User Login/off ---------
 
-var user_log_on = function(uname){
+var user_log_on = function(uname, online){
     if(uname !== username){
         // first assign a colour
         var pos = online.length;
         online.push({name:uname, colour: colours[colour_pos %57]});
         colour_pos += 7;
-        online_count += 1;
+        online_count = online.length;
 
         $('#online-users-list').append(
             '<li style="color:'+
             online[pos].colour+
             ';">'+uname+'</li>');
         $('#num-online').html(
-                '('+online_count+')'
+                '('+pos+')'
                 );
     }
 };
 
-var user_log_off = function(uname){
-    online_count -= 1;
+var user_log_off = function(uname, online){
+    online_count = online.length;
     $('#online-users-list').find("li:contains('"+uname+"')")
                       .filter(function(){
                          return $(this).html() === uname;
@@ -365,6 +397,7 @@ var remove_from_queue = function(id){
 var set_hard_focus = function(id, hnav){
     // if set_hard_focus was called while naviaging history, do not add to history
     // if not, add to history and clear forward history
+    //alert('hhh');
     if(!hnav){
         bhistory.push(id);
         fhistory = [];
@@ -600,9 +633,6 @@ var move_arrow = function(dir){
     set_soft_focus(cur_order[pos+move]);
 };
 
-
-
-
 // moves the soft-focus arrow visually up on screen
 var arrow_up = function(){
     move_arrow('up');
@@ -679,7 +709,9 @@ var display_path_to_root = function(id){
     if (chat_type === 'graph' && messages[id].other_parents.length > 0) {
         // in this case we don't want to display a path to root, 
         // just show the multiple parents
-        msg_view.append(make_mulitple_parents_div(messages[id]));
+        var mdiv = make_mulitple_parents_div(messages[id]);
+        mdiv.css('opacity', String(0.5));
+        msg_view.append(mdiv);
     } else {
         var path = get_path_to_root(messages[id]);
         // if not path mode, only display the previous ten messages
@@ -755,8 +787,6 @@ var change_view_root = function(id){ // change root
 };
 
 
-
-
 var go_to_root = function(){ // change the chat to the root of the channel
     //hard_focus = null;
     var msg_view = $('#messages-view');
@@ -770,54 +800,8 @@ var go_to_root = function(){ // change the chat to the root of the channel
     });
 }; 
 
-/* No longer used
- * uncomment for seen/queue back/forward behaviour
- *
-var back = function(){ // when back arrow is clicked
-    // This version of back goes to the previous node in the tree:
-    // if at root, logout and go to channels page
-//    if(!hard_focus){
-//        // logout();
-//        $('form#back-form input').val(username);
-//        $('#back-form').submit();
-//    } else {
-//        if(messages[hard_focus].msg_parent === null)
-//            go_to_root();
-//        else 
-//            set_hard_focus(messages[hard_focus].msg_parent);
-//    }
-
-    // This version of back goes to the last seen 
-    if(seen.length > 0){
-        // get the id of the last seen message
-        var id = seen[seen.length-1]._id;
-        // get all of it's siblings
-        var siblings;
-        if(!(id === "0" || messages[id].msg_parent === null)){
-            siblings = messages[messages[id].msg_parent].children;
-        } else{
-            siblings = channel.top_lvl_messages;
-        }
-    
-        // remove all of it's siblings from seen and place them in the front of the queue
-        var siblings_set = new Set(siblings);
-        for(var i=0, len=seen.length; i<len; i++){
-            if(siblings_set.has(seen[i]._id)){
-                queue.unshift(seen.splice(i,1)[0]);
-                i--;
-                len -= 1;
-            }
-        }
-        if(seen.length>0){
-            set_hard_focus(seen[seen.length-1]._id);
-        }
-        update_queue_display();
-    }
-
-};
-*/
-
 var back = function(){
+    bhistory = bhistory.filter(value => value !== null || undefined)
     if(bhistory.length > 0){
        var last = bhistory.pop();
        fhistory.push(last);
@@ -830,6 +814,7 @@ var back = function(){
 };
 
 var forward = function(){
+    fhistory = fhistory.filter(value => value !== null || undefined)
     if(fhistory.length > 0){
        var next = fhistory.pop();
        bhistory.push(next);
@@ -841,6 +826,490 @@ var forward = function(){
     }
 };
 
+// ---------------------------------------
+
+// ------------ Ranking of Likes ---------
+
+// display focal msg and its children
+var set_ranking_focus = function(msg_queue, id){
+    $(".container").hide();
+    var msg_ranking_view = document.getElementById('msg-likes-ranking');
+
+    if (chat_type !== 'path')
+        document.getElementById(id+'-wrapper').className += ' message-selected';
+
+    if(id === "0") return;
+
+    var set_ranking_div_appear = function(id) {
+        for(i = 0; i < msg_queue.length; i ++){
+            if(msg_queue[i]._id === id){
+                //alert(JSON.stringify(msg_queue[i]));
+                $('#msg-likes-ranking-parent').append(make_ranking_msg_div(msg_queue[i]));
+            }
+        }
+    }
+
+    var show_ranking_parent_div = function(msg) {
+        var i, p_div, d, date, p;
+        var all_parents = [msg.msg_parent];
+
+        for (i = 0; i < msg.other_parents.length; i++)
+            all_parents.push(msg.other_parents[i]);
+        var wrapper = $("<div>", {id: '#msg-likes-ranking-multiparent', class: 'multiple-parents'});
+
+        if(msg.msg_parent === undefined)
+            return wrapper;
+
+        for (i = 0; i < all_parents.length; i++){
+            p = find_msg_queue(all_parents[i]);
+
+            d = new Date(p['created_at']);
+            date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
+            p_div = $("<div>",{class: 'multiple-parent', 
+                id: p._id, 
+                author: p['author'],
+                created_at: date,
+                replies: p.children.length,
+                user_visible_id: ids[p['_id']]});  
+            p_div.css({
+                'background-color':get_colour(p.author), 
+                'width': 99/all_parents.length +'%',
+            });
+            if (i === 0)
+                p_div.css({'float': 'left'});
+            p_div.append("<p>"+p.content+"</p>");
+            //alert(p_div);
+            wrapper.append(p_div);
+        }
+        return wrapper;
+    }
+
+    var find_msg_queue = function(msg_id){
+        var tmp_msg;
+        msg_queue.forEach(function(tmsg){
+            if(tmsg._id === msg_id){
+                tmp_msg = tmsg;
+            }
+        })
+        return tmp_msg;
+    }
+
+    var get_ranking_path_to_root = function (msg){
+        var ret = [msg];
+        //alert(JSON.stringify(msg.msg_parent));
+        msg = find_msg_queue(msg.msg_parent);
+        while(msg){
+            ret.unshift(msg);
+            msg = find_msg_queue(msg.msg_parent);
+        }
+        return ret;
+    };
+
+    var display_ranking_path_to_root = function(msg){
+        var msg_view = $('#msg-likes-ranking-parent');
+        var msg_div;
+
+        if (chat_type === 'graph' && msg.other_parents.length > 0) {
+            // in this case we don't want to display a path to root, 
+            // just show the multiple parents
+            var mdiv = show_ranking_parent_div(msg);
+            mdiv.css('opacity', String(0.5));
+            msg_view.append(mdiv);
+        } else {
+            var path = get_ranking_path_to_root(msg);
+            // if not path mode, only display the previous ten messages
+            if (chat_type !== 'path')
+                if(path.length>10) path = path.slice(path.length-10,path.length);
+
+            if (chat_type === 'graph') {
+                // only display until we have a message with multiple parents
+                var multiple_parents = false;
+                // index of the first message to have multiple parents
+                for(var first_mp = path.length-1; first_mp>=0; first_mp--)
+                    if (path[first_mp].other_parents.length > 0) {
+                        multiple_parents = true;
+                        path = path.slice(first_mp, path.length);
+                        break;
+                    }
+            }
+
+            for(var i=0; i<path.length; i++){
+                msg_div = show_ranking_parent_div(path[i]);
+                //msg_div.css('opacity', i === len-1 ? '1':'0.'+(i+1+(10-len)));
+                // If chat type is path, then don't adjust the opacity
+                if (chat_type !== 'path')
+                    msg_div.css('opacity', String((i+1)/(path.length+1)));
+                msg_view.append(msg_div);
+            }
+        }
+    };
+
+    var show_ranking_div = function(id) {
+        var msg;
+        msg_queue.forEach(function(tmsg){
+            if(tmsg._id === id)
+                msg = tmsg;
+        });
+
+        $('#msg-likes-ranking-parent > div').remove();
+        $('#msg-likes-ranking > div').remove();
+
+        //display parents
+        if(msg.msg_parent !== undefined && ranking_layout === 1)
+            $('#msg-likes-ranking-parent').append(show_ranking_parent_div(msg));
+        else if(msg.msg_parent !== undefined && ranking_layout === 0)
+            display_ranking_path_to_root(msg);
+
+        //display selected msg
+        $('#msg-likes-ranking').append(make_ranking_msg_div(msg));
+        set_hard_focus(msg._id);
+
+        var list = $('#ul-'+id);
+        // if not filled, update
+        if(list.is(':empty')){
+            var make_bind_func = function(this_id) {
+                //alert(this_id);
+                return function(){show_ranking_div(this_id);};
+            };
+            var make_queue_tester = function(cid) {
+                return function(c){return c._id === cid;};
+            };
+            var children = msg.children;
+            var listitem;
+            var d, date;
+            //var displayed = get_path_to_root(messages[hard_focus]).map(
+                //function(m){return m._id;});
+            //displayed.push(hard_focus);
+            for(var i=0,len=children.length; i<len;i++){
+                //if (displayed.indexOf(children[i]) > -1)
+                    // this message is already displayed, do don't display it
+                    //continue;
+                //cmsg = messages[children[i]];
+                var cmsg;
+                msg_queue.forEach(function(tmsg){
+                    if(tmsg._id === children[i]){
+                        cmsg = tmsg;
+                    }
+                });
+                //alert(JSON.stringify(cmsg));
+                d = new Date(cmsg.created_at);
+                date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
+                listitem_wrapper = $("<li>", {
+                    class: "child-message",
+                    id: cmsg._id+'-wrapper'
+                });
+                listitem = $("<div>",{
+                    class: "child-message",
+                    id: 'child-'+cmsg._id, 
+                    author: cmsg.author,
+                    created_at: date,
+                    replies: cmsg.children.length,
+                    user_visible_id: ids[cmsg._id] 
+                });
+                listitem.css({
+                    'background-color': get_colour(cmsg.author)
+                });
+                listitem.html("<br/>"+cmsg.content+"<br/>");
+                listitem_wrapper.append(listitem);
+                if(cmsg.other_parents.length > 0)
+                    listitem_wrapper.append(
+                        '<div class="mp-symbol"><i class="fa fa-clone"></i></div>'
+                    );
+                list.append(listitem_wrapper);
+                $('#'+'child-'+cmsg._id).on('click', make_bind_func(cmsg._id.replace("child-","")));
+            }
+        };
+        list.slideToggle('fast');
+        $('#ranking-modal').animate({ scrollTop: $('#ranking-modal')[0].scrollHeight}, 500);
+
+        var rank_back = $('#ranking-back');
+        if (rank_back.is(":empty"))
+            $('#ranking-back').append('<div style="display:inline-block; float:left;position:fixed;bottom:20px;right:20%;"><i class="fa fa-chevron-circle-left"></i></div><div style="display:inline-block;float:right;margin-left:8px;margin-top:7px; position:fixed;bottom:10px;right:15%"><p style="font-size:60%">Back</p></div><div style="clear:both"></div>');
+        $('#ranking-back').on('click', function(){
+            display_ranking_message(msg_queue);
+            $('#ranking-back > div').remove();
+        })
+
+    };
+
+    // expand the children
+    show_ranking_div(id);
+
+    //automatically expand children
+    if(PLUS_CLICKABLE)
+        setTimeout(function() {
+            $('#'+id+'-wrapper .plus-minus-button').trigger("click");
+        },dropdown_delay);
+
+    // set soft focus arrow
+    //set_soft_focus(id);
+
+    // check to make sure displayed message is in view
+    //var messages_view = document.getElementById("messages-view");
+    //messages_view.scrollTop = // messages_view.scrollHeight;
+    //        $('#'+id+'-wrapper').position().bottom;
+    
+};
+
+// sort the msgs by likes
+var display_ranking_message = function(msg_queue){
+    var i = 0;
+    $(".container").show();
+    $('#ranking-back > div').remove();
+    $('#msg-likes-ranking-parent > div').remove();
+    $('#msg-likes-ranking > div').remove();
+    for(i = 0; i < msg_queue.length; i ++){
+        $('#msg-likes-ranking').append(make_ranking_msg_div(msg_queue[i]));
+    }
+}
+
+var make_ranking_msg_div = function(msg){
+    var class_str="message",info_div; 
+    var wrapper = $("<div>",{class: 'message-wrapper likes-ranking', id: msg._id+'-wrapper'});
+    var d = new Date(msg.created_at);
+    var date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
+    var msg_div = $("<div>",{class: class_str, 
+            id: msg._id,
+            author: msg['author'],
+            created_at: msg['created_at'],
+            replies: msg.children.length,
+            user_visible_id: ids[msg['_id']]});  
+    msg_div.append("<div class='row'><div class='columns medium-12 msg_content'><p>"+
+        msg.content+"</p></div>");
+    msg_div.css({'background-color':get_colour(msg['author'])});
+    var msg_likes = $("<div>", {class: 'columns small-2 likes', msg_id: msg['_id'], user: msg['author']});
+    if(msg['likes'] === null)
+        msg_likes.append('<i class="fa fa-thumbs-up fa-lg"></i><p>  0 likes</p></div>');
+    else
+        msg_likes.append('<i class="fa fa-thumbs-up fa-lg"></i><p>  '+msg['likes'].length+' likes</p></div>');
+    msg_div.append(msg_likes);
+    wrapper.append(msg_div);
+    wrapper.append($("<ul>",{class: 'reveal-children', id: 'ul-'+msg._id,style: "display:none;"}));
+    return wrapper;
+};
+
+var receive_likes = function(msg){
+    var msg_likes = $("#msg_likes-"+msg.msg_id);
+    var liked = false;
+    
+    msg_likes.empty();
+    msg.likes.forEach(function(user){
+        if(user === username)
+            liked = true;
+    })
+    if(liked)
+        msg_likes.append('<i class="fa fa-thumbs-up fa-lg"></i><p id="likes-p-'+msg._id+'">  '+msg.likes.length+' likes</div>');
+    else
+        msg_likes.append('<i class="fa fa-thumbs-o-up fa-lg"></i><p id="likes-p-'+msg._id+'">  '+msg.likes.length+' likes</p></div>');
+};
+
+var back_home = function(){
+    var input = document.getElementById("back-home");
+    input.setAttribute('value', username);
+};
+
+
+// ---------------------------------------
+
+// --------- Bookmark list ---------------
+
+var display_bookmark_list = function(bookmark_list){
+    var i = 0;
+    $(".container").show();
+    $('#ranking-back > div').remove();
+    $('#bookmarked-list-parent > div').remove();
+    $('#bookmarked-list > div').remove();
+    for(i = bookmark_list.length-1; i >= 0; i --){
+        $('#bookmarked-list').append(make_ranking_msg_div(bookmark_list[i]));
+    }
+}
+
+var set_list_focus = function(bookmark_list, id){
+    $(".container").hide();
+    var msg_ranking_view = document.getElementById('bookmarked-list');
+
+    if (chat_type !== 'path')
+        document.getElementById(id+'-wrapper').className += ' message-selected';
+
+    if(id === "0") return;
+
+    var set_list_div_appear = function(id) {
+        for(i = 0; i < bookmark_list.length; i ++){
+            if(bookmark_list[i]._id === id){
+                $('#bookmarked-list-parent').append(make_ranking_msg_div(bookmark_list[i]));
+            }
+        }
+    }
+
+    // display one div in parent container
+    var show_list_parent_div = function(msg) {
+        var i, p_div, d, date, p;
+        var all_parents = [msg.msg_parent];
+
+        for (i = 0; i < msg.other_parents.length; i++)
+            all_parents.push(msg.other_parents[i]);
+        var wrapper = $("<div>", {id: '#bookmarked-list-multiparent', class: 'multiple-parents'});
+
+        if(msg.msg_parent === undefined)
+            return wrapper;
+
+        for (i = 0; i < all_parents.length; i++){
+            p = messages[all_parents[i]];
+
+            d = new Date(p['created_at']);
+            date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
+            p_div = $("<div>",{class: 'multiple-parent', 
+                id: p._id, 
+                author: p['author'],
+                created_at: date,
+                replies: p.children.length,
+                user_visible_id: ids[p['_id']]});  
+            p_div.css({
+                'background-color':get_colour(p.author), 
+                'width': 99/all_parents.length +'%',
+            });
+            if (i === 0)
+                p_div.css({'float': 'left'});
+            p_div.append("<p>"+p.content+"</p>");
+            p_div.css('opacity', String(0.5));
+            wrapper.append(p_div);
+        }
+        return wrapper;
+    }
+
+    var find_bookmark_list = function(msg_id){
+        var tmp_msg;
+        bookmark_list.forEach(function(tmsg){
+            if(tmsg._id === msg_id){
+                tmp_msg = tmsg;
+            }
+        })
+        return tmp_msg;
+    }
+
+    var get_list_path_to_root = function (msg){
+        var ret = [msg];
+        msg = messages[msg.msg_parent];
+        while(msg){
+            ret.unshift(msg);
+            msg = messages[msg.msg_parent];
+        }
+        return ret;
+    };
+
+    var display_list_path_to_root = function(msg){
+        var msg_view = $('#bookmarked-list-parent');
+        var msg_div;
+
+        if (chat_type === 'graph' && msg.other_parents.length > 0) {
+            var mdiv = show_list_parent_div(msg);
+            mdiv.css('opacity', String(0.5));
+            msg_view.append(mdiv);
+        } else {
+            var path = get_list_path_to_root(msg);
+            if (chat_type !== 'path')
+                if(path.length>10) path = path.slice(path.length-10,path.length);
+
+            if (chat_type === 'graph') {
+                var multiple_parents = false;
+                for(var first_mp = path.length-1; first_mp>=0; first_mp--)
+                    if (path[first_mp].other_parents.length > 0) {
+                        multiple_parents = true;
+                        path = path.slice(first_mp, path.length);
+                        break;
+                    }
+            }
+            var len = path.length;
+            for(var i=0; i<len; i++){
+                msg_div = show_list_parent_div(path[i]);
+                if (chat_type !== 'path')
+                    msg_div.css('opacity', String((i+1)/(len+1)));
+                msg_view.append(msg_div);
+            }
+        }
+    };
+
+    // show children and parents
+    var show_list_div = function(id) {
+        var msg = messages[id];
+
+        $('#bookmarked-list-parent > div').remove();
+        $('#bookmarked-list > div').remove();
+
+        //display parents
+        if(msg.msg_parent !== undefined && list_layout === 1)
+            $('#bookmarked-list-parent').append(show_list_parent_div(msg));
+        else if(msg.msg_parent !== undefined && list_layout === 0)
+            display_list_path_to_root(msg);
+
+        //display selected msg
+        $('#bookmarked-list').append(make_ranking_msg_div(msg));
+        set_hard_focus(msg._id);
+
+        var list = $('#ul-'+id);
+        // if not filled, update
+        if(list.is(':empty')){
+            var make_bind_func = function(this_id) {
+                return function(){show_list_div(this_id);};
+            };
+            var make_queue_tester = function(cid) {
+                return function(c){return c._id === cid;};
+            };
+            var children = msg.children;
+            var listitem;
+            var d, date;
+            for(var i=0,len=children.length; i<len;i++){
+                var cmsg = messages[children[i]];
+                d = new Date(cmsg.created_at);
+                date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
+                listitem_wrapper = $("<li>", {
+                    class: "child-message",
+                    id: cmsg._id+'-wrapper'
+                });
+                listitem = $("<div>",{
+                    class: "child-message",
+                    id: 'child-'+cmsg._id, 
+                    author: cmsg.author,
+                    created_at: date,
+                    replies: cmsg.children.length,
+                    user_visible_id: ids[cmsg._id] 
+                });
+                listitem.css({
+                    'background-color': get_colour(cmsg.author)
+                });
+                listitem.html("<br/>"+cmsg.content+"<br/>");
+                listitem_wrapper.append(listitem);
+                if(cmsg.other_parents.length > 0)
+                    listitem_wrapper.append(
+                        '<div class="mp-symbol"><i class="fa fa-clone"></i></div>'
+                    );
+                list.append(listitem_wrapper);
+                $('#'+'child-'+cmsg._id).on('click', make_bind_func(cmsg._id.replace("child-","")));
+            }
+        };
+        list.slideToggle('fast');
+        $('#bookmark-modal').animate({ scrollTop: $('#bookmark-modal')[0].scrollHeight}, 500);
+
+        var rank_back = $('#list-back');
+        if (rank_back.is(":empty"))
+            $('#list-back').append('<div style="display:inline-block; float:left;position:fixed;bottom:20px;right:20%;"><i class="fa fa-chevron-circle-left"></i></div><div style="display:inline-block;float:right;margin-left:8px;margin-top:7px; position:fixed;bottom:10px;right:15%"><p style="font-size:60%">Back</p></div><div style="clear:both"></div>');
+        $('#list-back').on('click', function(){
+            display_bookmark_list(bookmark_list);
+            $('#list-back > div').remove();
+        })
+
+    };
+
+    // expand the children
+    show_list_div(id);
+
+    //automatically expand children
+    if(PLUS_CLICKABLE)
+        setTimeout(function() {
+            $('#'+id+'-wrapper .plus-minus-button').trigger("click");
+        },dropdown_delay);
+    
+};
 
 // ----------------------------------------
 
@@ -936,7 +1405,7 @@ var build_tree = function(){
         msg = messages[msg_array[i]]; 
         tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...', msg.content));
         for(var j=0,leng=msg.children.length;j<leng; j++){
-            tree_data.edges.push(new Edge(msg._id,msg.children[j]));
+            tree_data.edges .push(new Edge(msg._id,msg.children[j]));
         }
     }
 
@@ -1090,12 +1559,11 @@ var handle_keydown = function(e){
     }
 };
 
-
-
 $(document).ready(function(){
     var q = "username="+username+"&channel="+channel._id;
     socket = io(socket_url, {query:q});
     socket.on('message',receive_msg);
+    socket.on('likes', receive_likes);
 
     socket.on('log-on',user_log_on);
     socket.on('log-off',user_log_off);
@@ -1107,13 +1575,15 @@ $(document).ready(function(){
             next_msg();
     });
 
-    $('.message').on('click',function(){
+    $('.message .view').on('click',function(){
         set_hard_focus($(this).attr('id'));
     });
 
     // make the channel name go to the root if we're not in
     if(chat_type !== 'path')
-        $('#channel-name').on('click',function(){hard_focus=null;go_to_root();});
+        $('#channel-name').on('click',function(){
+            hard_focus=null;go_to_root();
+    });
 
     $('#backward').on('click',back);
     $('#forward').on('click',forward);
@@ -1127,7 +1597,7 @@ $(document).ready(function(){
         delete keys[code];
     });
 
-
+    back_home();
 
     assign_colour();
 
@@ -1219,8 +1689,6 @@ $(document).ready(function(){
     }
 
 
-    
-
     // invite form stuff no longer in use 
     
     $('#invite-form').submit(function(e){
@@ -1257,21 +1725,139 @@ $(document).ready(function(){
         $('#invite-link').html('');
     });
     
-
     $(document).on('click', '.op-x', function(e) {
         var msg_id = $(this).attr('id').substr(3);
         remove_parent(msg_id);
     });
         
-
-
-
-
     // show help dialog
     if(help_popup)
         $('#help-modal').foundation('reveal', 'open');
 
+    // likes feature
+    $(document).on('click', '.msg_likes', function(){
+        var msg_id = $(this).attr('msg_id');
+        $.ajax({
+            url:"/likes",
+            type:"POST",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data : JSON.stringify({"msg_id": msg_id, "user": username, "channel": channel._id}),
+        }).success(function(data){
+            if (data['length'] > messages[msg_id].likes.length)
+                messages[msg_id].likes.push(username);
+            else
+                messages[msg_id].likes = messages[msg_id].likes.filter(value => value !== username);
+        });
+    })
 
+    //likes-ranking
+    var msg_queue = {};
+    $('#likes-ranking').on('click',function(e){
+        $(window).resize(function() {
+            $('.reveal-modal').css('height', $('html').height() - 110 + 'px');
+        });
+        e.preventDefault();
+        $.ajax({
+            url:"/ranking",
+            type:"POST",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data : JSON.stringify({"channel": channel._id}),
+        }).success(function(data){
+            msg_queue = data;
+            display_ranking_message(data);
+        }).fail(function(){
+            alert("error!");
+        });
+    });
+
+    $('#msg-likes-ranking').on('click','.message', function(){
+        set_ranking_focus(msg_queue, $(this).attr('id'));
+    });
+
+    $('#msg-likes-ranking-parent').on('click','.multiple-parent', function(){
+        if(ranking_layout === 1){
+            display_ranking_message(msg_queue);
+            set_ranking_focus(msg_queue, $(this).attr('id'));
+        }
+        else
+            set_ranking_focus(msg_queue, $(this).attr('id'));
+    });
+
+    $("#ranking-layout").on('change', function(){
+        if($(this).is(':checked')){
+            ranking_layout = 0;
+        } else {
+            ranking_layout = 1;
+        }
+    })
+
+    // Bookmarked feature
+    $(document).on('click', '.bookmarked', function(){
+        var msg_id = $(this).attr('id').replace('bookmarked-', '');
+        var user = $(this).attr('user');
+        $.ajax({
+            url:"/bookmark",
+            type:"POST",
+            contentType:"application/json; charset=utf-8",
+            dataType:"json",
+            data: JSON.stringify({msg_id: msg_id, user: user})
+        }).success(function(data){
+            var msg_bookmarked = $("#bookmarked-"+msg_id);
+            msg_bookmarked.empty();
+            if(data["bookmarked"])
+                msg_bookmarked.append('<i class="fa fa-bookmark fa-lg"></i>');
+            else
+                msg_bookmarked.append('<i class="fa fa-bookmark-o fa-lg"></i>');
+        });
+    })
+
+    // bookmark list
+    var bookmark_list = [];
+    $('#bookmark-list').on('click',function(e){
+        $(window).resize(function() {
+            $('.reveal-modal').css('height', $('html').height() - 110 + 'px');
+        });
+        e.preventDefault();
+        $.ajax({
+            url:"/bookmark_list",
+            type:"POST",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data : JSON.stringify({"username": username}),
+        }).success(function(data){
+            bookmark_list = [];
+            data['list'].forEach(function(msg_id){
+                tmsg = messages[msg_id];
+                if(tmsg !== undefined & tmsg !== null)
+                    bookmark_list.push(tmsg);
+            });
+            display_bookmark_list(bookmark_list);
+        }).fail(function(){
+            alert("error!");
+        });
+    });
+
+    $('#bookmarked-list').on('click','.message', function(){
+        set_list_focus(bookmark_list, $(this).attr('id'));
+    });
+
+    $('#bookmarked-list-parent').on('click','.multiple-parent', function(){
+        if(ranking_layout === 1){
+            set_list_focus(bookmark_list, $(this).attr('id'));
+        }
+        else
+            set_list_focus(bookmark_list, $(this).attr('id'));
+    });
+
+    $("#list-layout").on('change', function(){
+        if($(this).is(':checked')){
+            list_layout = 0;
+        } else {
+            list_layout = 1;
+        }
+    })
 
 });
 

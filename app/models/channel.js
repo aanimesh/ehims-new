@@ -29,7 +29,6 @@ ChannelSchema.methods.log_user_out = function(user){
     for(var i = this.online_users.length-1; i >= 0; i--)
         if(this.online_users[i].equals(user._id)){
             this.online_users.splice(i, 1);
-
         }
 
     this.save();

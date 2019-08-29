@@ -61,9 +61,6 @@ html
                             span#num-online (!{channel.online_users.length})
                     li
                         a Chatting as: !{user.name}
-                    li#bookmark-list
-                        a(href='#' data-reveal-id='bookmark-modal')
-                            i.fa.fa-bookmark
                     li#likes-ranking
                         a(href='#' data-reveal-id="ranking-modal")
                             i.fa.fa-line-chart
@@ -77,12 +74,6 @@ html
                     li
                         a(href='#' data-reveal-id="invite-modal")
                             i.fa.fa-plus-circle
-                    li
-                        a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
-                        //a#back-home Home
-                        form#back-home-form(method='post', action="/back_channels")
-                            input#back-home(type='hidden', name='username')
-
                     li
                         a(href='/') Logout
 
@@ -174,29 +165,12 @@ html
                 include help_popup/tree_help
             if channel.chat_type == "graph"
                 include help_popup/graph_help
-        #bookmark-modal.reveal-modal(data-reveal 
-                                 aria-hidden="true" 
-                                 aria-labelledby="list-title" 
-                                 role="dialog"
-                                 style="overflow-y:scroll")
-            h2 Bookmarked Messages
-                label(class="container") Display all parents   
-                    input(type='checkbox', checked='checked', id="list-layout")
-                #bookmarked-list-parent
-                #bookmarked-list
-                #list-back
-                a.close-reveal-modal(aria-label="Close")  &#215;
         #ranking-modal.reveal-modal(data-reveal 
                                  aria-labelledby="ranking-title" 
                                  aria-hidden="true" 
-                                 role="dialog"
-                                 style="overflow-y:scroll")
+                                 role="dialog")
             h2 Ranking of Likes
-                label(class="container") Display all parents   
-                    input(type='checkbox', checked='checked', id="ranking-layout")
-                #msg-likes-ranking-parent
                 #msg-likes-ranking 
-                #ranking-back
                 a.close-reveal-modal(aria-label="Close")  &#215;
         #invite-modal.reveal-modal.small(data-reveal 
                                  aria-hidden="true" 
@@ -207,15 +181,15 @@ html
             h3#help-title Invite Someone
                 .row
                     .large-12.columns
+                        //form#invite-form
                         form#invite-form(action="/makeinvite",method="POST")
                             fieldset
                                 legend Create an Invite
 
                                 label Channel ID
                                     br
-                                    span 
-                                    span #{channel._id}
-                                        
+                                    span
+                                        #{channel._id}
                                 br
                                 label Username
                                     input#invite-username(type="text",
@@ -231,8 +205,7 @@ html
                         h6.subheader Link: 
                         div(style="postition:relative;width:90%;white-space:nowrap;overflow-x:scroll")
                             p
-                                span 
-                                    a#invite-link
+                                span#invite-link
                                     //#{channel._id}
             a.close-reveal-modal(aria-label="Close")  &#215;
         script(src="/jquery/dist/jquery.min.js")

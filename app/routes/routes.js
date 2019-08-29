@@ -36,7 +36,7 @@ var join_channel = function(context, res, err_func){
          });
          context.queue = queue;
          console.log("Connected Users");
-         console.log(channel.online_users);
+         //console.log(channel.online_users);
          storage.get_usernames(channel.online_users,function(results){
              context.online = results;
              res.render("channel", context);
@@ -54,7 +54,7 @@ module.exports = function(io){
        channels : function(req, res){
            var user = req.body.username;
            var pass = req.body.password;
-           
+
            var channels;
        
            // first get the user
@@ -88,6 +88,15 @@ module.exports = function(io){
        
         },
 
+        back_channels : function(req, res){
+            storage.get_user(req.body.username, function(err, results){
+                res.render("channels",{ user: {
+                    name: results.name,
+                    channels: results.channels
+                }});
+            });
+        },
+
         create_channel : function(req, res){
             var socket_url = get_socket_url();
             var context = { user: req.body.username,
@@ -111,15 +120,16 @@ module.exports = function(io){
                             res.render("channels", context); 
                             return;
                         }
-
                         context.channel = channel._id;
                         storage.join_channel(user, context.channel,
                             join_channel(context, res, function(err){
-                                console.log(err);
-                                context.messages = {
-                                    create: "There was an error, try again"};
-                                res.render("channels", context); 
-                            }));
+                                if(err){
+                                    console.log(err);
+                                    context.messages = {
+                                        create: "There was an error, try again"};
+                                    res.render("channels", context); 
+                                }
+                        }));
                     });
             });
         },
@@ -145,14 +155,16 @@ module.exports = function(io){
                             join: "The channel you tried to join does not exist"};
                         res.render("channels", context); 
                     }));
+                //storage.join_channel(user, context.channel, function(){});
             });
         },
        
         message : function(req, res){
-           storage.create_message(req.body,function(message){
-               io.to(req.body.channel).emit('message',message);
+           storage.create_message(req.body,function(message, top_lvl_messages){
+               io.to(req.body.channel).emit('message',message, top_lvl_messages);
                res.send('Message sent');
            });
+           //storage.update_message(req.body);
         },
 
         download_channel : function(req, res) {
@@ -233,12 +245,10 @@ module.exports = function(io){
             //              not exist, and create it.
             // NOW
             //  Invites must be for an existing user
-            //######### cy_
             storage.create_invite(channel, username, function(invite){
                if(invite)
                     res.json({'invite': invite._id,'username': username});
             });
-            //######### cy_
         },
 
        invite_login : function(req, res){
@@ -257,6 +267,7 @@ module.exports = function(io){
        invite : function(req, res){
             var invite = req.body.invite;
             var pass = req.body.pass;
+            //console.log(req.body);
             storage.get_invite(invite, function(result){
                 if(!result)
                     res.status(404).send("Page not found");
@@ -267,7 +278,6 @@ module.exports = function(io){
                 //      check the the correct user is logged in and check the
                 //      invite password against the supplied one,
                 //      or just check the invited user's password here.(just check the user's pw)
-                //######### cy_
                 else {
                     storage.get_user(result.username, function(err, results){
                        if(results){
@@ -286,7 +296,7 @@ module.exports = function(io){
                                             ctype: channel.chat_type,
                                             help_popup: get_help_popup(),
                                             socket_url : socket_url};
-                                        console.log(context);
+                                        //console.log(context);
                                         storage.get_user(context.user,function(err, results){
                                             if(err){
                                                 console.log(err);
@@ -317,13 +327,64 @@ module.exports = function(io){
                        };
                    });
                 };
-                //######### cy_
             });
        },
 
+        ranking : function(req, res){
+            //res.json({'msg':'haha'});
+            var channel = req.body.channel;
+            storage.get_ranking(channel,function(err, msg_queue){
+                if(err)
+                    res.status(500).send("Whoops, we had an error");
+                else if(msg_queue === null)
+                    res.status(500).send("There is no message yet");
+                else{
+                    //res.render('ranking', {'msg_queue': msg_queue});
+                    msg_array = {'msg_queue': []};
+                    msg_queue.forEach(function(msg){
+                        msg_array.msg_queue.push({
+                            '_id': msg._id,
+                            'content': msg.content,
+                            'author': msg.author,
+                            'msg_parent': msg.msg_parent,
+                            'other_parents': msg.other_parents,
+                            'children': msg.children,
+                            'likes': msg.likes,
+                            'created_at': msg.created_at,
+                        });
+                        other_parents = [];
+                        children = [];
+                    });
+                    res.json(msg_array.msg_queue);
+                }
+            });
+        },
+
+        likes : function(req, res){
+            var msg_id = req.body.msg_id;
+            var user = req.body.user;
+            storage.likes(msg_id, user, function(err, likes_length, msg_likes){
+                res.json({'length':likes_length});
+                io.to(req.body.channel).emit('likes',{likes: msg_likes, msg_id: msg_id});
+            });
+        },
+
+        bookmark: function(req, res){
+            var msg_id = req.body.msg_id;
+            var user = req.body.user;
+            storage.bookmark(msg_id, user, function(err, bookmarked){
+                res.json({"bookmarked": bookmarked});
+            });
+        },
+
+        bookmark_list: function(req, res){
+            var username = req.body.username;
+            var channel_id = req.body.channel_id;
+            storage.bookmark_list(username, function(err, list){
+                res.json({"list": list});
+            })
+        }
     };
-
-
 
     return routes;
 };
