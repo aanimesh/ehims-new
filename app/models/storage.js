@@ -123,12 +123,17 @@ var create_channel = function(channel_name, chat_type, callback){
              channel_name += ' (Graph)';
              break;
      }
-    channel = new Channel({'name': channel_name,
+    Channel.findOne({'name':channel_name}, function(err, channel){
+        if (channel != null & channel != undefined)
+            callback("The channel you tried to create already exists", null);
+        else{
+            channel = new Channel({'name': channel_name,
                              'chat_type': chat_type,
                              'online_users': [],
                              'top_lvl_messages': []});
-    channel.save().then(function(channel){
-        callback(null, channel);
+            channel.save().then(function(channel){
+                callback(null, channel)});
+        };
     });
 };
 
@@ -292,6 +297,7 @@ var get_ranking = function(channel_id, callback){
         callback(err, msg_queue);
     });*/
     Message.find({channel:channel_id}).sort({'likes':-1}).exec(function(err, msg_queue){
+        //console.log(msg_queue);
         callback(err, msg_queue);
     })
 };

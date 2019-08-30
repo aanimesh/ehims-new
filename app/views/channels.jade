@@ -75,7 +75,7 @@ html
             .large-6.medium-6.columns
                 h4  Or choose from a previously joined channel
                 ul.side-nav
-                    each channel in user.channels
+                    each channel in user.channels.reverse()
                         li: h6
                             div
                                 a(onclick="open_channel('#{channel._id}')")

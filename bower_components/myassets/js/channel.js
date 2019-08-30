@@ -857,7 +857,7 @@ var set_ranking_focus = function(msg_queue, id){
             all_parents.push(msg.other_parents[i]);
         var wrapper = $("<div>", {id: '#msg-likes-ranking-multiparent', class: 'multiple-parents'});
 
-        if(msg.msg_parent === undefined)
+        if(msg.msg_parent === undefined || msg.msg_parent === null)
             return wrapper;
 
         for (i = 0; i < all_parents.length; i++){
@@ -1150,7 +1150,7 @@ var set_list_focus = function(bookmark_list, id){
             all_parents.push(msg.other_parents[i]);
         var wrapper = $("<div>", {id: '#bookmarked-list-multiparent', class: 'multiple-parents'});
 
-        if(msg.msg_parent === undefined)
+        if(msg.msg_parent === undefined || msg.msg_parent === null)
             return wrapper;
 
         for (i = 0; i < all_parents.length; i++){
@@ -1724,6 +1724,11 @@ $(document).ready(function(){
         //$('#invite-password').val('');
         $('#invite-link').html('');
     });
+
+    $(document).on('opened.fndtn.reveal', '[data-reveal]', function () {
+      var modal = $("#invite-modal");
+      modal.find('#invite-username').focus();
+    });
     
     $(document).on('click', '.op-x', function(e) {
         var msg_id = $(this).attr('id').substr(3);
@@ -1796,7 +1801,7 @@ $(document).ready(function(){
     // Bookmarked feature
     $(document).on('click', '.bookmarked', function(){
         var msg_id = $(this).attr('id').replace('bookmarked-', '');
-        var user = $(this).attr('user');
+        var user = username;
         $.ajax({
             url:"/bookmark",
             type:"POST",
