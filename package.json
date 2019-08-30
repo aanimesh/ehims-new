@@ -5,7 +5,7 @@
     "description": "Encapsulated hierarchical instant messaging system. (reimplementation of Jon Volkmar's EHIMS)",
     "dependencies": {
         "admin-mongo": "0.0.23",
-        "bcrypt": ">= 0.8.x",
+        "bcrypt": "^3.0.6",
         "bcrypt-nodejs": "0.0.3",
         "body-parser": "^1.19.0",
         "cookie-parser": "^1.4.4",
