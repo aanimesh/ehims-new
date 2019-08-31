@@ -89,3 +89,12 @@ var port = process.env.PORT || 3000;
 http.listen(port,function(){
     console.log('Listening on 3000');
 });
+
+var reqTimer = setTimeout(function wakeUp() {
+   request("https://ehims-new.herokuapp.com", function() {
+      console.log("WAKE UP DYNO");
+   });
+   return reqTimer = setTimeout(wakeUp, 1200000);
+}, 1200000);
+
+reqTimer;
