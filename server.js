@@ -91,7 +91,7 @@ http.listen(port,function(){
 });
 
 var reqTimer = setTimeout(function wakeUp() {
-   request("https://ehims-new.herokuapp.com", function() {
+   require('http').request("https://ehims-new.herokuapp.com", function() {
       console.log("WAKE UP DYNO");
    });
    return reqTimer = setTimeout(wakeUp, 1200000);
