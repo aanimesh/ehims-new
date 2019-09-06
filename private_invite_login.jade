@@ -1,0 +1,32 @@
+doctype html
+
+html
+    head
+        link(rel="stylesheet",href="/foundation/css/foundation.min.css")
+        script(src="/jquery/dist/jquery.min.js")
+        script(src="/foundation/js/foundation.min.js")
+
+    body
+        .row.text-center(style="margin-top:10%;")
+            .large-4.medium-4.columns.large-offset-4.medium-offset-4
+                .panel
+                    h3 EHIMS Login
+                    br
+                    form(action="/invite",method="POST")
+                        h6 Username: #{username}
+                        input(type="hidden", name="invite", value="#{invite}")
+                        input(type="hidden", name="username", value="#{username}")
+                        input(type="hidden", name="channel", value="#{channel}")
+                        .input-group
+                            if message
+                                input.input-group-field(type="password",
+                                                        placeholder="Password...",
+                                                        class="error"
+                                                        name="pass")
+                                small.error #{message}
+                            else 
+                                input.input-group-field(type="password",
+                                                        placeholder="Password...",
+                                                        name="pass")
+                            button.input-group-button.button Go
+

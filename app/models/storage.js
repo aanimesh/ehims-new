@@ -47,11 +47,10 @@ var get_user = function(name,callback){
 
 var create_user = function(name, pass, callback) {
     var user = new User({'name':name, 'password': pass, channels: [], bookmarked:[]});
-    user.save();
-    callback(user);
+    user.save().then(function(user){
+        callback(user);
+    });
 };
-
-
 
 /**
  * get channel by name
@@ -130,6 +129,8 @@ var create_channel = function(channel_name, chat_type, callback){
             channel = new Channel({'name': channel_name,
                              'chat_type': chat_type,
                              'online_users': [],
+                             'users': [],
+                             'type': 'routine',
                              'top_lvl_messages': []});
             channel.save().then(function(channel){
                 callback(null, channel)});
@@ -267,20 +268,12 @@ var create_message = function(msg, callback){
 };
 
 
-var create_invite = function(channel, username, callback){
-    get_user(username, function(err, results){
-       if(!results){
-            callback(null);
-       } else {
-            var invite = new Invite({
-                'channel': channel,
-                'username': username,
-                //'password': password
-            });
-            invite.save();
-            callback(invite);
-       }
-    });
+var create_invite = function(channel, callback){
+        var invite = new Invite({
+            'channel': channel,
+        });
+        invite.save();
+        callback(invite);
 };
 
 var get_invite = function(invite_id, callback){
@@ -387,6 +380,141 @@ var bookmark_list = function(username, callback){
     })
 }
 
+var create_exp_channel = function(time, callback){
+    var group_no = 0;
+    Channel.count({'type': 'experiment'}).then(function(count){group_no = count+1});
+
+    channel = new Channel({'name': 'tmpname-exp-'+time,
+                     'chat_type': 'tree',
+                     'online_users': [],
+                     'type': 'experiment',
+                     'group_no': group_no,
+                     'users_number': null,
+                     'top_lvl_messages': []});
+    channel.save().then(function(channel){
+        callback(null, channel._id, group_no)});
+};
+
+var configure_exp_channel = function(data, callback){
+    var channel_name = 'experiment-'+data['channel_id'];
+    switch(data['chat_type']){
+         case 'path':
+             channel_name += ' (Sequential)';
+             break;
+         case 'tree':
+             channel_name += ' (Tree)';
+             break;
+         case 'graph':
+             channel_name += ' (Graph)';
+             break;
+     };
+    var invite = new Invite({'channel': data['channel_id']});
+    invite.save().then(function(invite){
+        Channel.update({'_id':data['channel_id']},{ $set:{
+            tree_views:data['tree_views'],
+            started_at:data['time'],
+            chat_type:data['chat_type'],
+            name: channel_name,
+            users_number: parseInt(data['number']),
+            group_no: data['group_no'],
+            invite_link: invite,
+        }}, {upsert:true}, function(err){
+            Channel.findOne({'_id': data['channel_id']}, function(err, channel){
+                callback({'invite':invite._id, 'channel': channel});
+            });
+        });
+    });
+};
+
+var get_all_exp_channels = function(callback){
+    Channel.deleteMany({'name':{ $regex: /tmpname-exp-/, $options: 'i' }}).then(function(){
+        Channel.find({'type':"experiment"},function(err, channels){
+            callback(channels);
+        });
+    });
+};
+
+var sub_group = function(){
+    Channel.findOne({"type" : "experiment"}).sort({created_at: -1}).exec(function(err, channel){
+        Channel.update({"_id":channel._id}, {$set:{type: 'routine', group_no: ''}}, {upsert:true}, function(){});
+    });
+};
+
+var edit_content = function(id, content, callback){
+    Message.findOne({"_id":id}).exec(function(err, msg){
+        if(msg.original_version.length == 0 || msg.original_version == undefined || msg.original_version == null)
+            msg.original_version = [msg.content];
+        else
+            msg.original_version.push(msg.content);
+        Message.updateOne({"_id":id}, {$set:{content:content, original_version:msg.original_version}}, {upsert:true}, function(){
+            msg.content = content;
+            callback(msg);
+        });
+    });
+};
+
+var modify_hierarchy = function(data, callback){
+    var child_id = data.child_id;
+    var change_parents = data.parent_ids;
+    var channel_id = data.channel;
+    Message.findOne({"_id": child_id},function(err, cmsg){
+        if(cmsg.msg_parent != null && cmsg.msg_parent != undefined){
+            Message.findOne({"_id":cmsg.msg_parent}, function(err, op){
+                op.children = op.children.filter(child => child != child_id);
+                Message.updateOne({"_id":cmsg.msg_parent},{$set:{children: op.children}}, {upsert:true}, function(){});
+            });
+        }else{
+            Channel.findOne({"_id":channel_id},function(err, channel){
+                channel.top_lvl_messages = channel.top_lvl_messages.filter(msg => msg != cmsg.msg_parent); 
+                Channel.updateOne({"_id": channel_id}, {$set:{top_lvl_messages: channel.top_lvl_messages}}, {upsert:true}, function(){});
+            })
+        }
+        if(cmsg.other_parents != undefined){
+            cmsg.other_parents.forEach(function(other_parent){
+                Message.findOne({"_id":other_parent}, function(err, op1){
+                    op1.children = op1.children.filter(child => child != child_id);
+                    Message.updateOne({"_id":other_parent},{$set:{children: op1.children}}, {upsert:true}, function(){});
+                });
+            });
+        }
+
+        var msg_parent = null;
+        var other_parents = [];
+        if(change_parents.length == 1 && change_parents[0] == "0"){
+            Channel.updateOne({"_id": channel_id}, {$push:{top_lvl_messages: cmsg}}, {upsert:true}, function(){});
+            //console.log(change_parents[0]);
+        }else{
+            change_parents = change_parents.filter(msg => msg != "0");
+            var bulkOps = [];
+            for(var i = 0; i < change_parents.length; i ++){
+                let updateMsg = {
+                    'updateOne': {
+                        'filter': {'_id': change_parents[i]},
+                        'update': {$push: {'children': mongoose.Types.ObjectId(child_id)}},
+                        'upsert': true,
+                    }
+                };
+                bulkOps.push(updateMsg);
+                if(i == 0)
+                    msg_parent = mongoose.Types.ObjectId(change_parents[i]);
+                else
+                    other_parents.push(mongoose.Types.ObjectId(change_parents[i]));
+            };
+
+            Message.bulkWrite(bulkOps)
+                .then( bulkWriteOpResult => {
+                    console.log('Hierarchy changed');
+                })
+                .catch( err => {
+                    console.log('Hierarchy failed to change');
+                });
+        };
+        Message.updateOne({"_id":child_id},{$set:{msg_parent:msg_parent, other_parents:other_parents}}, {upsert:true}, function(){});
+    });
+    callback(data);
+};
+
+
 exports.get_user = get_user;
 exports.create_user = create_user;
 exports.get_all_channels = get_all_channels;
@@ -407,4 +535,9 @@ exports.sub_online_users = sub_online_users;
 exports.user_join_channel = user_join_channel;
 exports.bookmark = bookmark;
 exports.bookmark_list = bookmark_list;
-
+exports.create_exp_channel = create_exp_channel;
+exports.configure_exp_channel = configure_exp_channel;
+exports.get_all_exp_channels = get_all_exp_channels;
+exports.sub_group = sub_group;
+exports.edit_content = edit_content;
+exports.modify_hierarchy = modify_hierarchy;

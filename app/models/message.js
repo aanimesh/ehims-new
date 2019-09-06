@@ -5,6 +5,7 @@ var ObjectId = Schema.ObjectId;
 var MessageSchema = new Schema({
     id: ObjectId,
     content: String,
+    original_version: [{type:String}],
     channel: {type: ObjectId, ref: 'Channel'},
     author: String,
     msg_parent: this,
@@ -13,7 +14,7 @@ var MessageSchema = new Schema({
     seen_by : [ {type: ObjectId, ref: 'User'} ],
     likes: [String],
     bookmarked: [ String ],
-}, { timestamps: { createdAt: 'created_at' } });
+}, { timestamps: { createdAt: 'created_at' , updatedAt: 'updated_at'} });
 
 
 exports.Message = mongoose.model('Message', MessageSchema);

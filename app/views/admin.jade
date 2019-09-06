@@ -4,11 +4,16 @@ html
     head
         link(rel="stylesheet",href="/foundation/css/foundation.min.css")
         link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
-        link(rel="stylesheet",href="/myassets/css/channel.css")
+        link(rel="stylesheet",href="/myassets/css/admin.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
+        script(src="/myassets/js/admin.js")
         script.
-            var channels = !{JSON.stringify(channels)};
+            var channels = !{JSON.stringify(channels)}
+            var get_invite_link = function(invite){
+                var base = location.protocol + '//' + location.host + '/invite';
+                return base + '?i=' + encodeURIComponent(invite);
+            };
     body
         .row(style="margin-top:5%")
             .large-12.medium-12.small-12.columns
@@ -20,37 +25,27 @@ html
             i.fa.fa-minus-circle.fa-2x.sub-icon(id='sub-group')
             i.fa.fa-plus-circle.fa-2x.add-icon(id='add-group')
             p
-            table.large-12.medium-12.small-12
+            table.large-12.medium-12.small-12(style='table-layout: fixed')
               thead
                 tr
                   th(width='100' style='text-align: center') Group No.
-                  th(width='100' style='text-align: center') Time
-                  th(width='100' style='text-align: center') Members Number
+                  th(width='120' style='text-align: center') Time
+                  th(width='120' style='text-align: center') Users Number
                   th(width='130' style='text-align: center') Type
-                  th(width='100' style='text-align: center') Tree Views
-                  th(width='200' style='text-align: center') Members
+                  th(width='120' style='text-align: center') Tree Views
                   th(style='text-align: center') Create
-                  th(width='100' style='text-align: center') Results
-              tbody
-                tr
-                  td 1
-                  td Aug 30 2019
-                  td 3
-                  td 
-                    input(type='radio', name='ctype',value='path')
-                    label Sequential
-                    br
-                    input(type='radio', name='ctype', value='tree')
-                    label Tree
-                    br
-                    input(type='radio', name='ctype', value='graph')
-                    label Graph
-                  td 
-                    input(type='checkbox' style='position: relative;top: 10px;left: 32px;transform:scale(1.5, 1.5);')
-                  td 
-                  td Yes
-                  td 
-                tr
+                  th(width='150' style='text-align: center') Results
+              tbody#group-details
+                each channel in channels
+                  tr
+                    td(style='text-align: center') #{channel.group_no}
+                    td(style='text-align: center') #{channel.started_at}
+                    td(style='text-align: center') #{channel.users_number}
+                    td(style='text-align: center') #{channel.chat_type}
+                    td(style='text-align: center') #{channel.tree_views}
+                    script.
+                        $('tbody#group-details > tr:last').append('<td>'+get_invite_link('#{channel.invite_link}')+'</td>')
+                        $('tbody#group-details > tr:last').append('<td><button class="small"><a href="'+get_download_link('#{channel._id}')+'" target="_blank">Download</a></button></td>')
         .row
             br
         .row

@@ -78,6 +78,8 @@ html
                         a(href='#' data-reveal-id="invite-modal" id='invite-button')
                             i.fa.fa-plus-circle
                     li
+                        a#modify-button(href='#') Modify
+                    li
                         a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
                         //a#back-home Home
                         form#back-home-form(method='post', action="/back_channels")
@@ -92,6 +94,10 @@ html
         ul#online-users-list.f-dropdown(data-dropdown-content,
             style="height=200px;overflow-y:scroll;")
 
+        div#waiting_page
+            h3 There are 
+            h3#waiting_number
+            h3 seats remained...
 
         #messages-column
             .progress.large-12.radius.success#progress-div
@@ -211,29 +217,17 @@ html
                             fieldset
                                 legend Create an Invite
 
-                                label Channel ID
+                                label 
+                                    b Channel ID:
                                     br
                                     span 
                                     span #{channel._id}
-                                        
                                 br
-                                label Username
-                                    input#invite-username(type="text",
-                                        required
-                                        placeholder="Username")
-                                    p#error 
-                                //label Password
-                                    input#invite-password(type="text",
-                                        required
-                                        placeholder="Password")
-                                button#gen-link Generate Link
-                    .large-12.columns
-                        h6.subheader Link: 
-                        div(style="postition:relative;width:90%;white-space:nowrap;overflow-x:scroll")
-                            p
-                                span 
+                                label
+                                    b Invitation Link:
+                                    br
+                                    span
                                     a#invite-link
-                                    //#{channel._id}
             a.close-reveal-modal(aria-label="Close")  &#215;
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")

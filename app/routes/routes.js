@@ -22,7 +22,7 @@ var join_channel = function(context, res, err_func){
      }
      var channel = results.channel;
      channel.log_user_in(context.user);
-     channel.save();
+     //channel.save();
      context.channel = channel;
      storage.get_messages_by_channel(channel._id, function(results){
          context.messages = results;
@@ -219,9 +219,9 @@ module.exports = function(io){
        admin : function(req, res){
            var pass = req.body.pass;
            if(pass === 'ehims2016'){
-               storage.get_all_channels(function(results){
-                   res.render("admin",{channels: results});
-               });
+               storage.get_all_exp_channels(function(channels){
+                res.render('admin', {channels: channels});
+               })
            } else {
                res.render("admin_login", {message:"Incorrect Password"});
            }
@@ -233,7 +233,6 @@ module.exports = function(io){
 
        make_invite : function(req, res){
             var channel = req.body.channel;
-            var username = req.body.username;
             //var password = req.body.password;
             
             // TODO
@@ -245,9 +244,9 @@ module.exports = function(io){
             //              not exist, and create it.
             // NOW
             //  Invites must be for an existing user
-            storage.create_invite(channel, username, function(invite){
+            storage.create_invite(channel, function(invite){
                if(invite)
-                    res.json({'invite': invite._id,'username': username});
+                    res.json({'invite': invite._id});
             });
         },
 
@@ -255,32 +254,26 @@ module.exports = function(io){
             storage.get_invite(req.query.i, function(invite){
                 if (!invite)
                     res.status(404).send("Page not found");
-                else
+                else{
                     res.render('invite_login', {
                         'channel': invite.channel,
-                        'username': invite.username,
                         'invite': invite._id,
                     });
+                }
             });
         },
 
        invite : function(req, res){
             var invite = req.body.invite;
             var pass = req.body.pass;
-            //console.log(req.body);
+            var name = req.body.username;
             storage.get_invite(invite, function(result){
                 if(!result)
                     res.status(404).send("Page not found");
-                // TODO
-                //      Originally, the invites had a password independent of the user
-                //      passwords.
-                //      Depending on how the invites could work, we would either
-                //      check the the correct user is logged in and check the
-                //      invite password against the supplied one,
-                //      or just check the invited user's password here.(just check the user's pw)
                 else {
-                    storage.get_user(result.username, function(err, results){
-                       if(results){
+                    // private invitaion
+                    if(result.username != null & result.username != undefined){
+                        storage.get_user(result.username, function(err, results){
                             results.comparePassword(pass, function(err, match){
                                 if(err){
                                     console.log(err);
@@ -296,7 +289,6 @@ module.exports = function(io){
                                             ctype: channel.chat_type,
                                             help_popup: get_help_popup(),
                                             socket_url : socket_url};
-                                        //console.log(context);
                                         storage.get_user(context.user,function(err, results){
                                             if(err){
                                                 console.log(err);
@@ -316,7 +308,7 @@ module.exports = function(io){
                                         });
                                     });
                                 } else {
-                                res.render('invite_login', {
+                                    res.render('invite_login', {
                                         'channel': req.body.channel,
                                         'username': req.body.username,
                                         'invite': invite,
@@ -324,10 +316,89 @@ module.exports = function(io){
                                     });
                                 }
                             });
-                       };
-                   });
-                };
-            });
+                       })
+                    } 
+                    // public invitaion
+                    else{
+                        storage.get_user(name, function(err, results){
+                            if(err){
+                                storage.create_user(name, pass, function(user){ 
+                                    storage.get_channel_by_id(req.body.channel, function(channel) {
+                                        var socket_url = get_socket_url();
+                                        var context = { 
+                                            user: user,
+                                            channel: req.body.channel,
+                                            ctype: channel.chat_type,
+                                            help_popup: get_help_popup(),
+                                            socket_url : socket_url};
+                                        storage.get_user(name,function(err, results){
+                                            if(err){
+                                                console.log(err);
+                                                res.status(500).send("Whoops, we had an error");
+                                                return;
+                                            }
+                                            var user = results;
+                                            context.user = user;
+                                            console.log("Created user");
+                                            storage.join_channel(user, context.channel, 
+                                                join_channel(context, res,
+                                                    function(err){
+                                                        console.log(err);
+                                                        res.status(500).send("Whoops, we had an error");
+                                                        return;
+                                            }));
+                                        })
+                                    })
+                                });
+                            }
+                            else{
+                                results.comparePassword(pass, function(err, match){
+                                    if(err){
+                                        console.log(err);
+                                        res.status(500).send("Whoops, we had an error");
+                                        return;
+                                    }
+                                    if (match) {  
+                                        storage.get_channel_by_id(req.body.channel, function(channel) {
+                                            var socket_url = get_socket_url();
+                                            var context = { 
+                                                user: req.body.username,
+                                                channel: req.body.channel,
+                                                ctype: channel.chat_type,
+                                                help_popup: get_help_popup(),
+                                                socket_url : socket_url};
+                                            storage.get_user(context.user,function(err, results){
+                                                if(err){
+                                                    console.log(err);
+                                                    res.status(500).send("Whoops, we had an error");
+                                                    return;
+                                                }
+                                                var user = results;
+                                                context.user = user;
+                                                storage.join_channel(user, context.channel, 
+                                                    join_channel(context, res,
+                                                        function(err){
+                                                            console.log(err);
+                                                            res.status(500).send("Whoops, we had an error");
+                                                            return;
+                                                        }));
+                                            });
+                                        });
+                                    } else {
+                                        res.render('invite_login', {
+                                            'channel': req.body.channel,
+                                            'username': req.body.username,
+                                            'invite': invite,
+                                            'message': "Incorrect password",
+                                        });
+                                    }
+                                });
+                            }
+                        })
+
+                    }
+                }
+            })
        },
 
         ranking : function(req, res){
@@ -383,7 +454,42 @@ module.exports = function(io){
             storage.bookmark_list(username, function(err, list){
                 res.json({"list": list});
             })
-        }
+        },
+
+        add_group: function(req, res){
+            var time=req.body.time;
+            time = time.replace(' ', '');
+            storage.create_exp_channel(time, function(err, channel_id, group_id){
+                res.json({"channel_id": channel_id, "group_id": group_id});
+            })
+        },
+
+        create_group: function(req,res){
+            storage.configure_exp_channel(req.body, function(invite_id, channel){
+                res.json({'invite':invite_id, 'channel': channel});
+            })
+        },
+
+        sub_group: function(req, res){
+            storage.sub_group();
+        },
+
+        edit_content:function(req, res){
+            var content = req.body.msg;
+            var id = req.body.id;
+            storage.edit_content(id, content, function(msg){
+                io.to(req.body.channel).emit('edited_content', msg);
+                res.json({'msg': content, 'id':id});
+                //console.log(msg);
+            });
+        },
+
+        modify_hierarchy: function(req, res){
+            storage.modify_hierarchy(req.body, function(data){
+                io.to(req.body.channel).emit('modify_hierarchy', data);
+                res.json(data);
+            });
+        },
     };
 
     return routes;

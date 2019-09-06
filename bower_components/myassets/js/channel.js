@@ -9,6 +9,10 @@ var other_parents = [];
 var online_count = 0;
 var ranking_layout = 0; // 0 for full path; 1 for only parent
 var list_layout = 0;    // 0 for full path; 1 for only parent
+var wait_signal = 0;
+var modify_signal = 0;
+var change_parent = {};
+var latest_child = [];
 
 
 var PLUS_CLICKABLE = false;
@@ -50,6 +54,7 @@ var send_message = function () {
         'children'  : [], 
         'likes'     : [],
         'bookmarked': [],
+        'original_version':[],
         'content'   : $('#message').val().replace('&','&amp;')
                                          .replace('<','&lt;')
                                          .replace('>','&gt;')
@@ -129,9 +134,12 @@ var make_msg_div = function(msg){
     var wrapper = $("<div>",{class: 'message-wrapper', id: msg._id+'-wrapper'});
     var d = new Date(msg.created_at);
     var date = d.getHours()+":"+d.getMinutes()+" "+d.toDateString();
+    var author = msg.author;
+    if(msg.original_version.length > 0)
+        author = author + ' (edited)';
     var msg_div = $("<div>",{class: class_str, 
         id: msg._id, 
-        author: msg.author,
+        author: author,
         created_at: date,
         replies: msg.children.length,
         user_visible_id: ids[msg._id]});  
@@ -144,7 +152,6 @@ var make_msg_div = function(msg){
         if (tmsg == username)
             bookmarked = true; 
     });
-
     var msg_bookmarked = $("<div>", {class: 'bookmarked', id: 'bookmarked-'+msg._id, user: msg.author});
     if(bookmarked === true)
         msg_bookmarked.append('<i class="fa fa-bookmark fa-lg"></i>');
@@ -163,6 +170,15 @@ var make_msg_div = function(msg){
     else
         msg_likes.append('<i class="fa fa-thumbs-o-up fa-lg"></i><p id="likes-p-'+msg._id+'">  '+msg.likes.length+' likes</p></div>');
     msg_div.append(msg_likes);
+
+    if(msg.original_version.length > 0){
+        var edit_history = 'Edit History:';
+        for(var x = 0; x < msg.original_version.length; x ++){
+            var cnt = x+1;
+            edit_history += '<br>version '+cnt.toString()+': '+msg.original_version[x];
+        }
+        msg_div.append('<span class="edit_history">'+edit_history+'</span>');
+    }
     wrapper.append(msg_div);
     // Note that if the message is not the hard focus and has only 1 child
     // Then that child is guarenteed to be displayed anyways, so we don't
@@ -234,11 +250,38 @@ var get_invite_link = function(invite){
 
 // ------- User Login/off ---------
 
+var waiting_page = function(pos){
+    if(channel.type == 'experiment'){
+        var users_number = parseInt(channel.users_number);
+        var delta = users_number - pos;
+        if (delta != 0){
+            $('body').children().hide();
+            $('#waiting_page').show();
+            $('#waiting_number').html(delta.toString());
+            $('#navbar').show();
+        }
+        else if (delta == 0){
+            $('body').children().show();
+            $('#waiting_page').hide();
+        }
+    }
+    else{
+        $('#waiting_page').hide();
+    }
+}
+
 var user_log_on = function(uname, online){
     if(uname !== username){
         // first assign a colour
         var pos = online.length;
-        online.push({name:uname, colour: colours[colour_pos %57]});
+        var seen = 0;
+
+        online.forEach(function(dict){
+            if(dict['name'] == uname)
+                seen = 1;
+        })
+        if (seen == 0)
+            online.push({name:uname, colour: colours[colour_pos %57]});
         colour_pos += 7;
         online_count = online.length;
 
@@ -248,7 +291,8 @@ var user_log_on = function(uname, online){
             ';">'+uname+'</li>');
         $('#num-online').html(
                 '('+pos+')'
-                );
+        );
+        waiting_page(pos);
     }
 };
 
@@ -261,6 +305,7 @@ var user_log_off = function(uname, online){
     $('#num-online').html(
             '('+online_count+')'
             );
+    waiting_page(online_count);
 };
 
 var assign_colour = function(){
@@ -286,6 +331,7 @@ var update_online = function(){
     $('#num-online').html(
             '('+online_count+')'
             );
+    waiting_page(online_count);
 };
 
 var get_colour = function(uname){
@@ -391,13 +437,21 @@ var remove_from_queue = function(id){
 
 
 
+// -------------------------------
+
+
 // ------ Focus Navigation --------
 
 // This function takes an id and sets that message to the hard focal message,
-var set_hard_focus = function(id, hnav){
+var set_hard_focus = function(id, hnav, signal){
     // if set_hard_focus was called while naviaging history, do not add to history
     // if not, add to history and clear forward history
-    //alert('hhh');
+    if (hard_focus == id & messages[id].author.replace(' (edited)', '') == username & (!signal)){
+        $('.message-selected .msg_content p').attr('contenteditable', 'true');
+        $('.message-selected .msg_content p').focus();
+        return;
+    }
+    remove_from_queue(id);
     if(!hnav){
         bhistory.push(id);
         fhistory = [];
@@ -454,10 +508,13 @@ var set_hard_focus = function(id, hnav){
                     class: "child-message",
                     id: cmsg._id+'-wrapper'
                 });
+                var author = cmsg.author;
+                if (cmsg.original_version.length > 0)
+                    author = author + ' (edited)';
                 listitem = $("<div>",{
                     class: "child-message",
                     id: cmsg._id, 
-                    author: cmsg.author,
+                    author: author,
                     created_at: date,
                     replies: cmsg.children.length,
                     user_visible_id: ids[cmsg._id] 
@@ -465,12 +522,20 @@ var set_hard_focus = function(id, hnav){
                 listitem.css({
                     'background-color': get_colour(cmsg.author)
                 });
-                listitem.html("<br/>"+cmsg.content+"<br/>");
-                listitem_wrapper.append(listitem);
+                listitem.html("<p>"+cmsg.content+"</p>");
                 if(cmsg.other_parents.length > 0)
                     listitem_wrapper.append(
                         '<div class="mp-symbol"><i class="fa fa-clone"></i></div>'
                     );
+                if(cmsg.original_version.length > 0){
+                    var edit_history = 'Edit History:';
+                    for(var x = 0; x < cmsg.original_version.length; x ++){
+                        var cnt = x+1;
+                        edit_history += '<br>version '+cnt.toString()+': '+cmsg.original_version[x];
+                    }
+                    listitem.append('<span class="edit_history">'+edit_history+'</span>');
+                }
+                listitem_wrapper.append(listitem);
                 list.append(listitem_wrapper);
                 $('#'+cmsg._id).on('click', make_bind_func(cmsg._id) );
                 // if message is new, blink it, then remove from queue
@@ -765,8 +830,9 @@ var display_parent_and_siblings = function(id){
 var display_message = function(id){
     $('#messages-view').append(make_msg_div(messages[id]));
     // no indent in path mode
-    if (chat_type !== 'path')
+    if (chat_type !== 'path'){
         document.getElementById(id+'-wrapper').className += ' message-selected';
+    }
 };
 
 var change_view_root = function(id){ // change root
@@ -1405,14 +1471,13 @@ var build_tree = function(){
         msg = messages[msg_array[i]]; 
         tree_data.nodes.push(new Node(msg._id, msg.content.substr(0,5)+'...', msg.content));
         for(var j=0,leng=msg.children.length;j<leng; j++){
-            tree_data.edges .push(new Edge(msg._id,msg.children[j]));
+            tree_data.edges.push(new Edge(msg._id,msg.children[j]));
         }
     }
 
     for(i=0, len=channel.top_lvl_messages.length;i<len;i++){
         tree_data.edges.push(new Edge('0',channel.top_lvl_messages[i]));
     }
-
 }; 
 
 var display_node = function(params){
@@ -1446,39 +1511,78 @@ var display_tree = function(){
         },
     };
     tree = new vis.Network(container, tree_data, options);
-    tree.on('doubleClick', function(e){
-        if (e.nodes.length === 1 && e.nodes[0] === "0")
-            go_to_root();
-        else if (e.nodes.length > 0)
-            set_hard_focus(e.nodes[0]);
-    });
-    tree.on('selectNode', function(e){
-        if (chat_type === 'graph') {
-            for (var i = 0; i < e.nodes.length; i++)
-                if(other_parents.indexOf(e.nodes[i]) === -1) {
-                    msg_id = e.nodes[i];
-                    other_parents.push(msg_id);
-                    $('#other-parents').append(make_op_li(msg_id));
-                }
-        }
-    });
-    tree.on('deselectNode', function(e){
-        // if nothing new is selected, then don't deselect
-        // If the root was selected, then don't deselect
-        if(e.nodes.length === 0 || e.nodes.indexOf("0") > -1)
-            tree.setSelection(e.previousSelection);
-        else if (chat_type === 'graph') {
-            for (var i = 0; i < e.previousSelection.nodes.length; i++){
-                if (e.nodes.indexOf(e.previousSelection.nodes[i]) === -1){
-                    var id = e.previousSelection.nodes[i];
-                    $('#opli-'+id).remove();
-                    var index = other_parents.indexOf(id);
-                    if (index > -1)
-                        other_parents.splice(index, 1);
+
+    if(modify_signal == 0){
+        tree.on('selectNode', function(e){
+            if (e.nodes.length === 1 && e.nodes[0] === "0")
+                go_to_root();
+            else if (e.nodes.length > 0)
+                set_hard_focus(e.nodes[0]);
+        });
+        tree.on('doubleClick', function(e){
+            if (chat_type === 'graph') {
+                for (var i = 0; i < e.nodes.length; i++)
+                    if(other_parents.indexOf(e.nodes[i]) === -1) {
+                        msg_id = e.nodes[i];
+                        other_parents.push(msg_id);
+                        $('#other-parents').append(make_op_li(msg_id));
+                    }
+            }
+        });
+        tree.on('deselectNode', function(e){
+            // if nothing new is selected, then don't deselect
+            // If the root was selected, then don't deselect
+            if(e.nodes.length === 0 || e.nodes.indexOf("0") > -1)
+                tree.setSelection(e.previousSelection);
+            else if (chat_type === 'graph') {
+                for (var i = 0; i < e.previousSelection.nodes.length; i++){
+                    if (e.nodes.indexOf(e.previousSelection.nodes[i]) === -1){
+                        var id = e.previousSelection.nodes[i];
+                        $('#opli-'+id).remove();
+                        var index = other_parents.indexOf(id);
+                        if (index > -1)
+                            other_parents.splice(index, 1);
+                    }
                 }
             }
-        }
-    });
+        });
+    }else{
+        // first select a child node and then double click parents.
+        tree.on('selectNode', function(e){
+            if(e.nodes[0] == undefined || e.nodes[0] == null)
+                return;
+            if(e.nodes[0] != "0"){
+                if(messages[e.nodes[0]].author == username)
+                    latest_child.push(e.nodes[0]);
+            }
+        });
+        tree.on('doubleClick', function(e){
+            if(e.nodes[0] == undefined || e.nodes[0] == null)
+                return;
+            if(e.nodes[0] != "0"){
+                if(messages[e.nodes[0]].author == username)
+                    latest_child.pop();
+            }
+            if(latest_child.length == 0)
+                return;
+            lchild = latest_child[latest_child.length-1];
+            if (change_parent[lchild] == undefined || change_parent[lchild] == null)
+                change_parent[lchild] = [];
+            if (chat_type == 'graph') {
+                var seen = 0;
+                change_parent[lchild].forEach(function(msg_id){
+                    if (msg_id == e.nodes[0])
+                        seen = 1;
+                })
+                if (seen == 0)
+                    change_parent[lchild].push(e.nodes[0]);
+            }
+            else{
+                change_parent[lchild] = [e.nodes[0]];
+            }
+            modify_tree_hierarchy(lchild, change_parent[lchild]);
+        });
+    }
 };
 
 var toggle_tree_view = function(){
@@ -1494,8 +1598,116 @@ var toggle_tree_view = function(){
     }
 };
 
-// -------------------------------
+var modify_msg_hierarchy = function(child_id, parent_ids){
+    if(parent_ids == undefined || parent_ids == null)
+        return;
+    if(messages[child_id].msg_parent == undefined || messages[child_id].msg_parent == null){
+        channel.top_lvl_messages = channel.top_lvl_messages.filter(msg => msg != child_id);
+    }else{
+        messages[messages[child_id].msg_parent].children = messages[messages[child_id].msg_parent].children.filter(child => child != child_id);
+        messages[child_id].other_parents.forEach(function(pid){
+            messages[pid].children = messages[pid].children.filter(child => child != child_id);
+        });
+    }
+    
+    messages[child_id].msg_parent = null;
+    messages[child_id].other_parents = [];
+    if(parent_ids.length == 1 && parent_ids[0] == "0")
+        channel.top_lvl_messages.push(child_id);
+    else{
+        parent_ids = parent_ids.filter(id => id != "0");
+        for(var i = 0; i < parent_ids.length; i ++){
+            messages[parent_ids[i]].children.push(child_id);
+            if (i == 0)
+                messages[child_id].msg_parent = parent_ids[0];
+            else
+                messages[child_id].other_parents.push(parent_ids[i]);
+        };
+    };
+};
 
+var modify_tree_hierarchy = function(child_id, parent_ids){
+    modify_msg_hierarchy(child_id, parent_ids);
+
+    $.ajax({
+        url:"/modify_hierarchy",
+        type:"POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        data : JSON.stringify({'child_id':child_id, 'parent_ids':parent_ids, 'channel':channel._id}),
+        success: function(data){
+            modify_hierarchy(data);
+        },
+    });
+};
+
+var modify_hierarchy = function(data){
+    //alert(JSON.stringify(data));
+    var child_id = data.child_id;
+    var parent_ids = data.parent_ids;
+    modify_msg_hierarchy(child_id, parent_ids);
+    if(channel.tree_views && tree){
+        tree.destroy();
+    };
+    build_tree();
+    display_tree();   
+    set_hard_focus(hard_focus);  
+    if(messages[child_id].author != username && chat_type != 'path'){
+        queue.push(messages[child_id]);
+        $('#queue-length').html('('+queue.length+')');
+        clearInterval(new_message_flash);
+        new_message_flash = setInterval(message_flash, 700);
+        update_queue_display();
+    }  
+};
+
+var edit_msg_content = function(id, content){
+    $.ajax({
+        type : "POST",
+        url  : '/edit_content',
+        data : JSON.stringify({'msg': content, 'id': id, 'channel':channel._id}),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function(data){
+            $('#message').focus();
+            $('.message-selected .msg_content p').html(data.msg);
+            $('#'+data.id).attr('author', messages[data.id].author+' (edited)');
+        }
+    });
+};
+
+var update_content = function(msg){
+    messages[msg._id].content = msg.content;
+    messages[msg._id].original_version = msg.original_version;
+    //messages[msg._id].author = msg.author + ' (edited)';
+    set_hard_focus(hard_focus);
+
+    if(msg.author != username && chat_type != 'path'){
+        queue.push(msg);
+        $('#queue-length').html('('+queue.length+')');
+        clearInterval(new_message_flash);
+        new_message_flash = setInterval(message_flash, 700);
+        update_queue_display();
+    }
+};
+
+var handle_keydown_editbox = function(e){
+    var code = e.keyCode || e.which;
+    if (code === 13){
+        e.preventDefault();
+        document.execCommand('insertHTML', false);
+    }
+    var id = $('.message-selected').attr('id').replace('-wrapper', '');
+    var content = $('.message-selected .msg_content p').text().trim()
+                                                     .replace('&','&amp;')
+                                                     .replace('<','&lt;')
+                                                     .replace('>','&gt;');
+    if (content != messages[id].content & code === 13){
+        if(content == '' || content == undefined || content == null)
+            content = messages[id].content;
+        edit_msg_content(id, content);
+    }
+}
 
 
 var handle_keydown = function(e){
@@ -1505,6 +1717,7 @@ var handle_keydown = function(e){
         if(code === 13) send_message();
         return;
     }
+
     keys[code] = true;
     if(Object.keys(keys).length > 1) {
         // check shift+right arrow
@@ -1555,15 +1768,22 @@ var handle_keydown = function(e){
             //descend_from_soft_focus();
             break;
         default:
+            set_hard_focus(get_soft_focus(), null, '0');
             break;
     }
 };
+
+//----------------------------------------------------
+
+
 
 $(document).ready(function(){
     var q = "username="+username+"&channel="+channel._id;
     socket = io(socket_url, {query:q});
     socket.on('message',receive_msg);
     socket.on('likes', receive_likes);
+    socket.on('edited_content', update_content);
+    socket.on('modify_hierarchy', modify_hierarchy);
 
     socket.on('log-on',user_log_on);
     socket.on('log-off',user_log_off);
@@ -1579,6 +1799,7 @@ $(document).ready(function(){
         set_hard_focus($(this).attr('id'));
     });
 
+
     // make the channel name go to the root if we're not in
     if(chat_type !== 'path')
         $('#channel-name').on('click',function(){
@@ -1590,6 +1811,7 @@ $(document).ready(function(){
 
     $('a#mail').on('click',next_msg);
     
+    $(document).on('keydown','.message-selected .msg_content p', handle_keydown_editbox);
     $('textarea#message').on('keydown',handle_keydown);
     // clear key in keys dict on key up
     $('textarea#message').on('keyup', function(e){
@@ -1628,7 +1850,7 @@ $(document).ready(function(){
     $('body').on('click',function(){
         // unless the user has clicked to add a parent or invite someone, then
         // automatically refocus to the main message
-        if(!$('#extra-parent').is(':focus'))
+        if(!$('#extra-parent').is(':focus') && !$('p').is(':focus'))
             //!$('#invite-username').is(':focus') &&
             //!$('#invite-password').is(':focus'))
             $('#message').focus();
@@ -1637,6 +1859,12 @@ $(document).ready(function(){
 
     build_tree();
     display_tree();
+    if(channel.tree_views == false){
+        if(chat_type == 'graph')
+            $("#graph-tree").hide();
+        else if(chat_type == 'tree')
+            $("#tree").hide();
+    }
 
     if (chat_type === 'path'){
         // Then hide the tree view for good
@@ -1691,17 +1919,10 @@ $(document).ready(function(){
 
     // invite form stuff no longer in use 
     
-    $('#invite-form').submit(function(e){
+    $('#invite-button').on('click', function(e){
         e.preventDefault();
-        var username = $('#invite-username').val();
-        //var password = $('#invite-password').val();
-        $('#gen-link').prop('disabled', true);
-        $('#invite-link').html("Loading...");
-        $('#error').html("");
         var data = {
               'channel': channel._id,
-              'username': username,
-              //'password': password
         };
         $.ajax({
             type : "POST",
@@ -1862,7 +2083,26 @@ $(document).ready(function(){
         } else {
             list_layout = 1;
         }
+    });
+
+    $('#modify-button').on('click',function(){
+        if(modify_signal == 1){
+            $(this).html('Modify');
+            modify_signal = 0;
+            change_parent = {};
+            latest_child = [];
+            display_tree();
+        }
+        else{
+            $(this).html('Finish');
+            modify_signal = 1;
+            change_parent = {};
+            latest_child = [];
+            display_tree();
+            set_hard_focus(hard_focus);
+        }
     })
+
 
 });
 

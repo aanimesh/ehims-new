@@ -74,6 +74,15 @@ app.post('/bookmark', routes.bookmark);
 
 app.post('/bookmark_list', routes.bookmark_list);
 
+app.post('/add_group', routes.add_group);
+
+app.post('/sub_group', routes.sub_group);
+
+app.post('/create_group', routes.create_group);
+
+app.post('/edit_content', routes.edit_content);
+
+app.post('/modify_hierarchy', routes.modify_hierarchy);
 
 // ---------------------------------
 
@@ -90,11 +99,11 @@ http.listen(port,function(){
     console.log('Listening on 3000');
 });
 
-var reqTimer = setTimeout(function wakeUp() {
-   require('http').request("https://ehims-new.herokuapp.com", function() {
+/*var reqTimer = setTimeout(function wakeUp() {
+   require('http').request("https://ehims-new.herokuapp.com/", function() {
       console.log("WAKE UP DYNO");
    });
    return reqTimer = setTimeout(wakeUp, 1200000);
 }, 1200000);
 
-reqTimer;
+reqTimer;*/

@@ -8,7 +8,15 @@ var ChannelSchema = new Schema({
     online_users : [{type: ObjectId, ref: 'User'}],
     top_lvl_messages : [{type: ObjectId, ref: 'Message'}],
     chat_type: {type: String, enum: ['path', 'tree', 'graph'], default: 'tree'},
-});
+    style: {type: String, enum: ['public', 'private'], default: 'public'},
+    type: {type: String, enum: ['experiment', 'routine', 'result'], default: 'routine'},
+    group_no: Number,
+    tree_views: {type: Boolean, default: true},
+    //users: [{type: ObjectId, ref: 'User'}],
+    users_number: Number,
+    started_at: String,
+    invite_link: [{type: ObjectId, ref: 'Invite'}],
+}, { timestamps: { createdAt: 'created_at'} });
 
 ChannelSchema.methods.log_user_in = function(user){
     var seen = false;

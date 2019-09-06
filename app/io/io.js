@@ -13,7 +13,6 @@ module.exports = function(io){
             var q = socket.handshake.query;
             console.log(q.username+" connected to "+q.channel);
             socket.join(q.channel);
-            //io.to(q.channel).emit('log-on',q.username);
             storage.add_online_users(q.channel, q.username, function(err, online_users){
                 io.to(q.channel).emit('log-on',q.username, online_users);
             });

@@ -29,6 +29,12 @@ div#progress-div {
     left: -1.5px;
 }
 
+div#waiting_page{
+    text-align: center;
+    position: relative;
+    top: 30%;
+}
+
 div#messages-view {
     position: absolute;
     top: 15px;
@@ -139,12 +145,19 @@ div.child-message {
     border-style: solid;
     border-width: 1px;
     display: inline-block;
-    font-size: 0.92222rem;
+    font-size: 0.72222rem;
     font-weight: normal;
     position: relative;
     color: #FFFFFF;
     text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
     top: 0px;
+}
+
+div.child-message > p{
+    font-size: 0.8222rem;
+    margin-bottom: 0rem;
+    margin: 0.5rem;
+    margin-top: 0rem;
 }
 
 div.multiple-parent {
@@ -472,29 +485,49 @@ span.op-x:hover {
     color: black;
 }
 
-/*admin page*/
-.add-icon{
-    display: inline;
-    float:right;
-    margin-right: 15px;
-    position: relative;
-    top:15px;
-}
-.sub-icon{
-    display: inline;
-    float:right;
-    position: relative;
-    top:15px;
-}
-
-#survey-page {
-    display: inline;
-    float: right;
-    position: relative;
-    top:10px;
-    margin-right: 15px;
+.edit_history{
+    position:absolute;
+    top:0px; /* - top padding */
+    right:9999px; /* width + left/right padding */
+    padding:10px;
+    color:#fff;
+    background:#333;
+    -webkit-box-shadow:2px 2px 5px #aaa;
+       -moz-box-shadow:2px 2px 5px #aaa;
+            box-shadow:2px 2px 5px #aaa;
+    opacity:0;
+    display:none;
+    overflow-wrap: break-word;
+    -webkit-transition:opacity 250ms ease-out;
+       -moz-transition:opacity 250ms ease-out;
+        -ms-transition:opacity 250ms ease-out;
+         -o-transition:opacity 250ms ease-out;
+            transition:opacity 250ms ease-out;
 }
 
-td > input{
-    
+.edit_history:before {
+    content:' '; /* Must have content to display */
+    position:absolute;
+    top:20%;
+    left:-16px; /* 2 x border width */
+    width:0;
+    height:0;
+    margin-top:-8px; /* - border width */
+    border:8px solid transparent;
+    border-right-color:#333;
+}
+
+.view:hover .edit_history {
+    right:0px;
+    opacity:1;
+    width:150px;
+    margin-right:-170px;
+    display:block;
+}
+.child-message:hover .edit_history {
+    right:-20px;
+    opacity:1;
+    width:250px;
+    margin-right:-270px;
+    display:block;
 }
