@@ -320,9 +320,9 @@ var update_online = function(){
 };
 
 var get_colour = function(author, color){
-    if(!color_table[author]){
+    if(color_table[author] == undefined || color_table[author] == null){
         color_table[author] = colours[((color+1)*7) % colours.length];
-        return colours[(color*7+1) % colours.length];
+        return colours[((color+1)*7) % colours.length];
     }
     else
         return color_table[author];
