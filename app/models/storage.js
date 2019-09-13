@@ -128,9 +128,9 @@ var create_channel = function(channel_name, chat_type, callback){
         else{
             channel = new Channel({'name': channel_name,
                              'chat_type': chat_type,
-                             'online_users': [],
+                             //'online_users': [],
                              'users': [],
-                             'type': 'routine',
+                             'participants': [],
                              'top_lvl_messages': []});
             channel.save().then(function(channel){
                 callback(null, channel)});
@@ -141,21 +141,17 @@ var create_channel = function(channel_name, chat_type, callback){
 var join_channel = function(user, channel_id, callback){
     Channel.findOne({'_id':channel_id},
         function(err, channel){
-            // assert.equal(null,err);
             if (!channel){
                 callback({err: "Channel does not exist"});
                 return;
             }
-            //user.join_channel(channel);
-            user_join_channel(user, channel);
+            user.join_channel(channel);
             channel.log_user_in(user);
-            add_online_users(channel_id, user.name, function(){});
             callback(null, {'user':user,'channel':channel});
-            //callback(err);
         });
 };
 
-var user_join_channel = function(user, channel){
+/*var user_join_channel = function(user, channel){
     var seen = false;
     var channels = user.channels;
     for(var i = channels.length-1;  i >= 0; i--)
@@ -166,7 +162,7 @@ var user_join_channel = function(user, channel){
             name:channel.name, chat_type:channel.chat_type, _id:channel._id});
         User.update({_id:user._id}, {$set:{channels:channels}}, {upsert:true},function(err){})
     }
-};
+};*/
 
 
 /**
@@ -285,14 +281,12 @@ var get_invite = function(invite_id, callback){
     });
 };
 
-var get_ranking = function(channel_id, callback){
-    /*Message.sort_by_likes(function(msg_queue){
-        callback(err, msg_queue);
-    });*/
-    Message.find({channel:channel_id}).sort({'likes':-1}).exec(function(err, msg_queue){
-        //console.log(msg_queue);
-        callback(err, msg_queue);
-    })
+var get_message_ids = function(msg, callback){
+    var results = [];
+    for(var i = 0; i < msg.length; i ++){
+        results.push(msg[i]._id);
+    }
+    callback(results);
 };
 
 var likes = function(msg_id, user, callback){
@@ -317,17 +311,22 @@ var add_online_users = function(channel_id, username, callback){
     get_user(username, function(err, user){
          get_channel_by_id(channel_id, function(channel){
             var seen = false;
-            online_users = channel.online_users;
-            online_users.forEach(function(tuser){
-                if(user._id.toString() == tuser.toString()){
+            var length = channel.participants.length;
+            var participants = channel.participants;
+            for(var i = 0; i < length; i ++){
+                if(participants[i].name == user.name){
                     seen = true;
+                    participants[i].online = true;
+                    channel.participants = participants;
+                    channel.save();
+                    break;
                 }
-            })
-            if(seen === false)
-                online_users.push(user);
-            Channel.update({_id:channel_id}, {$set: { online_users: online_users }}, 
-                {upsert: true}, function(err){});
-            callback(err, online_users);
+            }
+            if(seen === false){
+                participants.push({name: user.name, online: true, color: length, id: user._id});
+                Channel.update({_id: channel_id}, {$set: {participants: participants}}, {upsert: true}, function(err){});
+            }
+            callback(err, participants);
          });
     });
 }
@@ -335,50 +334,44 @@ var add_online_users = function(channel_id, username, callback){
 var sub_online_users = function(channel_id, username, callback){
     get_user(username, function(err, user){
         get_channel_by_id(channel_id, function(channel){
-            var seen = false;
-            online_users = channel.online_users.filter(function(tuser){
-                return tuser.toString() !== user._id.toString();
+            channel.participants.forEach(function(dict){
+                if(dict.name == username)
+                    dict.online = false;
             });
-            Channel.update({_id:channel_id}, {$set: { online_users: online_users}}, {upsert: true}, function(err){
-                //console.log(JSON.stringify(online_users));
-                callback(err, online_users);
-            });
+            channel.save();
+            callback(err, channel.participants);
          });
     });
 }
 
 var bookmark = function(msg_id, username, callback){
-    get_user(username, function(err, user){
-        Message.findOne({"_id": msg_id}, function(err, msg){
-            var bookmarked = new Boolean(false);
-            if (user.bookmarked !== undefined & user.bookmarked !== null)
-                user.bookmarked.forEach(function(tmsg){
-                    if (tmsg == msg_id)
-                        bookmarked = true; 
-                })
-            
-            if (bookmarked === true){
-                bookmarked = false;
-                User.update({_id: user._id}, {$set: { bookmarked: user.bookmarked.filter(tmsg => tmsg != msg_id)}}, {upsert:true}, function(){});
-                Message.update({_id: msg_id}, {$set: { bookmarked: msg.bookmarked.filter(tuser => tuser != username)}}, {upsert:true}, function(){});
-            }
-            else{
+    Message.findOne({"_id": msg_id}, function(err, msg){
+        var bookmarked = new Boolean(false);
+        msg.bookmarked.forEach(function(user){
+            if(user == username)
                 bookmarked = true;
-                user.bookmarked.push(msg_id);
-                msg.bookmarked.push(username);
-                User.update({_id: user._id}, {$set: { bookmarked: user.bookmarked}}, {upsert:true}, function(){});
-                Message.update({_id: msg_id}, {$set: { bookmarked: msg.bookmarked}}, {upsert:true}, function(){});
-            }
-            callback(err, bookmarked);
         })
+        if (bookmarked === true){
+            bookmarked = false;
+            Message.update({_id: msg_id}, {$set: { bookmarked: msg.bookmarked.filter(tuser => tuser != username)}}, {upsert:true}, function(){});
+        }
+        else{
+            bookmarked = true;
+            Message.update({_id: msg_id}, {$push: { bookmarked: username}}, {upsert:true}, function(){});
+        }
+        callback(err, bookmarked);
     })
 }
 
-var bookmark_list = function(username, callback){
+/*var bookmark_list = function(username, callback){
     get_user(username, function(err, user){
-        callback(err, user.bookmarked);
+        var results = [];
+        user.bookmarked.forEach(function(msg){
+            results.push(msg._id);
+        });
+        callback(err, results);
     })
-}
+}*/
 
 var create_exp_channel = function(time, callback){
     var group_no = 0;
@@ -386,7 +379,7 @@ var create_exp_channel = function(time, callback){
 
     channel = new Channel({'name': 'tmpname-exp-'+time,
                      'chat_type': 'tree',
-                     'online_users': [],
+                     'participants': [],
                      'type': 'experiment',
                      'group_no': group_no,
                      'users_number': null,
@@ -457,34 +450,42 @@ var modify_hierarchy = function(data, callback){
     var child_id = data.child_id;
     var change_parents = data.parent_ids;
     var channel_id = data.channel;
+    //console.log(change_parents);
     Message.findOne({"_id": child_id},function(err, cmsg){
         if(cmsg.msg_parent != null && cmsg.msg_parent != undefined){
             Message.findOne({"_id":cmsg.msg_parent}, function(err, op){
                 op.children = op.children.filter(child => child != child_id);
                 Message.updateOne({"_id":cmsg.msg_parent},{$set:{children: op.children}}, {upsert:true}, function(){});
             });
+            if(cmsg.other_parents != undefined){
+                cmsg.other_parents.forEach(function(other_parent){
+                    Message.findOne({"_id":other_parent}, function(err, op1){
+                        op1.children = op1.children.filter(child => child != child_id);
+                        Message.updateOne({"_id":other_parent},{$set:{children: op1.children}}, {upsert:true}, function(){});
+                    });
+                });
+            }
         }else{
             Channel.findOne({"_id":channel_id},function(err, channel){
-                channel.top_lvl_messages = channel.top_lvl_messages.filter(msg => msg != cmsg.msg_parent); 
+                channel.top_lvl_messages = channel.top_lvl_messages.filter(msg => msg != child_id); 
                 Channel.updateOne({"_id": channel_id}, {$set:{top_lvl_messages: channel.top_lvl_messages}}, {upsert:true}, function(){});
             })
         }
-        if(cmsg.other_parents != undefined){
-            cmsg.other_parents.forEach(function(other_parent){
-                Message.findOne({"_id":other_parent}, function(err, op1){
-                    op1.children = op1.children.filter(child => child != child_id);
-                    Message.updateOne({"_id":other_parent},{$set:{children: op1.children}}, {upsert:true}, function(){});
-                });
-            });
-        }
-
+        
         var msg_parent = null;
         var other_parents = [];
-        if(change_parents.length == 1 && change_parents[0] == "0"){
-            Channel.updateOne({"_id": channel_id}, {$push:{top_lvl_messages: cmsg}}, {upsert:true}, function(){});
-            //console.log(change_parents[0]);
+        if(change_parents[0] == "0"){
+            Channel.findOne({"_id": channel_id}, function(err, channel){
+                var seen = 0;
+                channel.top_lvl_messages.forEach(function(m){
+                    if (m == cmsg)
+                        seen = 1;
+                });
+                if (seen == 0)
+                    Channel.updateOne({"_id": channel_id}, {$push:{top_lvl_messages: mongoose.Types.ObjectId(child_id)}}, {upsert:true}, function(){});
+            });
         }else{
-            change_parents = change_parents.filter(msg => msg != "0");
+            //change_parents = change_parents.filter(msg => msg != "0");
             var bulkOps = [];
             for(var i = 0; i < change_parents.length; i ++){
                 let updateMsg = {
@@ -514,6 +515,26 @@ var modify_hierarchy = function(data, callback){
     callback(data);
 };
 
+var get_channel = function(channel_id, callback){
+    Channel.findOne({"_id": channel_id}, function(err, channel){
+        get_usernames(channel.participants, function(list){
+            get_usernames(channel.online_users, function(list1){
+                callback(err, list1, list);
+            });
+        });
+    });
+};
+
+var find_msg_by_author = function(author, channel_id, callback){
+    Message.find({"channel":channel_id, "author":author}, function(err, msg){
+        var results = [];
+        msg.forEach(function(m){
+            results.unshift(m._id);
+        });
+        callback(results);
+    });
+};
+
 
 exports.get_user = get_user;
 exports.create_user = create_user;
@@ -528,16 +549,16 @@ exports.get_channel_by_name = get_channel_by_name;
 exports.get_channel_by_id = get_channel_by_id;
 exports.create_invite = create_invite;
 exports.get_invite = get_invite;
-exports.get_ranking = get_ranking;
 exports.likes = likes;
 exports.add_online_users = add_online_users;
 exports.sub_online_users = sub_online_users;
-exports.user_join_channel = user_join_channel;
+//exports.user_join_channel = user_join_channel;
 exports.bookmark = bookmark;
-exports.bookmark_list = bookmark_list;
+//exports.bookmark_list = bookmark_list;
 exports.create_exp_channel = create_exp_channel;
 exports.configure_exp_channel = configure_exp_channel;
 exports.get_all_exp_channels = get_all_exp_channels;
 exports.sub_group = sub_group;
 exports.edit_content = edit_content;
 exports.modify_hierarchy = modify_hierarchy;
+exports.get_channel = get_channel;

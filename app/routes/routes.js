@@ -15,13 +15,13 @@ var get_help_popup = function() {
 };
 
 var join_channel = function(context, res, err_func){
-    return function(err, results){
+     return function(err, results){
      if(err){
          err_func(err);
          return;
      }
      var channel = results.channel;
-     channel.log_user_in(context.user);
+     //channel.log_user_in(context.user);
      //channel.save();
      context.channel = channel;
      storage.get_messages_by_channel(channel._id, function(results){
@@ -36,13 +36,86 @@ var join_channel = function(context, res, err_func){
          });
          context.queue = queue;
          console.log("Connected Users");
-         //console.log(channel.online_users);
-         storage.get_usernames(channel.online_users,function(results){
-             context.online = results;
+         res.render("channel", context);
+     });
+};};
+
+var user_join_channel = function(channel, user, res){
+    var socket_url = get_socket_url();
+    var user_list = [];
+    var context = { 
+        user: user,
+        channel: channel,
+        participants: channel.participants,
+        ctype: channel.chat_type,
+        help_popup: get_help_popup(),
+        socket_url : socket_url};
+    if(channel.type == "experiment"){
+        var seen = 0;
+        channel.participants.forEach(function(dict){
+            if (dict.id == user._id)
+                seen = 1;
+        });
+        if(seen == 0 && channel.participants.length >= channel.users_number){
+            res.status(500).send("too many participants");
+            return;
+        }
+    }
+    storage.get_messages_by_channel(channel._id, function(results){
+         context.messages = results;
+         var message_keys = Object.keys(results);
+         var queue = [];
+         for(var i = 0, len = message_keys.length;i<len;i++){
+              queue.push(context.messages[message_keys[i]]);
+         }
+         queue.sort(function(a,b){
+             return new Date(a.created_at) - new Date(b.created_at);
+         });
+         context.queue = queue;
+         storage.join_channel(user, channel._id, function(err){
+            if(err){
+                console.log(err);
+                res.status(500).send("Whoops, we had an error");
+                return;
+            }
+             console.log("Connected Users");
              res.render("channel", context);
          });
      });
-};};
+    /*storage.join_channel(user, context.channel, 
+        join_channel(context, res, function(err){
+            console.log(err);
+            res.status(500).send("Whoops, we had an error");
+            return;
+    }));*/
+    /*storage.get_user(name, function(err, results){
+        if(err){
+            console.log(err);
+            res.status(500).send("Whoops, we had an error");
+            return;
+        }
+        if(channel.type == "experiment"){
+            var seen = 0;
+            channel.participants.forEach(function(user){
+                if (user == results._id)
+                    seen = 1;
+            });
+            if(seen == 0 && channel.participants.length >= channel.users_number){
+                res.status(500).send("too many participants");
+                return;
+            }
+        }
+        var user = results;
+        context.user = user;
+        storage.join_channel(user, context.channel, 
+            join_channel(context, res,
+                function(err){
+                    console.log(err);
+                    res.status(500).send("Whoops, we had an error");
+                    return;
+        }));
+    })*/
+};
 
 module.exports = function(io){
 
@@ -54,7 +127,6 @@ module.exports = function(io){
        channels : function(req, res){
            var user = req.body.username;
            var pass = req.body.password;
-
            var channels;
        
            // first get the user
@@ -103,6 +175,26 @@ module.exports = function(io){
                 channel: req.body.channel,
                 help_popup: get_help_popup(),
                 socket_url : socket_url};
+            storage.create_channel(context.channel, req.body.ctype,
+                function(err, channel) {
+                    if(err){
+                        console.log(err);
+                        context.messages = {
+                            create: "The channel you tried to create already exists"};
+                        res.render("channels", context); 
+                        return;
+                    }
+                    storage.get_user(context.user, function(err, result){
+                        user_join_channel(channel, result, res);
+                    });
+                }
+            );
+
+            /*var socket_url = get_socket_url();
+            var context = { user: req.body.username,
+                channel: req.body.channel,
+                help_popup: get_help_popup(),
+                socket_url : socket_url};
             storage.get_user(context.user,function(err, results){
                 if(err){
                     console.log(err);
@@ -131,11 +223,18 @@ module.exports = function(io){
                                 }
                         }));
                     });
-            });
+            });*/
         },
        
         join_channel : function(req, res){
-            var socket_url = get_socket_url();
+            var channel_id = req.body.channel;
+            var user = req.body.username;
+            storage.get_channel_by_id(channel_id, function(channel){
+                storage.get_user(user, function(err, result){
+                    user_join_channel(channel, result, res);
+                });
+            });
+            /*var socket_url = get_socket_url();
             var context = { user: req.body.username,
                 channel: req.body.channel,
                 help_popup: get_help_popup(),
@@ -156,7 +255,7 @@ module.exports = function(io){
                         res.render("channels", context); 
                     }));
                 //storage.join_channel(user, context.channel, function(){});
-            });
+            });*/
         },
        
         message : function(req, res){
@@ -233,17 +332,6 @@ module.exports = function(io){
 
        make_invite : function(req, res){
             var channel = req.body.channel;
-            //var password = req.body.password;
-            
-            // TODO
-            //     With the addition of passwords for a user, there are two ways this
-            //     could work:
-            //          - Invites must be for an existing user, so we must check
-            //              that the user exists
-            //          - Invites create a new user, so we must check the user does
-            //              not exist, and create it.
-            // NOW
-            //  Invites must be for an existing user
             storage.create_invite(channel, function(invite){
                if(invite)
                     res.json({'invite': invite._id});
@@ -267,13 +355,22 @@ module.exports = function(io){
             var invite = req.body.invite;
             var pass = req.body.pass;
             var name = req.body.username;
+            var channel_id = req.body.channel;
             storage.get_invite(invite, function(result){
                 if(!result)
                     res.status(404).send("Page not found");
                 else {
-                    // private invitaion
-                    if(result.username != null & result.username != undefined){
-                        storage.get_user(result.username, function(err, results){
+                    // public invitaion
+                    storage.get_user(name, function(err, results){
+                        // create new user
+                        if(err){
+                            storage.create_user(name, pass, function(user){ 
+                                storage.get_channel_by_id(channel_id, function(channel){
+                                    user_join_channel(channel, user, res);
+                                });
+                            });
+                        }
+                        else{
                             results.comparePassword(pass, function(err, match){
                                 if(err){
                                     console.log(err);
@@ -281,162 +378,30 @@ module.exports = function(io){
                                     return;
                                 }
                                 if (match) {  
-                                    storage.get_channel_by_id(req.body.channel, function(channel) {
-                                        var socket_url = get_socket_url();
-                                        var context = { 
-                                            user: req.body.username,
-                                            channel: req.body.channel,
-                                            ctype: channel.chat_type,
-                                            help_popup: get_help_popup(),
-                                            socket_url : socket_url};
-                                        storage.get_user(context.user,function(err, results){
-                                            if(err){
-                                                console.log(err);
-                                                res.status(500).send("Whoops, we had an error");
-                                                return;
-                                            }
-                                            var user = results;
-                                            context.user = user;
-                                            console.log("Created user");
-                                            storage.join_channel(user, context.channel, 
-                                                join_channel(context, res,
-                                                    function(err){
-                                                        console.log(err);
-                                                        res.status(500).send("Whoops, we had an error");
-                                                        return;
-                                                    }));
-                                        });
+                                    storage.get_channel_by_id(channel_id, function(channel){
+                                        user_join_channel(channel, results, res);
                                     });
                                 } else {
                                     res.render('invite_login', {
-                                        'channel': req.body.channel,
+                                        'channel': channel_id,
                                         'username': req.body.username,
                                         'invite': invite,
                                         'message': "Incorrect password",
                                     });
                                 }
                             });
-                       })
-                    } 
-                    // public invitaion
-                    else{
-                        storage.get_user(name, function(err, results){
-                            if(err){
-                                storage.create_user(name, pass, function(user){ 
-                                    storage.get_channel_by_id(req.body.channel, function(channel) {
-                                        var socket_url = get_socket_url();
-                                        var context = { 
-                                            user: user,
-                                            channel: req.body.channel,
-                                            ctype: channel.chat_type,
-                                            help_popup: get_help_popup(),
-                                            socket_url : socket_url};
-                                        storage.get_user(name,function(err, results){
-                                            if(err){
-                                                console.log(err);
-                                                res.status(500).send("Whoops, we had an error");
-                                                return;
-                                            }
-                                            var user = results;
-                                            context.user = user;
-                                            console.log("Created user");
-                                            storage.join_channel(user, context.channel, 
-                                                join_channel(context, res,
-                                                    function(err){
-                                                        console.log(err);
-                                                        res.status(500).send("Whoops, we had an error");
-                                                        return;
-                                            }));
-                                        })
-                                    })
-                                });
-                            }
-                            else{
-                                results.comparePassword(pass, function(err, match){
-                                    if(err){
-                                        console.log(err);
-                                        res.status(500).send("Whoops, we had an error");
-                                        return;
-                                    }
-                                    if (match) {  
-                                        storage.get_channel_by_id(req.body.channel, function(channel) {
-                                            var socket_url = get_socket_url();
-                                            var context = { 
-                                                user: req.body.username,
-                                                channel: req.body.channel,
-                                                ctype: channel.chat_type,
-                                                help_popup: get_help_popup(),
-                                                socket_url : socket_url};
-                                            storage.get_user(context.user,function(err, results){
-                                                if(err){
-                                                    console.log(err);
-                                                    res.status(500).send("Whoops, we had an error");
-                                                    return;
-                                                }
-                                                var user = results;
-                                                context.user = user;
-                                                storage.join_channel(user, context.channel, 
-                                                    join_channel(context, res,
-                                                        function(err){
-                                                            console.log(err);
-                                                            res.status(500).send("Whoops, we had an error");
-                                                            return;
-                                                        }));
-                                            });
-                                        });
-                                    } else {
-                                        res.render('invite_login', {
-                                            'channel': req.body.channel,
-                                            'username': req.body.username,
-                                            'invite': invite,
-                                            'message': "Incorrect password",
-                                        });
-                                    }
-                                });
-                            }
-                        })
-
-                    }
+                        }
+                    })
                 }
             })
        },
-
-        ranking : function(req, res){
-            //res.json({'msg':'haha'});
-            var channel = req.body.channel;
-            storage.get_ranking(channel,function(err, msg_queue){
-                if(err)
-                    res.status(500).send("Whoops, we had an error");
-                else if(msg_queue === null)
-                    res.status(500).send("There is no message yet");
-                else{
-                    //res.render('ranking', {'msg_queue': msg_queue});
-                    msg_array = {'msg_queue': []};
-                    msg_queue.forEach(function(msg){
-                        msg_array.msg_queue.push({
-                            '_id': msg._id,
-                            'content': msg.content,
-                            'author': msg.author,
-                            'msg_parent': msg.msg_parent,
-                            'other_parents': msg.other_parents,
-                            'children': msg.children,
-                            'likes': msg.likes,
-                            'created_at': msg.created_at,
-                        });
-                        other_parents = [];
-                        children = [];
-                    });
-                    res.json(msg_array.msg_queue);
-                }
-            });
-        },
 
         likes : function(req, res){
             var msg_id = req.body.msg_id;
             var user = req.body.user;
             storage.likes(msg_id, user, function(err, likes_length, msg_likes){
                 res.json({'length':likes_length});
-                io.to(req.body.channel).emit('likes',{likes: msg_likes, msg_id: msg_id});
+                io.to(req.body.channel).emit('likes',{likes: msg_likes, msg_id: msg_id, user:user});
             });
         },
 
@@ -446,14 +411,6 @@ module.exports = function(io){
             storage.bookmark(msg_id, user, function(err, bookmarked){
                 res.json({"bookmarked": bookmarked});
             });
-        },
-
-        bookmark_list: function(req, res){
-            var username = req.body.username;
-            var channel_id = req.body.channel_id;
-            storage.bookmark_list(username, function(err, list){
-                res.json({"list": list});
-            })
         },
 
         add_group: function(req, res){

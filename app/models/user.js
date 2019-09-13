@@ -12,7 +12,6 @@ var UserSchema = new Schema({
     id: ObjectId,
     name: {type: String, required: true, unique: true},
     password: {type: String, required: true},
-    bookmarked: [{type: ObjectId, ref: 'Message'}],
     channels : [{
         name: {type: String}, 
         chat_type: {type: String}, 
@@ -28,7 +27,7 @@ UserSchema.methods.join_channel = function(channel){
     if(!seen){
         this.channels.push({
             name:channel.name, chat_type:channel.chat_type, _id:channel._id});
-        //User.update({_id:this._id}, {$set:{channels:this.channels}}, {upsert:true},function(err){})
+        //User.update({_id:this._id}, {$push:{channels:{name:channel.name, chat_type:channel.chat_type, _id:channel._id}}}, {upsert:true},function(err){})
     }
 
     this.save();
