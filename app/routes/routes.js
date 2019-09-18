@@ -124,7 +124,7 @@ module.exports = function(io){
                     return res.render("forgot_password", {message: 'This account does not exist.'});
 
                 if(user.email == undefined || user.email == null)
-                    return res.render("forgot_password", {message: 'No account with that email address exists.'});
+                    return res.render("forgot_password", {message: 'No email address available.'});
                 else {
                     var smtpTransport = nodemailer.createTransport({
                         service: 'Gmail',
@@ -252,9 +252,11 @@ module.exports = function(io){
                                 if(err){
                                     storage.create_user(user, pass, firstname, lastname, email, function(new_user){
                                         storage.get_channel_by_id(result.channel, function(channel){
-                                            if(!channel)
+                                            if(!channel){
+                                                //console.log(channel);
                                                 return res.render("signup", { message: "This channel does not exist."});
-                                            user_join_channel(channel, new_user, res);
+                                            }
+                                            //user_join_channel(channel, new_user, res);
                                         });
                                     });
                                 } else {
@@ -320,7 +322,10 @@ module.exports = function(io){
                         console.log(err);
                         context.messages = {
                             create: "The channel you tried to create already exists"};
-                        res.render("channels", context); 
+                        storage.get_user(context.user, function(err, result){
+                            context.user = result;
+                            res.render("channels", context); 
+                        });
                         return;
                     }
                     storage.get_user(context.user, function(err, result){
@@ -333,8 +338,18 @@ module.exports = function(io){
         join_channel : function(req, res){
             var channel_id = req.body.channel;
             var user = req.body.username;
+            var context = { user: req.body.username,
+                channel: req.body.channel,
+                help_popup: get_help_popup(),
+                socket_url : get_socket_url()};
             storage.get_channel_by_id(channel_id, function(channel){
                 storage.get_user(user, function(err, result){
+                    context.user = result;
+                    if(!channel || err){
+                        context.messages = {
+                            join: "The channel does not exist"};
+                        return res.render("channels", context);
+                    }
                     user_join_channel(channel, result, res);
                 });
             });

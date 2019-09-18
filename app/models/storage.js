@@ -312,6 +312,8 @@ var likes = function(msg_id, user, callback){
 
 var add_online_users = function(channel_id, username, callback){
     get_user(username, function(err, user){
+        if(err|| !user)
+            callback(err, null);
          get_channel_by_id(channel_id, function(channel){
             var seen = false;
             var length = channel.participants.length;

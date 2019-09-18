@@ -12,9 +12,11 @@ module.exports = function(io){
         connection : function(socket){
             var q = socket.handshake.query;
             console.log(q.username+" connected to "+q.channel);
-            socket.join(q.channel);
             storage.add_online_users(q.channel, q.username, function(err, participants){
-                io.to(q.channel).emit('log-on',q.username, participants);
+                if(!err && participants){
+                    socket.join(q.channel);
+                    io.to(q.channel).emit('log-on',q.username, participants);
+                }
             });
             
             socket.on('disconnect', function(){
