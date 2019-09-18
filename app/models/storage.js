@@ -317,25 +317,29 @@ var add_online_users = function(channel_id, username, callback){
          get_channel_by_id(channel_id, function(channel){
             if(channel == null || channel == undefined)
                 callback(err, null);
-            if(channel.participants == null || channel.participants == undefined)
-                callback(err, null);
-            var seen = false;
-            var length = channel.participants.length;
-            var participants = channel.participants;
-            for(var i = 0; i < length; i ++){
-                if(participants[i].name == user.name){
-                    seen = true;
-                    participants[i].online = true;
-                    channel.participants = participants;
-                    channel.save();
-                    break;
+            else{
+                if(channel.participants == null || channel.participants == undefined)
+                    callback(err, null);
+                else{
+                    var seen = false;
+                    var length = channel.participants.length;
+                    var participants = channel.participants;
+                    for(var i = 0; i < length; i ++){
+                        if(participants[i].name == user.name){
+                            seen = true;
+                            participants[i].online = true;
+                            channel.participants = participants;
+                            channel.save();
+                            break;
+                        }
+                    }
+                    if(seen === false){
+                        participants.push({name: user.name, online: true, color: length, id: user._id});
+                        Channel.update({_id: channel_id}, {$set: {participants: participants}}, {upsert: true}, function(err){});
+                    }
+                    callback(err, participants);
+                    }   
                 }
-            }
-            if(seen === false){
-                participants.push({name: user.name, online: true, color: length, id: user._id});
-                Channel.update({_id: channel_id}, {$set: {participants: participants}}, {upsert: true}, function(err){});
-            }
-            callback(err, participants);
          });
     });
 }
