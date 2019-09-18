@@ -204,7 +204,7 @@ module.exports = function(io){
             if(invite == 'undefined' || invite == null || invite == ''){
                 if(email != undefined && email != null){
                     storage.get_user(user, function(err, results){
-                        if(err){
+                        if(!results){
                             storage.create_user(user, pass, firstname, lastname, email, function(results){
                                 res.render("channels",{ user: {
                                     name: results.name,
@@ -249,14 +249,13 @@ module.exports = function(io){
                     else {
                         if(email != undefined && email != null){
                             storage.get_user(user, function(err, results){
-                                if(err){
+                                if(results == null || results == undefined){
                                     storage.create_user(user, pass, firstname, lastname, email, function(new_user){
                                         storage.get_channel_by_id(result.channel, function(channel){
                                             if(!channel){
-                                                //console.log(channel);
                                                 return res.render("signup", { message: "This channel does not exist."});
                                             }
-                                            //user_join_channel(channel, new_user, res);
+                                            user_join_channel(channel, new_user, res);
                                         });
                                     });
                                 } else {
