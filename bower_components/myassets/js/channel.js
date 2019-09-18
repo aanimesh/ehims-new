@@ -1304,7 +1304,7 @@ var modify_tree_hierarchy = function(child_id, parent_ids){
 var modify_hierarchy = function(data){
     var child_id = data.child_id;
     var parent_ids = data.parent_ids;
-    messages[child_id].original_version = data.record;
+    messages[child_id].original_version.push(data.record);
     modify_msg_hierarchy(child_id, parent_ids);
     if(channel.tree_views && tree){
         tree.destroy();
