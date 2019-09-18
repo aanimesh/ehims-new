@@ -96,7 +96,7 @@ module.exports = function(io){
             else {
                 storage.get_invite(invite_id, function(invite){
                     if (!invite)
-                        res.status(404).send("Page not found");
+                        res.status(404).send("Invite not found");
                     else{
                         res.render('welcome', {
                             'channel': invite.channel,
@@ -252,6 +252,8 @@ module.exports = function(io){
                                 if(err){
                                     storage.create_user(user, pass, firstname, lastname, email, function(new_user){
                                         storage.get_channel_by_id(result.channel, function(channel){
+                                            if(!channel)
+                                                return res.render("signup", { message: "This channel does not exist."});
                                             user_join_channel(channel, new_user, res);
                                         });
                                     });
