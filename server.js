@@ -105,11 +105,11 @@ http.listen(port,function(){
     console.log('Listening on 3000');
 });
 
-/*var reqTimer = setTimeout(function wakeUp() {
+var reqTimer = setTimeout(function wakeUp() {
    require('http').request("https://ehims-new.herokuapp.com/", function() {
       console.log("WAKE UP DYNO");
    });
    return reqTimer = setTimeout(wakeUp, 1200000);
 }, 1200000);
 
-reqTimer;*/
+reqTimer;
