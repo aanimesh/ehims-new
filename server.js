@@ -60,7 +60,7 @@ app.post('/admin', routes.admin);
 
 app.post('/makeinvite', routes.make_invite);
 
-app.get('/invite', routes.invite_login);
+app.get('/invite', routes.landing);
 
 app.post('/invite', routes.invite);
 
@@ -79,6 +79,16 @@ app.post('/create_group', routes.create_group);
 app.post('/edit_content', routes.edit_content);
 
 app.post('/modify_hierarchy', routes.modify_hierarchy);
+
+app.get('/signup', routes.signup);
+
+app.get('/forgot_password', routes.forgot_password);
+
+app.post('/forgot_password', routes.change_password);
+
+app.get('/reset', routes.reset);
+
+app.post('/reset', routes.reset_password);
 
 // ---------------------------------
 

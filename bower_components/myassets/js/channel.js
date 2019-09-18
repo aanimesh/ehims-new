@@ -119,7 +119,7 @@ var receive_msg = function(msg, top_lvl_messages){
     if(msg.author === username || chat_type === 'path')
         set_hard_focus(msg._id);
     else
-        add_msg_to_hover_list(msg);
+        add_msg_to_hover_list(msg); 
 };
 
 var is_visible = function(id){
@@ -174,7 +174,16 @@ var make_msg_div = function(msg){
         var edit_history = 'Edit History:';
         for(var x = 0; x < msg.original_version.length; x ++){
             var cnt = x+1;
-            edit_history += '<br>version '+cnt.toString()+': '+msg.original_version[x];
+            if(msg.original_version[x].includes("*orginal parents*:")){
+                var op = msg.original_version[x].replace("*orginal parents*: ", '');
+                op = op.split(',');
+                var user_visible_ids = [];
+                op.forEach(id => {
+                    if(ids[id] != null || ids[id] != undefined)
+                        user_visible_ids.push(ids[id])});
+                edit_history += '<br>version '+cnt.toString()+': *[Hierarchical Changes] PID: '+user_visible_ids.join(', ');
+            } else 
+                edit_history += '<br>version '+cnt.toString()+': '+msg.original_version[x];
         }
         msg_div.append('<span class="edit_history">'+edit_history+'</span>');
     }
@@ -264,18 +273,20 @@ var user_log_on = function(uname, participants_queue){
     participants = participants_queue;
     online_count = 0;
     participants_queue.forEach(function(dict){
-        var li_pos = $('#online-users-list').find("li:contains('"+dict.name+"')");
+        var li_pos = $('#online-users-list > li').filter(function(){
+            return $(this).text() === dict.name;
+        });
+        var li_pos_o = $('#online-users-list > li').filter(function(){
+            return $(this).text() === dict.name + ' (online)';
+        });
         var color = get_colour(dict.name, dict.color);
-        if(li_pos.length == 0){
+        if(dict.online == true){
             online_count += 1;
-            $('#online-users-list').prepend('<li style="color:'+
-                color+';" a(href="#" data-reveal-id="user-modal")>'+dict.name+' (online)</li>');
-        }
-        else if(dict.online == true){
-            online_count += 1;
-            li_pos.remove();
-            $('#online-users-list').prepend('<li style="color:'+
-                color+';" a(href="#" data-reveal-id="user-modal")>'+dict.name+' (online)</li>');
+            if(li_pos.length > 0)
+                li_pos.remove();
+            if(li_pos_o.length == 0)
+                $('#online-users-list').prepend('<li style="color:'+
+                    color+';" a(href="#" data-reveal-id="user-modal")>'+dict.name+' (online)</li>');
         }
     });
     $('#num-online').html(
@@ -287,7 +298,9 @@ var user_log_on = function(uname, participants_queue){
 var user_log_off = function(uname, participants_queue){
     participants = participants_queue;
     online_count -= 1;
-    var old_pos = $('#online-users-list').find("li:contains('"+uname+" (online)')");
+    var old_pos = $('#online-users-list > li').filter(function(){
+            return $(this).text() === uname+' (online)';
+        });
     var color = old_pos.css('color');
     old_pos.remove();
     $('#online-users-list').append('<li style="color:'+
@@ -445,7 +458,8 @@ var set_hard_focus = function(id, hnav, signal){
                 $('.message-selected .msg_content p').focus();
             }
         }
-        return;
+        else
+            return;
     }
     
     remove_from_queue(id);
@@ -529,7 +543,16 @@ var set_hard_focus = function(id, hnav, signal){
                     var edit_history = 'Edit History:';
                     for(var x = 0; x < cmsg.original_version.length; x ++){
                         var cnt = x+1;
-                        edit_history += '<br>version '+cnt.toString()+': '+cmsg.original_version[x];
+                        if(cmsg.original_version[x].includes("*orginal parents*: ")){
+                            var op = cmsg.original_version[x].replace("*orginal parents*: ", '');
+                            op = op.split(',');
+                            var user_visible_ids = [];
+                            op.forEach(id => {
+                                if(ids[id] != null || ids[id] != undefined)
+                                    user_visible_ids.push(ids[id])});
+                            edit_history += '<br>version '+cnt.toString()+': *[Hierarchical Changes] PID: '+user_visible_ids.join(', ');
+                        } else 
+                            edit_history += '<br>version '+cnt.toString()+': '+cmsg.original_version[x];
                     }
                     listitem.append('<span class="edit_history">'+edit_history+'</span>');
                 }
@@ -629,11 +652,8 @@ var set_hard_focus = function(id, hnav, signal){
     // check to make sure displayed message is in view
     //var messages_view = document.getElementById("messages-view");
     //messages_view.scrollTop = // messages_view.scrollHeight;
-    //        $('#'+id+'-wrapper').position().bottom;
-    
-    if(chat_type !== 'path' || scrolled){
-        $('#messages-view').animate({ scrollTop: msg_view.scrollHeight}, 500);
-    }
+    //        $('#'+id+'-wrapper').position().bottom;\
+    $('#messages-view').animate({ scrollTop: msg_view.scrollHeight}, 500);
 
     if(modify_signal == 1){
         if (messages[id].author.replace(' (edited)', '') == username){
@@ -979,6 +999,14 @@ var get_bookmark_message = function(name){
     return data;
 };
 
+var get_sequential_message = function(){
+    var data = [];
+    var items = Object.keys(messages).map(key => [key, messages[key].created_at]);
+    items.sort((key, created_at) => created_at[1] - key[1]);
+    items.forEach(item => data.push(item[0]));
+    return data.reverse();
+};
+
 var back_home = function(){
     var input = document.getElementById("back-home");
     input.setAttribute('value', username);
@@ -1254,13 +1282,19 @@ var modify_msg_hierarchy = function(child_id, parent_ids){
 
 var modify_tree_hierarchy = function(child_id, parent_ids){
     modify_msg_hierarchy(child_id, parent_ids);
+    var original_parent = [];
+    if(messages[child_id].msg_parent != null || messages[child_id].msg_parent != undefined)
+        original_parent.push(messages[child_id].msg_parent);
+    if(messages[child_id].other_parents != null || messages[child_id].other_parents != undefined)
+        if(messages[child_id].other_parents.length > 0)
+            messages[child_id].other_parents.forEach(id => original_parent.push(id));
 
     $.ajax({
         url:"/modify_hierarchy",
         type:"POST",
         contentType: "application/json; charset=utf-8",
         dataType: "json",
-        data : JSON.stringify({'child_id':child_id, 'parent_ids':parent_ids, 'channel':channel._id}),
+        data : JSON.stringify({'child_id':child_id, 'parent_ids':parent_ids, 'channel':channel._id, 'original_parent': original_parent}),
         success: function(data){
             modify_hierarchy(data);
         },
@@ -1268,16 +1302,16 @@ var modify_tree_hierarchy = function(child_id, parent_ids){
 };
 
 var modify_hierarchy = function(data){
-    //alert(JSON.stringify(data));
     var child_id = data.child_id;
     var parent_ids = data.parent_ids;
+    messages[child_id].original_version = data.record;
     modify_msg_hierarchy(child_id, parent_ids);
     if(channel.tree_views && tree){
         tree.destroy();
     };
     build_tree();
     display_tree();   
-    set_hard_focus(hard_focus);  
+    set_hard_focus(child_id);  
     if(messages[child_id].author != username && chat_type != 'path'){
         queue.push(messages[child_id]);
         $('#queue-length').html('('+queue.length+')');
@@ -1394,7 +1428,8 @@ var handle_keydown = function(e){
             //descend_from_soft_focus();
             break;
         default:
-            set_hard_focus(get_soft_focus(), null, '0');
+            if(chat_type != 'path')
+                set_hard_focus(get_soft_focus(), null, '0');
             break;
     }
 };
@@ -1422,7 +1457,6 @@ $(document).ready(function(){
     });
 
     $('.message .view').on('click',function(){
-        alert('xx');
         set_hard_focus($(this).attr('id'));
     });
 
@@ -1606,6 +1640,10 @@ $(document).ready(function(){
         display_popup_msg(get_bookmark_message(username), 'bookmark-modal');
     });
 
+    $('#sequential').on('click',function(){
+        display_popup_msg(get_sequential_message(), 'sequential-modal');
+    });
+
     $(document).on('click', '#modal-msg .message', function(){
         set_hard_focus($(this).attr('id'));
         $('#modal-msg').foundation('reveal', 'close');
@@ -1649,7 +1687,7 @@ $(document).ready(function(){
             change_parent = {};
             latest_child = [];
             display_tree();
-            set_hard_focus(hard_focus);
+            //set_hard_focus(hard_focus);
         }
     })
 

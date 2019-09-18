@@ -12,9 +12,11 @@ var assert = require('assert');
 var _mongo_url = process.env.MONGOLAB_URI || 
                  process.env.MONGOHQ_URL  || 
                  'mongodb://localhost:27017/ehims';
+var crypto = require('crypto');
+var bcrypt = require('bcrypt');
+var SALT_WORK_FACTOR = 10;
 
 mongoose.connect(_mongo_url);
-
 // load models
 var User = require('./user.js').User;
 var Channel = require('./channel.js').Channel;
@@ -45,8 +47,9 @@ var get_user = function(name,callback){
  * @param {function} callback, to be called on the new user document
  */
 
-var create_user = function(name, pass, callback) {
-    var user = new User({'name':name, 'password': pass, channels: [], bookmarked:[]});
+var create_user = function(user, pass, firstname, lastname, email, callback) {
+    var user = new User({'name':user, 'password': pass, 'channels': [],
+                        'firstname': firstname, 'lastname': lastname, 'email': email});
     user.save().then(function(user){
         callback(user);
     });
@@ -450,7 +453,8 @@ var modify_hierarchy = function(data, callback){
     var child_id = data.child_id;
     var change_parents = data.parent_ids;
     var channel_id = data.channel;
-    //console.log(change_parents);
+    data.record = '*orginal parents*: ' + data.original_parent.join(',');
+    data.record = data.record.trim(', ');
     Message.findOne({"_id": child_id},function(err, cmsg){
         if(cmsg.msg_parent != null && cmsg.msg_parent != undefined){
             Message.findOne({"_id":cmsg.msg_parent}, function(err, op){
@@ -510,7 +514,7 @@ var modify_hierarchy = function(data, callback){
                     console.log('Hierarchy failed to change');
                 });
         };
-        Message.updateOne({"_id":child_id},{$set:{msg_parent:msg_parent, other_parents:other_parents}}, {upsert:true}, function(){});
+        Message.updateOne({"_id":child_id},{$set:{msg_parent:msg_parent, other_parents:other_parents}, $push:{original_version: data.record}}, {upsert:true}, function(){});
     });
     callback(data);
 };
@@ -535,6 +539,40 @@ var find_msg_by_author = function(author, channel_id, callback){
     });
 };
 
+var get_email = function(name, callback){
+    User.findOne({name: name}, function(err, user){
+        var token;
+        if(!user || err){
+            callback(err, token, user);
+            return;
+        }
+        crypto.randomBytes(20, (err, buf) => { 
+            token = buf.toString('hex');
+            user.resetPasswordToken = token;
+            user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+            user.save().then(callback(err, token, user));
+        });
+    })
+};
+
+var compare_token = function(token, callback){
+    User.findOne({resetPasswordToken: token, resetPasswordExpires: {$gt: Date.now()}}, function(err, user){
+        callback(err, user);
+    });
+};
+
+var change_password = function(name, password, callback){
+    bcrypt.genSalt(SALT_WORK_FACTOR, function(err, salt) {
+        bcrypt.hash(password, salt, function(err, hash){
+            User.updateOne({ name: name }, 
+                {$set: {password: hash, resetPasswordToken: undefined, resetPasswordExpires: undefined}},
+                {new: true}, function(err, user){
+                    callback(err, user);
+                }
+            );
+        })
+    })
+};
 
 exports.get_user = get_user;
 exports.create_user = create_user;
@@ -562,3 +600,6 @@ exports.sub_group = sub_group;
 exports.edit_content = edit_content;
 exports.modify_hierarchy = modify_hierarchy;
 exports.get_channel = get_channel;
+exports.get_email = get_email;
+exports.compare_token = compare_token;
+exports.change_password = change_password;

@@ -50,7 +50,6 @@ html
                         li
                             a#forward 
                                 i.fa.fa-forward
-                //     li
                 ul.right
                     li 
                         a(data-dropdown="online-users-list",
@@ -65,6 +64,10 @@ html
                     li#likes-ranking
                         a(href='#' data-reveal-id="ranking-modal")
                             i.fa.fa-thumbs-up.fa-lg
+                    if channel.chat_type != 'path'
+                        li#sequential
+                            a(href='#' data-reveal-id="sequential-modal")
+                                i.fa.fa-list.fa-lg
                     li
                         a(href="#" data-reveal-id="help-modal")
                             i.fa.fa-question.fa-lg
@@ -75,8 +78,9 @@ html
                     li
                         a(href='#' data-reveal-id="invite-modal" id='invite-button')
                             i.fa.fa-plus-circle.fa-lg
-                    li
-                        a#modify-button(href='#') Modify
+                    if channel.chat_type != 'path'
+                        li
+                            a#modify-button(href='#') Modify
                     li
                         a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
                         form#back-home-form(method='post', action="/back_channels")
@@ -201,6 +205,15 @@ html
                                  role="dialog"
                                  style="overflow-y:scroll")
             h2 Ranking of Likes
+            br
+            #modal-msg
+            a.close-reveal-modal(aria-label="Close")  &#215;
+        #sequential-modal.reveal-modal(data-reveal 
+                                 aria-labelledby="sequential-title" 
+                                 aria-hidden="true" 
+                                 role="dialog"
+                                 style="overflow-y:scroll")
+            h2 Sequential Mode
             br
             #modal-msg
             a.close-reveal-modal(aria-label="Close")  &#215;

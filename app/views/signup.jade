@@ -7,20 +7,26 @@ html
         script(src="/foundation/js/foundation.min.js")
     body
         .row.text-center(style="margin-top:10%;")
-            .large-4.medium-4.columns.large-offset-4.medium-offset-4
+            .large-6.medium-6.columns.large-offset-3.medium-offset-3
                 .panel
                     h3 Welcome to EHIMS
-                    p Please enter your username
+                    p Fill in the form to get instant access
                     form(action="channels",method="POST")
                         .input-group
                             input.input-group-field(type="text",
-                                                    style='display:none',
-                                                    value="#{channel}",
-                                                    name="channel_id")
+                                                    style="display:inline;float:left;width:48%",
+                                                    required
+                                                    placeholder="First Name",
+                                                    name="firstname")
                             input.input-group-field(type="text",
-                                                    style='display:none',
-                                                    value="#{invite}",
-                                                    name="invite")
+                                                    style="display:inline;float:right;width:48%",
+                                                    required
+                                                    placeholder="Last Name",
+                                                    name="lastname")
+                            input.input-group-field(type="email",
+                                                    required
+                                                    placeholder="Email Address",
+                                                    name="email")
                             input.input-group-field(type="text",
                                                     required
                                                     placeholder="Username",
@@ -32,16 +38,17 @@ html
                                                         class="error"
                                                         name="password")
                                 small.error #{message}
+                                input.input-group-field(type="text",
+                                                    placeholder="Invitation link (if you have one)",
+                                                    name="invite")
                             else
                                 input.input-group-field(type="password",
                                                         required
                                                         placeholder="Password",
                                                         name="password")
-                            a#forgot-pass(href='/forgot_password' style='font-size:0.8222rem;margin:0;text-align: right;display:block') Forgot password?
-                            br
-                            button.input-group-button.button Log In
-                    p Need an account? 
-                        a(href='/signup') Sign up
-
+                                input.input-group-field(type="text",
+                                                    placeholder="Invitation link (if you have one)",
+                                                    name="invite")
+                            button.input-group-button.button Sign Up
 
 

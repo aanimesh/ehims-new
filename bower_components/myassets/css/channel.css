@@ -531,3 +531,8 @@ span.op-x:hover {
     margin-right:-270px;
     display:block;
 }
+
+.input-group-button {
+    display: inline;
+    float: leftl
+}
