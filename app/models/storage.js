@@ -315,6 +315,8 @@ var add_online_users = function(channel_id, username, callback){
         if(err|| !user)
             callback(err, null);
          get_channel_by_id(channel_id, function(channel){
+            if(!channel)
+                callback(err, null);
             var seen = false;
             var length = channel.participants.length;
             var participants = channel.participants;
