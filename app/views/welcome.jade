@@ -21,10 +21,18 @@ html
                                                     style='display:none',
                                                     value="#{invite}",
                                                     name="invite")
-                            input.input-group-field(type="text",
+                            if username
+                                input.input-group-field(type="text",
+                                                    required
+                                                    placeholder="#{username}",
+                                                    value="#{username}",
+                                                    name="username")
+                            else
+                                input.input-group-field(type="text",
                                                     required
                                                     placeholder="Username",
                                                     name="username")
+
                             if message
                                 input.input-group-field(type="password",
                                                         required
@@ -41,7 +49,7 @@ html
                             br
                             button.input-group-button.button Log In
                     p Need an account? 
-                        a(href='/signup') Sign up
+                        a(href='/consent') Sign up
 
 
 

@@ -9,7 +9,8 @@ html
         script(src="/foundation/js/foundation.js")
         script(src="/myassets/js/admin.js")
         script.
-            var channels = !{JSON.stringify(channels)}
+            var channels = !{JSON.stringify(channels)};
+            var survey_contents = !{JSON.stringify(survey_contents)};
             var get_invite_link = function(invite){
                 var base = location.protocol + '//' + location.host + '/invite';
                 return base + '?i=' + encodeURIComponent(invite);
@@ -28,7 +29,8 @@ html
             table.large-12.medium-12.small-12(style='table-layout: fixed')
               thead
                 tr
-                  th(width='100' style='text-align: center') Group No.
+                  th(width='50' style='text-align: center') 
+                  th(width='50' style='text-align: center') No.
                   th(width='120' style='text-align: center') Time
                   th(width='120' style='text-align: center') Users Number
                   th(width='130' style='text-align: center') Type
@@ -36,9 +38,11 @@ html
                   th(style='text-align: center') Create
                   th(width='150' style='text-align: center') Results
               tbody#group-details
-                each channel in channels
+                each channel, index in channels
                   tr
-                    td(style='text-align: center') #{channel.group_no}
+                    td(style='text-align: center') 
+                      i.fa.fa-times.fa-lg
+                    td(style='text-align: center') #{index+1}
                     td(style='text-align: center') #{channel.started_at}
                     td(style='text-align: center') #{channel.users_number}
                     td(style='text-align: center') #{channel.chat_type}
@@ -53,19 +57,24 @@ html
             i.fa.fa-minus-circle.fa-2x.sub-icon(id='sub-question')
             i.fa.fa-plus-circle.fa-2x.add-icon(id='add-question')
             div.large-3(id="survey-page")
-              select
+              select#seleted-page
                 option(value='0') Select page:
-                option(value='12') Volvo
+                option(value='1') Consent
+                option(value='2' selected="selected") Pre Survey
+                option(value='3') Post Survey
             p
-            table.large-12.medium-12.small-12
-              thead
-                tr
-                  th(width='100' style='text-align: center') No.
-                  th(style='text-align: center') Question
-              tbody
-                tr
-                  td 1
-                  td What is your name?
-                tr
-                  td 2
-                  td How old are you?
+            div#survey
+              table.large-12.medium-12.small-12
+                thead
+                  tr
+                    th(width='50' style='text-align: center') 
+                    th(width='50' style='text-align: center') No.
+                    th(style='text-align: center') Question
+                tbody#pre_survey
+                  each question, index in survey_contents.pre_survey
+                    tr
+                      th(style='text-align: center') 
+                        i.fa.fa-times.fa-lg
+                      td(style='text-align: center') #{index+1}
+                      td(contenteditable="true") #{question}
+            button#save-survey Save

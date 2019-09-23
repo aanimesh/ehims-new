@@ -1,0 +1,27 @@
+doctype html
+
+html
+    head
+        link(rel="stylesheet",href="/foundation/css/foundation.min.css")
+        link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
+        link(rel="stylesheet",href="/myassets/css/admin.css")
+        script(src="/jquery/dist/jquery.min.js")
+        script(src="/foundation/js/foundation.js")
+        script(src="/myassets/js/admin.js")
+        script.
+            var consent = "!{content}";
+            var checked = false;
+    body
+        .row(style="margin-top:5%")
+            .large-12.medium-12.small-12.columns
+            h2 Welcome to EHIMS
+            h3 Consent
+        .row
+            br
+            p(style='white-space: pre') #{consent}
+            form#agreeconsent(method='post', action="/signup")
+              input(type="checkbox" name='agreebox') 
+              label I have read the consent letter and agree to those conditions.
+              br
+            a(href='javascript:void(0);', onclick="document.getElementById('agreeconsent').submit();")
+              button#agreehref Agree

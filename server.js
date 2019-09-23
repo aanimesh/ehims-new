@@ -80,7 +80,7 @@ app.post('/edit_content', routes.edit_content);
 
 app.post('/modify_hierarchy', routes.modify_hierarchy);
 
-app.get('/signup', routes.signup);
+app.post('/signup', routes.signup);
 
 app.get('/forgot_password', routes.forgot_password);
 
@@ -89,6 +89,10 @@ app.post('/forgot_password', routes.change_password);
 app.get('/reset', routes.reset);
 
 app.post('/reset', routes.reset_password);
+
+app.post('/update_survey', routes.update_survey);
+
+app.get('/consent', routes.get_consent);
 
 // ---------------------------------
 
@@ -105,11 +109,11 @@ http.listen(port,function(){
     console.log('Listening on 3000');
 });
 
-var reqTimer = setTimeout(function wakeUp() {
-   require('http').request("https://ehims-new.herokuapp.com/", function() {
+/*var reqTimer = setTimeout(function wakeUp() {
+   require('http').request("http://ehims-new.herokuapp.com/", function() {
       console.log("WAKE UP DYNO");
    });
    return reqTimer = setTimeout(wakeUp, 1200000);
 }, 1200000);
 
-//reqTimer;
+reqTimer;*/

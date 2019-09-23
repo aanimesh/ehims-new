@@ -108,7 +108,15 @@ module.exports = function(io){
        },
 
        signup: function(req,res){
-            res.render("signup");
+            if(req.body.agreebox == 'on')
+                res.render("signup");
+            else{
+                storage.get_content(function(content){
+                    var consent = content.consent;
+                    consent = consent.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
+                    res.render('consent', {consent:consent});
+                });
+            }
        },
 
        forgot_password: function(req,res){
@@ -164,6 +172,10 @@ module.exports = function(io){
        reset_password: function(req, res){
             var username = req.body.username;
             var password = req.body.password;
+            var password2 = req.body.password2;
+            var token = req.query.token;
+            if(password2 != password)
+                return res.render('reset_password', {message: 'Entered password is not matched.', name: username, token: req.query.token});;
 
             storage.change_password(username, password, function(err, user){
                 if(err){
@@ -195,6 +207,7 @@ module.exports = function(io){
        channels : function(req, res){
            var user = req.body.username;
            var pass = req.body.password;
+           var pass2 = req.body.password_check;
            var firstname = req.body.firstname;
            var lastname = req.body.lastname;
            var email = req.body.email;
@@ -203,6 +216,9 @@ module.exports = function(io){
 
             if(invite == 'undefined' || invite == null || invite == ''){
                 if(email != undefined && email != null){
+                    if(pass2 != pass)
+                        return res.render("signup", 
+                                { message: "Entered Password is not matching.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
                     storage.get_user(user, function(err, results){
                         if(!results){
                             storage.create_user(user, pass, firstname, lastname, email, function(results){
@@ -213,14 +229,14 @@ module.exports = function(io){
                             });
                         } else {
                             res.render("signup", 
-                                { message: "This username has already existed."});
+                                { message: "This username has already existed.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
                         }
                     })
                } else {
                     storage.get_user(user, function(err, results){
                         if(err){
                             res.render("welcome", 
-                                    { message: "This account does not exist."});
+                                    { message: "This account does not exist.", username:user});
                             return;
                         }
                         results.comparePassword(pass, function(err, match){
@@ -236,7 +252,7 @@ module.exports = function(io){
                                 }});
                             } else {
                                 res.render("welcome", 
-                                    { message: "The password is incorrect."});
+                                    { message: "The password is incorrect.", username:user});
                             }
                         });
                     })
@@ -253,14 +269,14 @@ module.exports = function(io){
                                     storage.create_user(user, pass, firstname, lastname, email, function(new_user){
                                         storage.get_channel_by_id(result.channel, function(channel){
                                             if(!channel){
-                                                return res.render("signup", { message: "This channel does not exist."});
+                                                return res.render("signup", { message: "This channel does not exist.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
                                             }
                                             user_join_channel(channel, new_user, res);
                                         });
                                     });
                                 } else {
                                     res.render("signup", 
-                                        { message: "This username has already existed."});
+                                        { message: "This username has already existed.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
                                 }
                             })
                        } else {
@@ -414,7 +430,9 @@ module.exports = function(io){
            var pass = req.body.pass;
            if(pass === 'ehims2016'){
                storage.get_all_exp_channels(function(channels){
-                res.render('admin', {channels: channels});
+                    storage.get_content(function(contents){
+                        res.render('admin', {channels: channels, survey_contents:contents});
+                    })
                })
            } else {
                res.render("admin_login", {message:"Incorrect Password"});
@@ -432,19 +450,6 @@ module.exports = function(io){
                     res.json({'invite': invite._id});
             });
         },
-
-       /*invite_login : function(req, res){
-            storage.get_invite(req.query.i, function(invite){
-                if (!invite)
-                    res.status(404).send("Page not found");
-                else{
-                    res.render('invite_login', {
-                        'channel': invite.channel,
-                        'invite': invite._id,
-                    });
-                }
-            });
-        },*/
 
        invite : function(req, res){
             var invite = req.body.invite;
@@ -500,8 +505,8 @@ module.exports = function(io){
         add_group: function(req, res){
             var time=req.body.time;
             time = time.replace(' ', '');
-            storage.create_exp_channel(time, function(err, channel_id, group_id){
-                res.json({"channel_id": channel_id, "group_id": group_id});
+            storage.create_exp_channel(time, function(err, channel){
+                res.json({'channel':channel});
             })
         },
 
@@ -512,7 +517,10 @@ module.exports = function(io){
         },
 
         sub_group: function(req, res){
-            storage.sub_group();
+            storage.sub_group(req.body.id, function(msg){
+                if (msg == "ok")
+                    res.json("ok");
+            });
         },
 
         edit_content:function(req, res){
@@ -521,7 +529,6 @@ module.exports = function(io){
             storage.edit_content(id, content, function(msg){
                 io.to(req.body.channel).emit('edited_content', msg);
                 res.json({'msg': content, 'id':id});
-                //console.log(msg);
             });
         },
 
@@ -529,6 +536,27 @@ module.exports = function(io){
             storage.modify_hierarchy(req.body, function(data){
                 io.to(req.body.channel).emit('modify_hierarchy', data);
                 res.json(data);
+            });
+        },
+
+        get_content: function(req,res){
+            storage.get_content(function(content){
+                res.json(content);
+            });
+        },
+
+        update_survey: function(req, res){
+            var data = req.body;
+            storage.update_survey(data, function(){
+                res.json(data);
+            })
+        },
+
+        get_consent: function(req,res){
+            storage.get_content(function(content){
+                var consent = content.consent;
+                consent = consent.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
+                res.render('consent', {consent:consent});
             });
         },
     };

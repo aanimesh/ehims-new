@@ -11,7 +11,6 @@ var ChannelSchema = new Schema({
     schedule_time : String,
     participants: [{name: String, online: Boolean, color: Number, id: {type: ObjectId, ref: 'User'}}],
     type: {type: String, enum: ['experiment', 'routine', 'result'], default: 'routine'},
-    group_no: Number,
     tree_views: {type: Boolean, default: true},
     users_number: Number,
     started_at: String,

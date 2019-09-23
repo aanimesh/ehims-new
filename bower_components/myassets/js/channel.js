@@ -1165,7 +1165,7 @@ var display_tree = function(){
                     }
             }
         });
-        tree.on('deselectNode', function(e){
+        /*tree.on('deselectNode', function(e){
             // if nothing new is selected, then don't deselect
             // If the root was selected, then don't deselect
             //if(e.nodes.length === 0 || e.nodes.indexOf("0") > -1)
@@ -1182,7 +1182,7 @@ var display_tree = function(){
                     }
                 }
             }
-        });
+        });*/
     }else{
         // first select a child node and then double click parents.
         tree.on('selectNode', function(e){
@@ -1500,10 +1500,10 @@ $(document).ready(function(){
     $('body').on('click',function(){
         // unless the user has clicked to add a parent or invite someone, then
         // automatically refocus to the main message
-        if(!$('#extra-parent').is(':focus') && !$('p').is(':focus'))
+        //if(!$('#extra-parent').is(':focus') && !$('p').is(':focus'))
             //!$('#invite-username').is(':focus') &&
             //!$('#invite-password').is(':focus'))
-            $('#message').focus();
+            //$('#message').focus();
     });
     $('#message').focus();
 

@@ -22,6 +22,7 @@ var User = require('./user.js').User;
 var Channel = require('./channel.js').Channel;
 var Message = require('./message.js').Message;
 var Invite = require('./invite.js').Invite;
+var Survey = require('./survey.js').Survey;
 
 /**
  * Get user
@@ -346,7 +347,11 @@ var add_online_users = function(channel_id, username, callback){
 
 var sub_online_users = function(channel_id, username, callback){
     get_user(username, function(err, user){
+        if(err)
+            callback(err);
         get_channel_by_id(channel_id, function(channel){
+            if(channel.participants == null || channel.participants == undefined)
+                callback(err, null);
             channel.participants.forEach(function(dict){
                 if(dict.name == username)
                     dict.online = false;
@@ -387,18 +392,14 @@ var bookmark = function(msg_id, username, callback){
 }*/
 
 var create_exp_channel = function(time, callback){
-    var group_no = 0;
-    Channel.count({'type': 'experiment'}).then(function(count){group_no = count+1});
-
     channel = new Channel({'name': 'tmpname-exp-'+time,
                      'chat_type': 'tree',
                      'participants': [],
                      'type': 'experiment',
-                     'group_no': group_no,
                      'users_number': null,
                      'top_lvl_messages': []});
     channel.save().then(function(channel){
-        callback(null, channel._id, group_no)});
+        callback(null, channel)});
 };
 
 var configure_exp_channel = function(data, callback){
@@ -422,7 +423,6 @@ var configure_exp_channel = function(data, callback){
             chat_type:data['chat_type'],
             name: channel_name,
             users_number: parseInt(data['number']),
-            group_no: data['group_no'],
             invite_link: invite,
         }}, {upsert:true}, function(err){
             Channel.findOne({'_id': data['channel_id']}, function(err, channel){
@@ -440,10 +440,8 @@ var get_all_exp_channels = function(callback){
     });
 };
 
-var sub_group = function(){
-    Channel.findOne({"type" : "experiment"}).sort({created_at: -1}).exec(function(err, channel){
-        Channel.update({"_id":channel._id}, {$set:{type: 'routine', group_no: ''}}, {upsert:true}, function(){});
-    });
+var sub_group = function(id, callback){
+    Channel.updateOne({"_id":id}, {$set:{type: 'routine'}}, function(){callback("ok")});
 };
 
 var edit_content = function(id, content, callback){
@@ -584,6 +582,19 @@ var change_password = function(name, password, callback){
     })
 };
 
+var get_content = function(callback){
+    Survey.findOne({}, function(err, data){
+        callback(data);
+    });
+};
+
+var update_survey = function(data, callback){
+    Survey.updateOne({},
+        {$set:{consent: data.consent, pre_survey: data.pre_survey, post_survey: data.post_survey}}
+    ).then(callback);
+};
+
+
 exports.get_user = get_user;
 exports.create_user = create_user;
 exports.get_all_channels = get_all_channels;
@@ -613,3 +624,5 @@ exports.get_channel = get_channel;
 exports.get_email = get_email;
 exports.compare_token = compare_token;
 exports.change_password = change_password;
+exports.get_content = get_content;
+exports.update_survey = update_survey;

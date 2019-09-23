@@ -22,7 +22,8 @@ module.exports = function(io){
             socket.on('disconnect', function(){
                 console.log(q.username+" left "+q.channel);
                 storage.sub_online_users(q.channel, q.username, function(err, participants){
-                    io.to(q.channel).emit('log-off',q.username, participants);
+                    if(!err && participants)
+                        io.to(q.channel).emit('log-off',q.username, participants);
                 });
             });
         },  

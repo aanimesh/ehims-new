@@ -6,46 +6,77 @@ html
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.min.js")
     body
-        .row.text-center(style="margin-top:10%;")
+        .row.text-center(style="margin-top:5%;")
             .large-6.medium-6.columns.large-offset-3.medium-offset-3
                 .panel
                     h3 Welcome to EHIMS
                     p Fill in the form to get instant access
                     form(action="channels",method="POST")
                         .input-group
-                            input.input-group-field(type="text",
+                            if firstname
+                                input.input-group-field(type="text",
+                                                    style="display:inline;float:left;width:48%",
+                                                    required
+                                                    placeholder="#{firstname}",
+                                                    value="#{firstname}",
+                                                    name="firstname")
+                            else
+                                input.input-group-field(type="text",
                                                     style="display:inline;float:left;width:48%",
                                                     required
                                                     placeholder="First Name",
                                                     name="firstname")
-                            input.input-group-field(type="text",
+                            if lastname
+                                input.input-group-field(type="text",
+                                                    style="display:inline;float:right;width:48%",
+                                                    required
+                                                    placeholder="#{lastname}",
+                                                    value="#{lastname}",
+                                                    name="lastname")
+                            else
+                                input.input-group-field(type="text",
                                                     style="display:inline;float:right;width:48%",
                                                     required
                                                     placeholder="Last Name",
                                                     name="lastname")
-                            input.input-group-field(type="email",
+                            if email
+                                input.input-group-field(type="email",
+                                                    required
+                                                    placeholder="#{email}",
+                                                    value="#{email}",
+                                                    name="email")
+                            else
+                                input.input-group-field(type="email",
                                                     required
                                                     placeholder="Email Address",
                                                     name="email")
-                            input.input-group-field(type="text",
+                            if user
+                                input.input-group-field(type="text",
+                                                    required
+                                                    placeholder="#{user}",
+                                                    value="#{user}",
+                                                    name="username")
+                            else
+                                input.input-group-field(type="text",
                                                     required
                                                     placeholder="Username",
                                                     name="username")
+                            input.input-group-field(type="password",
+                                                    required
+                                                    placeholder="Password",
+                                                    name="password")
+                            input.input-group-field(type="password",
+                                                    required
+                                                    placeholder="Confirm Password",
+                                                    name="password_check")
                             if message
-                                input.input-group-field(type="password",
-                                                        required
-                                                        placeholder="Password",
-                                                        class="error"
-                                                        name="password")
-                                small.error #{message}
+                                small.error(style='position:relative; top:-15px') #{message}
+                            if invite
                                 input.input-group-field(type="text",
-                                                    placeholder="Invitation link (if you have one)",
+                                                    placeholder="!{invite}",
+                                                    value="!{invite}"
                                                     name="invite")
                             else
-                                input.input-group-field(type="password",
-                                                        required
-                                                        placeholder="Password",
-                                                        name="password")
                                 input.input-group-field(type="text",
                                                     placeholder="Invitation link (if you have one)",
                                                     name="invite")
