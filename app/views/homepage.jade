@@ -1,0 +1,88 @@
+doctype html
+
+html
+    head
+        link(rel="stylesheet",href="/foundation/css/foundation.min.css")
+        script(src="/jquery/dist/jquery.min.js")
+        script(src="/foundation/js/foundation.min.js")
+    body
+        .row.text-center(style="margin-top:10%;")
+            .large-4.medium-4.columns.large-offset-4.medium-offset-4
+                .panel
+                    h3 Welcome to EHIMS
+                    p Please enter your username
+                    if invite
+                        form(action="instructions",method="POST")
+                            .input-group
+                                input.input-group-field(type="text",
+                                                        style='display:none',
+                                                        value="#{channel}",
+                                                        name="channel_id")
+                                input.input-group-field(type="text",
+                                                        style='display:none',
+                                                        value="#{invite}",
+                                                        name="invite")
+                                if username
+                                    input.input-group-field(type="text",
+                                                        required
+                                                        placeholder="#{username}",
+                                                        value="#{username}",
+                                                        name="username")
+                                else
+                                    input.input-group-field(type="text",
+                                                        required
+                                                        placeholder="Username",
+                                                        name="username")
+
+                                if message
+                                    input.input-group-field(type="password",
+                                                            required
+                                                            placeholder="Password",
+                                                            class="error"
+                                                            name="password")
+                                    small.error #{message}
+                                else
+                                    input.input-group-field(type="password",
+                                                            required
+                                                            placeholder="Password",
+                                                            name="password")
+                                button.input-group-button.button Log In
+                    else
+                        form(action="tester_channels",method="POST")
+                            .input-group
+                                input.input-group-field(type="text",
+                                                        style='display:none',
+                                                        value="#{channel}",
+                                                        name="channel_id")
+                                input.input-group-field(type="text",
+                                                        style='display:none',
+                                                        value="#{invite}",
+                                                        name="invite")
+                                if username
+                                    input.input-group-field(type="text",
+                                                        required
+                                                        placeholder="#{username}",
+                                                        value="#{username}",
+                                                        name="username")
+                                else
+                                    input.input-group-field(type="text",
+                                                        required
+                                                        placeholder="Username",
+                                                        name="username")
+
+                                if message
+                                    input.input-group-field(type="password",
+                                                            required
+                                                            placeholder="Password",
+                                                            class="error"
+                                                            name="password")
+                                    small.error #{message}
+                                else
+                                    input.input-group-field(type="password",
+                                                            required
+                                                            placeholder="Password",
+                                                            name="password")
+                                button.input-group-button.button Log In
+
+
+

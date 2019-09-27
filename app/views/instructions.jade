@@ -7,10 +7,10 @@ html
         link(rel="stylesheet",href="/myassets/css/admin.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
-        script(src="/myassets/js/consent.js")
+        script(src="/myassets/js/instructions.js")
         script.
-            var consent = "!{content}";
-            var checked = false;
+            var instructions = !{JSON.stringify(instructions)};
+            var tester = !{JSON.stringify(tester)};
     body
         .row(style="margin-top:5%")
             .large-12.medium-12.small-12.columns
@@ -18,12 +18,15 @@ html
         .row
             br
         .row
-            h3 Consent
+            h3 Instructions
             br
-            p(style='white-space: pre') #{consent}
-            form#agreeconsent(method='post', action="/signup")
+            p#instructions(style='white-space: pre')
+            form#agreeconsent(method='post', action="/tester_channels")
+              input(type='hidden' id="tester" name='tester')
+              script.
+                $("#tester").val(JSON.stringify(tester));
               input(type="checkbox" name='agreebox') 
-              label I have read the consent letter and agree to those conditions.
+              label I have read the instructions and agree to those conditions.
               br
             a(href='javascript:void(0);', onclick="document.getElementById('agreeconsent').submit();")
               button#agreehref Agree

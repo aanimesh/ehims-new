@@ -1,7 +1,6 @@
 // routes.js
 // ---------
 // Author: Amiel Kollek <a_kollek@live.ca>
-//
 
 var storage = require('../models/storage.js');
 var nodemailer = require('nodemailer');
@@ -41,48 +40,74 @@ var join_channel = function(context, res, err_func){
      });
 };};
 
-var user_join_channel = function(channel, user, res){
+var user_join_channel = function(channel, user, res, STARTTIME){
+    if(STARTTIME == undefined || STARTTIME == null)
+        STARTTIME = false;
     var socket_url = get_socket_url();
     var user_list = [];
     var context = { 
+        STARTTIME: STARTTIME,
         user: user,
         channel: channel,
         participants: channel.participants,
         ctype: channel.chat_type,
         help_popup: get_help_popup(),
         socket_url : socket_url};
-    if(channel.type == "experiment"){
-        var seen = 0;
-        channel.participants.forEach(function(dict){
-            if (dict.id == user._id)
-                seen = 1;
-        });
-        if(seen == 0 && channel.participants.length >= channel.users_number){
-            res.status(500).send("too many participants");
+    if(STARTTIME == true){
+        if(channel.type == "experiment" || channel.type == "in progress"){
+            var seen = 0;
+            channel.participants.forEach(function(dict){
+                if (dict.name == user.name)
+                    seen = 1;
+            });
+            if(seen == 0){
+                res.render('error', {'message': 'Please follow the link to register first before join this channel: <a href="'+socket_url+'homepage">'+socket_url+'homepage</a><br><br>Thanks!', 
+                                     'username': user.name});
+                return;
+            }
+        }
+        if(channel.type == "result"){
+            res.render('error', {'message': 'The experiment has finished yet.<br><br> Please follow the link to choose another channel: <a href="'+socket_url+'homepage">'+socket_url+'homepage</a><br><br>Thanks!', 
+                                'username': user.name});
             return;
         }
     }
-    storage.get_messages_by_channel(channel._id, function(results){
-         context.messages = results;
-         var message_keys = Object.keys(results);
-         var queue = [];
-         for(var i = 0, len = message_keys.length;i<len;i++){
-              queue.push(context.messages[message_keys[i]]);
-         }
-         queue.sort(function(a,b){
-             return new Date(a.created_at) - new Date(b.created_at);
-         });
-         context.queue = queue;
-         storage.join_channel(user, channel._id, function(err){
-            if(err){
-                console.log(err);
-                res.status(500).send("Whoops, we had an error");
-                return;
-            }
-             console.log("Connected Users");
-             res.render("channel", context);
-         });
-     });
+    else {
+        if(channel.type == "result"){
+            res.render('error', {'message': 'The experiment has finished yet.<br><br> Please follow the link to enter another channel: <a href="'+socket_url+'assign">'+socket_url+'assign</a><br><br>Thanks!', 
+                                'username': user.name});
+            return;
+        }
+    }
+    
+    storage.get_user_presurvey(user._id,function(err, box){
+        if((channel.type != "routine" && box == false && STARTTIME == true) || err){
+            res.render('error', {'message': 'Please follow the link to complete a pre survey before joining the channel: <a href="'+socket_url+'homepage">'+socket_url+'homepage</a><br><br>Thanks!', 
+                                'username': user.name});
+            return;
+        }
+        storage.get_messages_by_channel(channel._id, function(results){
+             context.messages = results;
+             var message_keys = Object.keys(results);
+             var queue = [];
+             for(var i = 0, len = message_keys.length;i<len;i++){
+                  queue.push(context.messages[message_keys[i]]);
+             }
+             queue.sort(function(a,b){
+                 return new Date(a.created_at) - new Date(b.created_at);
+             });
+             context.queue = queue;
+             storage.join_channel(user, channel._id, function(err){
+                if(err){
+                    console.log(err);
+                    res.status(500).send("Whoops, we had an error");
+                    return;
+                }
+                 console.log("Connected Users");
+                 res.render("channel", context);
+             });
+        });
+    })
 };
 
 
@@ -96,12 +121,18 @@ module.exports = function(io){
             else {
                 storage.get_invite(invite_id, function(invite){
                     if (!invite)
-                        res.status(404).send("Invite not found");
+                        res.render("welcome", {message: "Invite does not exist"});
                     else{
-                        res.render('welcome', {
-                            'channel': invite.channel,
-                            'invite': invite._id,
-                        });
+                        if(invite.experiment == true)
+                            res.render('homepage', {
+                                'channel': invite.channel,
+                                'invite': invite._id,
+                            });
+                        else
+                            res.render('welcome', {
+                                'channel': invite.channel,
+                                'invite': invite._id,
+                            });
                     }
                 });
             }
@@ -431,7 +462,7 @@ module.exports = function(io){
            if(pass === 'ehims2016'){
                storage.get_all_exp_channels(function(channels){
                     storage.get_content(function(contents){
-                        res.render('admin', {channels: channels, survey_contents:contents});
+                        res.render('admin', {channels: channels, survey_contents:contents, socket_url: get_socket_url()});
                     })
                })
            } else {
@@ -558,6 +589,243 @@ module.exports = function(io){
                 consent = consent.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
                 res.render('consent', {consent:consent});
             });
+        },
+
+        homepage: function(req,res){
+            res.render('homepage');
+        },
+
+        assign: function(req, res){
+          storage.get_content(function(content){
+              storage.assign_account(function(err, user){
+                if(err)
+                  return;
+                res.render('assign',{'user':user.name, 'consent': content.consent});
+              })
+            })
+        },
+
+        login: function(req, res){
+            if(req.body.agreebox == 'on')
+              res.render('homepage', {'username': req.body.username});
+            else{
+               storage.get_content(function(content){
+                    res.render('assign',{'user': req.body.username, 'consent': content.consent});
+                }) 
+             }
+        },
+
+        hall: function(req, res){
+            if(req.body.agreebox == 'on'){
+                storage.get_available_channels(function(err, channels){
+                    if(err){
+                        console.log(err);
+                        return;
+                    }
+                    if(channels.length > 0){
+                          storage.get_content(function(content){
+                              res.render('presurvey_login', {username: req.body.username,channel:channels[0]._id, presurvey: content.pre_survey});
+                          })
+                    }
+                    else{
+                      storage.get_content(function(content){
+                          res.render('error',{'username': req.body.username, 'message': "Sorry that our experiment is finished today. <br><br> Thank you!"});
+                      }); 
+                    }
+                })
+            }
+            else{
+                storage.get_content(function(content){
+                    res.render('assign',{'user': req.body.username, 'consent': content.consent});
+                }); 
+            }
+        },
+
+        presurvey_login:function(req, res){
+            var data = req.body;
+            storage.store_presurvey(data, function(err){
+              if(err){
+                console.log(err);
+                return;
+              }
+              storage.store_channel_presurvey(data.channel, data.username, function(err1, channel){
+                    if(!err1){
+                        storage.get_user(data.username, function(err2, user){
+                            if(err2)
+                              console.log(err2);
+                            else
+                              user_join_channel(channel, user, res, false);
+                        })
+                    }
+                    else
+                      console.log(err1);
+                })
+            });
+        },
+
+        instructions:function(req, res){
+           var tester = {
+              user: req.body.username,
+              pass: req.body.password,
+              channel_id: req.body.channel_id,
+              invite: req.body.invite,
+              socket_url: get_socket_url(),
+           };
+           storage.get_content(function(content){
+                var instructions = content.instructions;
+                instructions = instructions.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
+                res.render('instructions', {instructions:instructions, tester:tester});
+            });
+        },
+
+        tester_channels: function(req, res){
+            var tester = req.body.tester;
+            if(tester == 'undefined' || tester == null || tester == ''){
+                var user = req.body.username;
+                var pass = req.body.password;
+                var channel_id = req.body.channel_id; 
+                var invite = req.body.invite;
+                var socket_url = get_socket_url();
+                storage.get_user(user, function(err, results){
+                    storage.get_available_channels(function(err1, channels){
+                        if(err || err1){
+                            console.log(err);
+                            res.render("homepage", 
+                                    { message: "This account does not exist.", username:user});
+                            return;
+                        }
+                        results.comparePassword(pass, function(err, match){
+                            if(err){
+                                console.log(err);
+                                res.status(500).send("Whoops, we had an error");
+                                return;
+                            }
+                            if (match) {
+                                res.render("scheduler",{ user: results, channels: channels, socket_url:socket_url});
+                            } else {
+                                res.render("homepage", 
+                                    { message: "The password is incorrect.", username:user});
+                            }
+                        });
+                    })
+                })
+            } else {
+                tester = JSON.parse(tester);
+                if(req.body.agreebox != "on"){
+                  storage.get_content(function(content){
+                      var instructions = content.instructions;
+                      instructions = instructions.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
+                      res.render('instructions', {instructions:instructions, tester:tester});
+                  });
+                  return;
+                }
+                var user = tester.user;
+                var pass = tester.pass;
+                var channel_id = tester.channel_id; 
+                var invite = tester.invite;
+                var socket_url = get_socket_url();
+                storage.get_invite(invite, function(result){
+                    if(!result)
+                        res.status(404).send("Invite not found");
+                    else {
+                        storage.get_user(user, function(err, results){
+                            if(err){
+                                res.render('homepage', {
+                                        'channel': channel_id,
+                                        'username': user,
+                                        'invite': invite,
+                                        'message': "This account does not exist.",
+                                    });
+                                return;
+                            }
+                            results.comparePassword(pass, function(err, match){
+                                if(err){
+                                    console.log(err);
+                                    res.status(500).send("Whoops, we had an error");
+                                    return;
+                                }
+                                if (match) {  
+                                    storage.get_channel_by_id(channel_id, function(channel){
+                                        user_join_channel(channel, results, res, true);
+                                    });
+                                } else {
+                                    res.render('homepage', {
+                                        'channel': channel_id,
+                                        'username': user,
+                                        'invite': invite,
+                                        'message': "The password is incorrect.",
+                                    });
+                                }
+                            });
+                        })
+                    }
+                })
+            }
+        },
+
+        register:function(req, res){
+            var channel_id = req.body.channel;
+            var username = req.body.username;
+            storage.register(channel_id, username, function(err, channel){
+              if(channel){
+                io.to('scheduler').emit('register', channel.participants.length, channel.users_number, channel._id);
+                res.json(JSON.stringify({msg:'ok'}));
+              }
+            });
+        },
+
+        presurvey:function(req, res){
+            storage.get_content(function(content){
+              res.render('presurvey', {username: req.body.username,channel:req.body.channel, presurvey: content.pre_survey});
+            })
+        },
+
+        submit_presurvey: function(req, res){
+          var data = req.body;
+          storage.store_presurvey(data, function(err){
+            if(err){
+              console.log(err);
+              return;
+            }
+            storage.store_channel_presurvey(data.channel, data.username, function(err1, channel){
+                if(!err1){
+                  res.render('after_presurvey', {socket: get_socket_url(), channel: channel, username: data.username});
+                }
+                else
+                  console.log(err1);
+            })
+          });
+        },
+
+        start: function(req, res){
+            var channel = req.body.channel;
+            storage.start_experiment(channel, function(err, type){
+                if(!err){
+                  res.json({'type': "in progress"});
+                  io.to('admin').emit('status_update', channel, "Ongoing");
+                }
+            })
+        },
+
+        postsurvey: function(req,res){
+            storage.get_content(function(content){
+                res.render('postsurvey', {channel: req.body.channel, username: req.body.username, postsurvey: content.post_survey});
+            });
+        },
+
+        submit_postsurvey: function(req, res){
+          var data = req.body;
+          storage.complete_experiment(data.channel, data.username, function(err, status, postsurvey, duration){
+            if(!err){
+              io.to('admin').emit('status_update', data.channel, status, postsurvey, duration);
+              storage.store_postsurvey(data, function(err1){
+                  if(!err1)
+                    res.render('thanks', {username: data.username});
+              });
+            }
+            else
+              console.log(err);
+          })
         },
     };
 

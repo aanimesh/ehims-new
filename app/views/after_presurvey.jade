@@ -1,0 +1,30 @@
+doctype html
+
+html
+    head
+        link(rel="stylesheet",href="/foundation/css/foundation.min.css")
+        link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
+        script(src="/jquery/dist/jquery.min.js")
+        script(src="/foundation/js/foundation.js")
+        script.
+            var channel=!{JSON.stringify(channel)};
+            var username = "!{username}";
+            var socket = "!{socket}";
+    body
+        .row(style="margin-top:5%")
+            .large-12.medium-12.small-12.columns
+            h1 Welcome to EHIMS
+        .row
+            br
+        .row
+            h2 Hi, #{username}
+            br
+            p Thanks for your time and co-operation! Please do not forget your username and invitation link:
+            h5 Username: #{username}
+            h5 Invitation Link: 
+              a(href="#{socket}invite?i=#{channel.invite_link}") #{socket}invite?i=#{channel.invite_link}
+            br
+            p The experiment will start at 
+              b #{channel.started_at} 
+              and remember to come back before the start time :)
+

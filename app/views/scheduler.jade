@@ -1,0 +1,58 @@
+doctype html
+
+html
+    head
+        link(rel="stylesheet",href="/foundation/css/foundation.min.css")
+        link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
+        link(rel="stylesheet",href="/myassets/css/admin.css")
+        script(src="/jquery/dist/jquery.min.js")
+        script(src="/foundation/js/foundation.js")
+        script(src="/myassets/js/scheduler.js")
+        script(src="/socket.io-client/socket.io.js")
+        script.
+            var user = !{JSON.stringify(user)};
+            var channels = !{JSON.stringify(channels)};
+            var socket_url = "!{socket_url}";
+            var get_invite_link = function(invite){
+                var base = location.protocol + '//' + location.host + '/invite';
+                return base + '?i=' + encodeURIComponent(invite);
+            };
+            var joined_channel = user.channels.length > 0 ? user.channels[0]._id : null;
+            
+    body
+        .row(style="margin-top:5%")
+            .large-12.medium-12.small-12.columns
+            h1 Welcome to EHIMS
+            h2 Hi, #{user.name}
+        .row
+            br
+        .row
+            p You can choose any group of your choice and complete the pre survey after registered. It may take you around xx minutes.
+            form(id="goto-presurvey-form" method="post" action="/presurvey")
+                input(type="hidden" name="username"  value="#{user.name}")
+                input#channel-id(type="hidden" name="channel")
+            table.large-12.medium-12.small-12(style='table-layout: fixed')
+              thead
+                tr
+                  th(width='200' style='text-align: center') Start Time
+                  th(style='text-align: center') Link
+                  th(width='100' style='text-align: center') Participants
+                  th(width='150' style='text-align: center') Register
+              tbody#test-channels
+                each channel, index in channels
+                  tr(id="#{channel._id}")
+                    td(style='text-align: center') #{channel.started_at}
+                    script.
+                        $('tbody#test-channels > tr:last').append('<td>'+get_invite_link('#{channel.invite_link}')+'</td>')
+                        $('tbody#test-channels > tr:last').append('<td style="text-align: center" id="participants-#{channel._id}">'+ #{channel.participants.length} +'/'+ #{channel.users_number}+'</td>')
+                        if(!joined_channel)
+                            $('tbody#test-channels > tr:last').append('<td><button class="tiny" id="register" channel="#{channel._id}" user="#{user.name}"> Register </button></td>')
+                        else{
+                            if(joined_channel == "#{channel._id}"){
+                                var channel_field = document.getElementById("channel-id");
+                                channel_field.setAttribute('value', joined_channel);
+                                $('tbody#test-channels > tr:last').append('<td><a onclick="document.getElementById('+"'goto-presurvey-form'"+').submit();"><button class="tiny" id="presurvey" channel="#{channel._id}" user="#{user.name}"> Pre Survey </button></a></td>')
+                            }
+                            else
+                                $('tbody#test-channels > tr:last').append('<td></td>')
+                        }

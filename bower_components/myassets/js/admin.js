@@ -1,10 +1,10 @@
 var add_group = function(group_id, channel_id){
-    var time = new Date().toLocaleString("en-US", {timeZone: "America/Montreal"});
+    var time = new Date().toLocaleString("en-US", { timeZone: 'America/Montreal' });
     var group_container = $('#group-details');
     var row = $("<tr>", {channel_id: channel_id, group_id:group_id});
     row.append('<td style="text-align: center"><i class="fa fa-times fa-lg"></i></td>');
     row.append("<td width='100' style='text-align: center'>"+group_id+"</td>");
-    row.append("<td id='time-"+channel_id+"' width='100' style='text-align: center'>"+time+"</td>");
+    row.append("<td id='time-"+channel_id+"' width='100' style='text-align: center' contenteditable='true'>"+time+"</td>");
     row.append("<td width='100' style='text-align: center' contenteditable='true' id='number-"+channel_id+"'>3</td>");
 
     var chat_td = $('<td>', {id:'chat_type_td-'+channel_id});
@@ -14,8 +14,10 @@ var add_group = function(group_id, channel_id){
     chat_type.append('<input type="radio" name="ctype" value="graph"><label>Graph</label>');
     chat_td.append(chat_type);
     row.append(chat_td);
-    row.append('<td id="tree_views_td-'+channel_id+'"><input id="tree_views-'+channel_id+'" type="checkbox" style="position: relative;top: 10px;left: 45px;transform:scale(1.5, 1.5);"></td>');
-    row.append('<td id="create-group-cell-'+channel_id+'"><button class="small" id="create-group">Create</button></td>');
+    row.append('<td id="tree_views_td-'+channel_id+'"><input id="tree_views-'+channel_id+'" type="checkbox" style="position: relative;top: 10px;left: 20px;transform:scale(1.5, 1.5);"></td>');
+    row.append('<td id="status-'+channel_id+'" style="text-align: center">Not started</td>');
+    row.append('<td id="completed-'+channel_id+'" style="text-align: center">0</td>');
+    row.append('<td id="create-group-cell-'+channel_id+'" style="overflow: auto"><button class="small" id="create-group">Create</button></td>');
     row.append('<td id="download-'+channel_id+'"></td>');
 
     group_container.append(row);
@@ -34,22 +36,43 @@ var fixed_configuration = function(data){
 	var channel = data['channel'];
 	var invite_id = data['invite'];
 	$('#number-'+channel._id).html("<td width='100' style='text-align: center' contenteditable='false' id='number-"+channel._id+"'>"+channel.users_number+"</td>");
-	$('#time-'+channel._id).html(channel.started_at);
+	$('#time-'+channel._id).attr('contenteditable', 'false');
+    $('#time-'+channel._id).html(channel.started_at);
     $('#chat_type_td-'+channel._id).html(channel.chat_type);
 	$('#chat_type_td-'+channel._id).css('text-align', 'center');
     if (channel.tree_views == false)
         $('#tree_views_td-'+channel._id).html('false');
     else
         $('#tree_views_td-'+channel._id).html(channel.tree_views);
-	$('#tree_views_td-'+channel._id).css('text-align', 'center');
+    $('#tree_views_td-'+channel._id).css('text-align', 'center');
+
+    if(channel.status == 'in progress')
+        $('#status-'+channel._id).html("Ongoing");
+    else if (channel.status == 'result')
+        $('#status-'+channel._id).html("Finished");
+    var post_count = 0;
+    for(var i = 0; i < channel.participants.length; i++){
+        if(channel.participants[i].postsurvey != undefined && channel.participants[i].postsurvey != null){
+            if(channel.participants[i].postsurvey == true){
+                post_count += 1
+            }
+        }
+    }
+	$('#completed-'+channel._id).html(post_count);
+
 	$('#create-group-cell-'+channel._id).html(get_invite_link(invite_id));
 	$('#create-group-cell-'+channel._id+'> button').css('display', 'none');
-    $('#download-'+channel._id).html('<button class="small"><a href="'+get_download_link(channel._id)+'" target="_blank">Download</a></button>');
+    $('#download-'+channel._id).html('<button class="tiny" style="left: 4%"><a href="'+get_download_link(channel._id)+'" target="_blank">Download</a></button>');
 }
 
 var create_survey_consent = function(consent){
     $("#survey").empty();
     $("#survey").append('<p id="consent_content" contenteditable="true" style="border:1px solid lightgray;padding:10px">'+consent+'</p>');
+}
+
+var create_instructions = function(instructions){
+    $("#survey").empty();
+    $("#survey").append('<p id="instructions" contenteditable="true" style="border:1px solid lightgray;padding:10px">'+instructions+'</p>');
 }
 
 var create_survey_question = function(pre_survey, content){
@@ -82,6 +105,7 @@ var get_survey_question = function(pre_survey){
 
 var update_survey_question = function(seleted_page){
     var consent = survey_contents.consent;
+    var instructions = survey_contents.instructions;
     var pre_survey = survey_contents.pre_survey;
     var post_survey = survey_contents.post_survey;
     switch(seleted_page){
@@ -94,6 +118,9 @@ var update_survey_question = function(seleted_page){
         case 3:
             post_survey = get_survey_question(0);
             break;
+        case 4:
+            instructions = $('#instructions').html().replace('<div>', '<br>').replace('</div>', '');
+            break;
         default:
             break;
     }
@@ -102,7 +129,7 @@ var update_survey_question = function(seleted_page){
         type:"POST",
         contentType: "application/json; charset=utf-8",
         dataType: "json",
-        data: JSON.stringify({'consent': consent, 'pre_survey': pre_survey, 'post_survey': post_survey})
+        data: JSON.stringify({'consent': consent, 'pre_survey': pre_survey, 'post_survey': post_survey, 'instructions':instructions})
     }).success(data => {
         survey_contents = data;
         create_survey_div(seleted_page);
@@ -121,6 +148,8 @@ var create_survey_div = function(seleted_page){
         case 3:
             create_survey_question(0, survey_contents.post_survey);
             break;
+        case 4:
+            create_instructions(survey_contents.instructions);
         default:
             break;
     }
@@ -163,10 +192,23 @@ var sub_question = function(seleted_page){
     content.pop();
 }
 
+var status_update = function(channel_id, status, finish, duration){
+    var row = $("[channel_id="+channel_id+"]").find('td');
+    if(duration)
+        $(row[6]).text(status+' ('+duration+' min)');
+    else(status)
+        $(row[7]).text(status);
+    if(finish)
+        $(row[7]).text(finish);
+}
+
 $(document).ready(function(){
+    var socket = io(socket_url, {query:"admin=admin"});
+    socket.on('status_update', status_update);
+
     // add a group in html
     $('#add-group').on('click', function(e){
-    	var time = new Date().toLocaleString("en-US", {timeZone: "America/Montreal"});
+    	var time = new Date().toLocaleString("en-US", { timeZone: 'America/Montreal' });
         e.preventDefault();
         $.ajax({
             url:"/add_group",
@@ -219,12 +261,12 @@ $(document).ready(function(){
 
     //iteract with db
     $(document).on('click', '#create-group', function(e){
-    	var time = new Date().toLocaleString("en-US", {timeZone: "America/Montreal"});
     	var chat_type;
     	var tree_views = new Boolean(false);
     	var channel_id = $(this).closest("tr").attr('channel_id');
     	var group_no = $(this).closest("tr").attr('group_id');
     	var number = $('#number-'+channel_id).text();
+        var time = new Date($('#time-'+channel_id).text()).toLocaleString("en-US");
     	$('#chat_type-'+channel_id).find('input').each(function(index){
     		if ($(this).is(":checked"))
     			chat_type = $(this).val();
@@ -247,10 +289,10 @@ $(document).ready(function(){
             data : JSON.stringify(data),
         }).success(function(result){
         	data = result['invite'];
-            var channel_info = result['channel'];
+            var channel_info = data['channel'];
         	fixed_configuration(data);
             channels = channels.filter(channel => channel._id != channel_info._id);
-            channel_info.push(channel_info);
+            channels.push(channel_info);
     	});
     });
 

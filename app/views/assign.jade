@@ -9,21 +9,27 @@ html
         script(src="/foundation/js/foundation.js")
         script(src="/myassets/js/consent.js")
         script.
-            var consent = "!{content}";
+            var consent = "!{consent}";
+            var user = !{JSON.stringify(user)};
             var checked = false;
     body
         .row(style="margin-top:5%")
             .large-12.medium-12.small-12.columns
-            h2 Welcome to EHIMS
+            h1 Welcome to EHIMS
         .row
             br
-        .row
-            h3 Consent
+            p For participating our experiments, please remember your unique username and password:
+            h5(style='white-space: pre') Username: #{user}
+            h5(style='white-space: pre') Password: #{user}
             br
-            p(style='white-space: pre') #{consent}
-            form#agreeconsent(method='post', action="/signup")
+            p#consent(style='white-space: pre') 
+            //first version
+            //form#agreeconsent(method='post', action="/login")
+            //second version
+            form#agreeconsent(method='post', action="/hall")
               input(type="checkbox" name='agreebox') 
               label I have read the consent letter and agree to those conditions.
+              input(name='username' type='hidden' value='#{user}') 
               br
             a(href='javascript:void(0);', onclick="document.getElementById('agreeconsent').submit();")
               button#agreehref Agree

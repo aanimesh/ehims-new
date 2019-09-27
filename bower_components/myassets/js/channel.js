@@ -12,7 +12,7 @@ var modify_signal = 0;
 var change_parent = {};
 var latest_child = [];
 var color_table = [];
-
+var WAITING_MINUTES = 10;
 
 var PLUS_CLICKABLE = false;
 
@@ -249,66 +249,69 @@ var get_invite_link = function(invite){
 
 // ------- User Login/off ---------
 
-var waiting_page = function(pos){
+// before experiment starts
+var channel_gate = function(pos){
     if(channel.type == 'experiment'){
-        var users_number = parseInt(channel.users_number);
-        var delta = users_number - pos;
-        if (delta != 0){
-            $('body').children().hide();
-            $('#waiting_page').show();
-            $('#waiting_number').html(delta.toString());
-            $('#navbar').show();
+        var time = new Date();
+        var start_time = new Date(channel.started_at);
+        var time_delta = start_time.getTime() - time.getTime() + 1000*60*60;
+        var user_delta = parseInt(channel.users_number) - pos;
+        if(STARTTIME == true){
+            if(time_delta > (1000*60*2)){
+                if(user_delta > 0)
+                    waiting_page("This experiment will start at <br>"+start_time.toLocaleString("en-US", { timeZone: 'America/Montreal' })+"<br><br> There are "+user_delta+" seats remaining...");
+                else
+                    waiting_page("This experiment will start at <br>"+start_time.toLocaleString("en-US", { timeZone: 'America/Montreal' }));
+            }
+            else if(time_delta < (-1)*(1000*60*WAITING_MINUTES))
+                waiting_page("Sorry that this channel is expired.<br><br> Please go back to the following link to choose another channel :) <br> <a href='"+ socket_url+"homepage'>"+socket_url+"homepage</a>");
+            else{
+                if(user_delta > 0)
+                    waiting_page("There are still "+user_delta+" seats remaining...");
+                else
+                    experiment_started();
+            }
         }
-        else if (delta == 0){
-            $('body').children().show();
-            $('#waiting_page').hide();
+        else{
+            if(user_delta > 0)
+                waiting_page("There are still "+user_delta+" seats remaining...");
+            else
+                experiment_started();
         }
     }
-    else{
-        $('#waiting_page').hide();
-    }
-}
+};
+
+var waiting_page = function(msg){
+    $('body').children().hide();
+    $('#waiting_page').show();
+    $('#waiting_page > h3').html(msg);
+    $('#navbar').show();
+};
+
+var experiment_started = function(){
+    $('body').children().show();
+    $('#waiting_page').hide();
+    $.ajax({
+        url:"/start",
+        type:"POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        data : JSON.stringify({'channel':channel._id}),
+    }).success(function(data){
+        channel.type = "in progress";
+        $("#logout-yes").attr('href', '#');
+        $("#logout-yes").attr('onclick', "document.getElementById('name-form').submit()");
+    });
+};
 
 var user_log_on = function(uname, participants_queue){
     participants = participants_queue;
-    online_count = 0;
-    participants_queue.forEach(function(dict){
-        var li_pos = $('#online-users-list > li').filter(function(){
-            return $(this).text() === dict.name;
-        });
-        var li_pos_o = $('#online-users-list > li').filter(function(){
-            return $(this).text() === dict.name + ' (online)';
-        });
-        var color = get_colour(dict.name, dict.color);
-        if(dict.online == true){
-            online_count += 1;
-            if(li_pos.length > 0)
-                li_pos.remove();
-            if(li_pos_o.length == 0)
-                $('#online-users-list').prepend('<li style="color:'+
-                    color+';" a(href="#" data-reveal-id="user-modal")>'+dict.name+' (online)</li>');
-        }
-    });
-    $('#num-online').html(
-            '('+online_count+'/'+participants.length+')'
-    );
-    waiting_page(online_count);
+    update_online();
 };
 
 var user_log_off = function(uname, participants_queue){
     participants = participants_queue;
-    online_count -= 1;
-    var old_pos = $('#online-users-list > li').filter(function(){
-            return $(this).text() === uname+' (online)';
-        });
-    var color = old_pos.css('color');
-    old_pos.remove();
-    $('#online-users-list').append('<li style="color:'+
-            color+';" a(href="#" data-reveal-id="user-modal")>'+uname+'</li>');
-    $('#num-online').html(
-            '('+online_count+'/'+participants.length+')'
-            );
-    waiting_page(online_count);
+    update_online();
 };
 
 var update_online = function(){
@@ -329,13 +332,14 @@ var update_online = function(){
     $('#num-online').html(
             '('+online_count+'/'+participants.length+')'
             );
-    waiting_page(online_count);
+    if(channel.type == "experiment")
+        channel_gate(online_count);
 };
 
 var get_colour = function(author, color){
     if(color_table[author] == undefined || color_table[author] == null){
-        color_table[author] = colours[((color+1)*7) % colours.length];
-        return colours[((color+1)*7) % colours.length];
+        color_table[author] = colours[(color+1) % colours.length];
+        return colours[(color+1) % colours.length];
     }
     else
         return color_table[author];
@@ -343,7 +347,7 @@ var get_colour = function(author, color){
 
 var assign_color = function(){
     participants.forEach(function(dict){
-        color_table[dict.name] = colours[((dict.color+1)*7) % colours.length];
+        color_table[dict.name] = colours[(dict.color+1) % colours.length];
     });
 };
 
@@ -1009,7 +1013,11 @@ var get_sequential_message = function(){
 
 var back_home = function(){
     var input = document.getElementById("back-home");
+    var input1 = document.getElementById("name-form-input");
+    var input2 = document.getElementById("name-form-input1");
     input.setAttribute('value', username);
+    input1.setAttribute('value', username);
+    input2.setAttribute('value', channel._id);
 };
 
 // ----------------------------------------
@@ -1672,6 +1680,9 @@ $(document).ready(function(){
     });
 
     back_home();
+    $("#logout-close").on('click',function(){
+        $("#logout-modal").foundation('reveal', 'close');
+    });
 
     $('#modify-button').on('click',function(){
         if(modify_signal == 1){
@@ -1689,8 +1700,6 @@ $(document).ready(function(){
             display_tree();
             //set_hard_focus(hard_focus);
         }
-    })
-
-
+    });
 });
 

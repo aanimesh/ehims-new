@@ -1,0 +1,35 @@
+doctype html
+
+html
+    head
+        link(rel="stylesheet",href="/foundation/css/foundation.min.css")
+        link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
+        link(rel="stylesheet",href="/myassets/css/admin.css")
+        script(src="/jquery/dist/jquery.min.js")
+        script(src="/foundation/js/foundation.js")
+        script(src="/myassets/js/admin.js")
+        script.
+            var presurvey = !{JSON.stringify(presurvey)};
+            var username = "!{username}";
+            var channel = "!{channel}";
+    body
+        .row(style="margin-top:5%")
+            .large-12.medium-12.small-12.columns
+            h1 Pre Survey
+        .row
+            h2 Hi, #{username}
+            br
+            form#presurvey(method='post', action="/presurvey_login")
+                .input-group
+                  input.input-group-field(type="hidden",
+                        name="channel",
+                        value="#{channel}")
+                  input.input-group-field(type="hidden",
+                        name="username",
+                        value="#{username}")
+                  each question, index in presurvey
+                    p #{index+1}. #{question}
+                    input.input-group-field(type="text",
+                        required
+                        name="question#{index+1}")
+                  button.input-group-button.button Submit

@@ -9,12 +9,13 @@ var ChannelSchema = new Schema({
     top_lvl_messages : [{type: ObjectId, ref: 'Message'}],
     chat_type: {type: String, enum: ['path', 'tree', 'graph'], default: 'tree'},
     schedule_time : String,
-    participants: [{name: String, online: Boolean, color: Number, id: {type: ObjectId, ref: 'User'}}],
-    type: {type: String, enum: ['experiment', 'routine', 'result'], default: 'routine'},
+    participants: [{name: String, online: Boolean, color: Number, id: {type: ObjectId, ref: 'User'}, postsurvey:{type: Boolean, default: false}}],
+    type: {type: String, enum: ['experiment', 'routine', 'result', 'in progress'], default: 'routine'},
     tree_views: {type: Boolean, default: true},
     users_number: Number,
     started_at: String,
-    invite_link: [{type: ObjectId, ref: 'Invite'}],
+    duration: String,
+    invite_link: {type: ObjectId, ref: 'Invite'},
 }, { timestamps: { createdAt: 'created_at'} });
 
 

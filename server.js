@@ -94,6 +94,32 @@ app.post('/update_survey', routes.update_survey);
 
 app.get('/consent', routes.get_consent);
 
+app.get('/homepage', routes.homepage);
+
+app.post('/tester_channels', routes.tester_channels);
+
+app.post('/register', routes.register);
+
+app.post('/presurvey', routes.presurvey);
+
+app.post('/submit_presurvey', routes.submit_presurvey);
+
+app.post('/instructions', routes.instructions);
+
+app.post('/start', routes.start);
+
+app.post('/postsurvey', routes.postsurvey);
+
+app.post('/submit_postsurvey', routes.submit_postsurvey);
+
+app.post('/login', routes.login);
+
+app.get('/assign', routes.assign);
+
+app.post('/hall', routes.hall);
+
+app.post('/presurvey_login', routes.presurvey_login);
+
 // ---------------------------------
 
 /**

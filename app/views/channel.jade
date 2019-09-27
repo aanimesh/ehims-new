@@ -12,6 +12,7 @@ html
             var messages = !{JSON.stringify(messages)};    
             var participants   = !{JSON.stringify(participants)};
             var queue    = !{JSON.stringify(queue)};
+            var STARTTIME    = !{JSON.stringify(STARTTIME)};
             var ids = {}
             var dbid_to_userid = {}
             var cur_id = 0;
@@ -27,7 +28,7 @@ html
             var username = "!{user.name}";
             var channel  = !{JSON.stringify(channel)}; 
             // colours to be cycled through when assigning a colour to each user
-            var colours   = ["#00a","#00f","#050","#055","#05a","#05f","#0a0","#0a5","#0aa","#0af","#0f0","#0f5","#0fa","#0ff","#500","#505","#50a","#50f","#550","#555","#55a","#55f","#5a0","#5a5","#5aa","#5af","#5f0","#5f5","#5fa","#5ff","#a00","#a05","#a0a","#a0f","#a50","#a55","#a5a","#a5f","#aa0","#aa5","#aaa","#aaf","#af0","#af5","#afa","#aff","#f00","#f05","#f0a","#f0f","#f50","#f55","#f5a","#f5f","#fa0","#fa5","#faa"]; 
+            var colours   = ["#bd5734", "#d64161", "#ff7b25", "#6b5b95", "#878f99", "#86af49", "#405d27", "#3e4444", "#034f84", "#f7786b", "#c94c4c", "#50394c", "#b2b2b2", "#bc5a45", "#618685", "#36486b", "#4040a1", "#563f46", "#838060", "#686256", "#a96e5b", "#7a3b2e"]; 
     body
         - var trim_name = function(n) { var l = {'path': ' (Sequential)'.length, 'tree': ' (Tree)'.length, 'graph': ' (Graph)'.length}[channel.chat_type]; return n.substr(0, n.length - l);}
         nav.top-bar#navbar
@@ -57,7 +58,7 @@ html
                             | Participants &nbsp;
                             span#num-online 
                     li
-                        a Chatting as: !{user.name}
+                        a Chat as: !{user.name}
                     li#bookmark-list
                         a(href='#' data-reveal-id='bookmark-modal')
                             i.fa.fa-bookmark.fa-lg
@@ -84,10 +85,10 @@ html
                     li
                         a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
                         form#back-home-form(method='post', action="/back_channels")
-                            input#back-home(type='hidden', name='username')
+                            input#back-home(type='hidden' name='username')
 
                     li
-                        a(href='/') Logout
+                        a(href="#" data-reveal-id="logout-modal") Logout
 
         ul#new-msg-list.f-dropdown(data-dropdown-content,
             style="height=200px;overflow-y:scroll;")
@@ -96,9 +97,7 @@ html
             style="height=200px;overflow-y:scroll;")
 
         div#waiting_page
-            h3 There are 
-            h3#waiting_number
-            h3 seats remaining...
+            h3
 
         #messages-column
             .progress.large-12.radius.success#progress-div
@@ -241,6 +240,27 @@ html
                                     br
                                     span
                                     a#invite-link
+            a.close-reveal-modal(aria-label="Close")  &#215;
+        #logout-modal.reveal-modal.small(data-reveal 
+                                 aria-hidden="true" 
+                                 role="dialog")
+            h3 
+                .row
+                    .large-12.columns
+                        form#name-form(method='POST' action='/postsurvey')
+                            input#name-form-input(type='hidden' name='username')
+                            input#name-form-input1(type='hidden' name='channel')
+                        fieldset
+                            legend Logout
+                            p Are you sure to logout?
+                            if channel.type == "in progress"
+                                a#logout-yes(onclick="document.getElementById('name-form').submit()" style='position:relative;display:inline-block;margin-left:20%;float:left')
+                                    button Yes
+                            else
+                                a#logout-yes(href='/' style='position:relative;display:inline-block;margin-left:20%;float:left')
+                                    button Yes
+                            a#logout-close(aria-label="Close" style='position:relative;display:inline-block;float:left;margin-left:15%')
+                                button  No 
             a.close-reveal-modal(aria-label="Close")  &#215;
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")

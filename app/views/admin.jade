@@ -8,6 +8,7 @@ html
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
         script(src="/myassets/js/admin.js")
+        script(src="/socket.io-client/socket.io.js")
         script.
             var channels = !{JSON.stringify(channels)};
             var survey_contents = !{JSON.stringify(survey_contents)};
@@ -15,6 +16,17 @@ html
                 var base = location.protocol + '//' + location.host + '/invite';
                 return base + '?i=' + encodeURIComponent(invite);
             };
+            var finished_array = [];
+            var socket_url = "!{socket_url}";
+            channels.forEach(channel => {
+                var finished_cnt = 0;
+                channel.participants.forEach(participant => {
+                    if(participant.postsurvey == true)
+                        finished_cnt += 1;
+                });
+                finished_array.push(finished_cnt);
+            });
+            
     body
         .row(style="margin-top:5%")
             .large-12.medium-12.small-12.columns
@@ -30,16 +42,18 @@ html
               thead
                 tr
                   th(width='50' style='text-align: center') 
-                  th(width='50' style='text-align: center') No.
+                  th(width='70' style='text-align: center') No.
                   th(width='120' style='text-align: center') Time
-                  th(width='120' style='text-align: center') Users Number
+                  th(width='70' style='text-align: center') Tester
                   th(width='130' style='text-align: center') Type
-                  th(width='120' style='text-align: center') Tree Views
+                  th(width='70' style='text-align: center') Tree
+                  th(width='100' style='text-align: center') Status
+                  th(width='70' style='text-align: center') Finished
                   th(style='text-align: center') Create
-                  th(width='150' style='text-align: center') Results
+                  th(width='110' style='text-align: center') Results
               tbody#group-details
                 each channel, index in channels
-                  tr
+                  tr(channel_id="#{channel._id}")
                     td(style='text-align: center') 
                       i.fa.fa-times.fa-lg
                     td(style='text-align: center') #{index+1}
@@ -48,8 +62,16 @@ html
                     td(style='text-align: center') #{channel.chat_type}
                     td(style='text-align: center') #{channel.tree_views}
                     script.
-                        $('tbody#group-details > tr:last').append('<td>'+get_invite_link('#{channel.invite_link}')+'</td>')
-                        $('tbody#group-details > tr:last').append('<td><button class="small"><a href="'+get_download_link('#{channel._id}')+'" target="_blank">Download</a></button></td>')
+                        if("#{channel.type}" == "experiment")
+                            $('tbody#group-details > tr:last').append('<td style="text-align: center">Not started</td>')
+                        else if("#{channel.type}" == "in progress")
+                            $('tbody#group-details > tr:last').append('<td style="text-align: center">Ongoing</td>')
+                        else
+                            $('tbody#group-details > tr:last').append('<td style="text-align: center">Finished (#{channel.duration} min)</td>')
+                        
+                        $('tbody#group-details > tr:last').append('<td style="text-align: center">'+finished_array[#{index}]+'</td>')
+                        $('tbody#group-details > tr:last').append('<td style="overflow: auto">'+get_invite_link('#{channel.invite_link}')+'</td>')
+                        $('tbody#group-details > tr:last').append('<td><button style="left: 4%" class="tiny"><a href="'+get_download_link('#{channel._id}')+'" target="_blank">Download</a></button></td>')
         .row
             br
         .row
@@ -60,6 +82,7 @@ html
               select#seleted-page
                 option(value='0') Select page:
                 option(value='1') Consent
+                option(value='4') Instructions
                 option(value='2' selected="selected") Pre Survey
                 option(value='3') Post Survey
             p

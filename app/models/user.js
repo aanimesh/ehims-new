@@ -11,10 +11,11 @@ var SALT_WORK_FACTOR = 10;
 var UserSchema = new Schema({
     id: ObjectId,
     name: {type: String, required: true, unique: true},
+    experiment: {type:Boolean, default: false},
     password: {type: String, required: true},
-    firstname: {type: String, required: true},
-    lastname: {type: String, required: true},
-    email: {type: String, required: true},
+    firstname: {type: String},
+    lastname: {type: String},
+    email: {type: String},
     resetPasswordToken: String,
     resetPasswordExpires: Date,
     channels : [{
@@ -33,9 +34,8 @@ UserSchema.methods.join_channel = function(channel){
         this.channels.push({
             name:channel.name, chat_type:channel.chat_type, _id:channel._id});
         //User.update({_id:this._id}, {$push:{channels:{name:channel.name, chat_type:channel.chat_type, _id:channel._id}}}, {upsert:true},function(err){})
+        this.save();
     }
-
-    this.save();
 };
 
 UserSchema.pre('save', function(next) {

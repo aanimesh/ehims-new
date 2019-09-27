@@ -4,6 +4,8 @@
 // 
 // This file contains all code needed for
 // interfacing with the database
+var WAITING_MINUTES = 10;
+var TIME_SLOT = 1; // 1 time_slot means 30 minutes. So each group should start at **:30:00 or **:00:00 
 
 
 var MongoClient = require('mongodb').MongoClient;
@@ -403,7 +405,7 @@ var create_exp_channel = function(time, callback){
 };
 
 var configure_exp_channel = function(data, callback){
-    var channel_name = 'experiment-'+data['channel_id'];
+    var channel_name = 'Group-'+data['time'];
     switch(data['chat_type']){
          case 'path':
              channel_name += ' (Sequential)';
@@ -415,7 +417,7 @@ var configure_exp_channel = function(data, callback){
              channel_name += ' (Graph)';
              break;
      };
-    var invite = new Invite({'channel': data['channel_id']});
+    var invite = new Invite({'channel': data['channel_id'], 'experiment': true});
     invite.save().then(function(invite){
         Channel.update({'_id':data['channel_id']},{ $set:{
             tree_views:data['tree_views'],
@@ -434,7 +436,7 @@ var configure_exp_channel = function(data, callback){
 
 var get_all_exp_channels = function(callback){
     Channel.deleteMany({'name':{ $regex: /tmpname-exp-/, $options: 'i' }}).then(function(){
-        Channel.find({'type':"experiment"},function(err, channels){
+        Channel.find({$or:[{'type':"experiment"}, {'type':"in progress"}, {'type':"result"}]},function(err, channels){
             callback(channels);
         });
     });
@@ -583,7 +585,7 @@ var change_password = function(name, password, callback){
 };
 
 var get_content = function(callback){
-    Survey.findOne({}, function(err, data){
+    Survey.findOne({"questionnaire" : true}, function(err, data){
         callback(data);
     });
 };
@@ -592,6 +594,162 @@ var update_survey = function(data, callback){
     Survey.updateOne({},
         {$set:{consent: data.consent, pre_survey: data.pre_survey, post_survey: data.post_survey}}
     ).then(callback);
+};
+
+var get_available_channels = function(callback){
+    Channel.find({"type" : "experiment"}, function(err, results){
+        if(err)
+            callback(err);
+        callback(err, results);
+    })
+};
+
+var register = function(channel_id, username, callback){
+    Channel.findOne({"_id": channel_id}, function(err, channel){
+        User.findOne({"name":username}, function(err1, user){
+            if(err || err1)
+                return callback(err);
+            if(channel == null || channel == undefined)
+                return callback(err);
+            if(channel.participants.length >= channel.users_number){
+                return callback(err);
+            }
+            user.join_channel(channel);
+            if(channel.participants == null || channel.participants == undefined)
+                channel.participants = []
+            var seen = false;
+            var length = channel.participants.length;
+            var participants = channel.participants;
+            for(var i = 0; i < length; i ++){
+                if(participants[i].name == user.name){
+                    seen = true;
+                    break;
+                }
+            }
+            if(seen == false){
+                participants.push({name: user.name, online: false, color: length, id: user._id});
+                Channel.updateOne({_id: channel_id}, {$set: {participants: participants}}, {upsert:true}, function(){});
+            }
+            channel.participants = participants;
+            callback(err, channel);
+        })
+    })
+};
+
+var store_presurvey = function(data, callback){
+    var pre_survey = Object.values(data);
+    User.findOne({"name":data.username}, function(err,user){
+        if(err)
+            callback(err);
+        Survey.updateOne({"user": user._id}, {$set:{
+            questionnaire: false,
+            pre_survey: pre_survey.slice(2),
+        }}, {upsert: true}, function(){});
+        callback(err);
+    })
+};
+
+var start_experiment = function(channel_id, callback){
+    var now = new Date().toLocaleString("en-US", { timeZone: 'America/Montreal' });
+    Channel.updateOne({"_id": channel_id}, 
+        {$set:{type: "in progress", started_at: now}}, {upsert: true}, function(err){
+            if(err)
+                callback(err)
+            callback(err, "in progress");
+        })
+};
+
+var get_user_presurvey = function(user_id, callback){
+    Survey.findOne({"user": user_id}, function(err, user){
+        if(err)
+            callback(err);
+        if(user)
+            callback(err, true);
+        else
+            callback(err, false);
+    })
+};
+
+var store_postsurvey = function(data, callback){
+    var post_survey = Object.values(data);
+    User.findOne({"name":data.username}, function(err, user){
+        if(err)
+            callback(err);
+        Survey.updateOne({"user": user._id}, {$set:{
+            questionnaire: false,
+            post_survey: post_survey.slice(2),
+        }}, {upsert: true}, function(err1){});
+        callback(err);
+    })
+};
+
+var complete_experiment = function(channel_id, username, callback){
+    Channel.findOne({"_id":channel_id}, function(err, channel){
+        if(err)
+            callback(err);
+        var count = false;
+        var postsurvey = 0;
+        for(var i = 0; i < channel.participants.length; i ++){
+            if(channel.participants[i].online == true)
+                count = true;
+            if(channel.participants[i].name == username)
+                channel.participants[i].postsurvey = true;
+            if(channel.participants[i].postsurvey == true)
+                postsurvey += 1;
+        };
+        if(count == false){
+            var now = new Date();
+            var start = new Date(channel.started_at);
+            var duration = (now - start - 1000*60*60) / (1000*60);
+            Channel.updateOne({"_id":channel_id},
+                {$set:{type: "result", participants: channel.participants, duration: duration.toFixed(2)}}, {upsert:true}, function(err1){
+                    if(err1)
+                        callback(err1);
+                });
+            callback(err, "Finished", postsurvey, duration.toFixed(2));
+        }
+        else{
+            Channel.updateOne({"_id":channel_id},
+                {$set:{participants: channel.participants}}, {upsert:true}, function(err1){
+                    if(err1)
+                        callback(err1);
+                });
+            callback(err, "Ongoing", postsurvey);
+        }
+    })  
+};
+
+var assign_account = function(callback){
+    User.find({"experiment": true}, function(err, users){
+        if(err)
+            callback(err);
+        var name_array = [];
+        var length = users.length;
+        for(var i = 0; i <= length; i ++){
+            /*if(users[i]){
+                if(users[i].channel == undefined || users[i].channel == null)
+                    users[i].remove();
+            }*/
+            name_array.push("tester-"+parseInt(Math.random()*100000000));
+        }
+        var new_user = new User({'name':name_array[length], 'password': name_array[length], 'channels': [], "experiment": true, "channel":[]});
+        new_user.save().then(function(){
+            callback(err, new_user);
+        });
+    });
+};
+
+var store_channel_presurvey = function(channel_id, username, callback){
+    Channel.findOne({"_id":channel_id}, function(err, channel){
+        if(err)
+            callback(err);
+        channel.participants.forEach(participant => {
+            if(participant.name == username)
+                participant.presurvey = true;
+        });
+        Channel.updateOne({"_id":channel_id}, {$set:{participants: channel.participants}}, {upsert:true}, function(){});
+        callback(err,channel);
+    })
 };
 
 
@@ -626,3 +784,12 @@ exports.compare_token = compare_token;
 exports.change_password = change_password;
 exports.get_content = get_content;
 exports.update_survey = update_survey;
+exports.get_available_channels = get_available_channels;
+exports.register = register;
+exports.store_presurvey = store_presurvey;
+exports.start_experiment = start_experiment;
+exports.get_user_presurvey = get_user_presurvey;
+exports.store_postsurvey = store_postsurvey;
+exports.complete_experiment = complete_experiment;
+exports.assign_account = assign_account;
+exports.store_channel_presurvey = store_channel_presurvey;
