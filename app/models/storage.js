@@ -724,15 +724,16 @@ var assign_account = function(callback){
         if(err)
             callback(err);
         var name_array = [];
-        var length = users.length;
-        for(var i = 0; i <= length; i ++){
-            /*if(users[i]){
-                if(users[i].channel == undefined || users[i].channel == null)
-                    users[i].remove();
-            }*/
-            name_array.push("tester-"+parseInt(Math.random()*100000000));
+        var name;
+        users.forEach(user => {
+            name_array.push(user.name);
+        })
+        while (true){
+            name = "tester-"+parseInt(Math.random()*100000000);
+            if(name_array.includes(name) == false)
+                break;
         }
-        var new_user = new User({'name':name_array[length], 'password': name_array[length], 'channels': [], "experiment": true, "channel":[]});
+        var new_user = new User({'name':name, 'password': name, 'channels': [], "experiment": true, "channel":[]});
         new_user.save().then(function(){
             callback(err, new_user);
         });
