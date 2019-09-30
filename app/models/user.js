@@ -33,7 +33,6 @@ UserSchema.methods.join_channel = function(channel){
     if(!seen){
         this.channels.push({
             name:channel.name, chat_type:channel.chat_type, _id:channel._id});
-        //User.update({_id:this._id}, {$push:{channels:{name:channel.name, chat_type:channel.chat_type, _id:channel._id}}}, {upsert:true},function(err){})
         this.save();
     }
 };

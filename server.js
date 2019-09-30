@@ -120,6 +120,8 @@ app.post('/hall', routes.hall);
 
 app.post('/presurvey_login', routes.presurvey_login);
 
+app.post('/search_code', routes.search_code);
+
 // ---------------------------------
 
 /**
@@ -135,11 +137,11 @@ http.listen(port,function(){
     console.log('Listening on 3000');
 });
 
-/*var reqTimer = setTimeout(function wakeUp() {
+var reqTimer = setTimeout(function wakeUp() {
    require('http').request("http://ehims-new.herokuapp.com/", function() {
       console.log("WAKE UP DYNO");
    });
    return reqTimer = setTimeout(wakeUp, 1200000);
 }, 1200000);
 
-reqTimer;*/
+reqTimer;

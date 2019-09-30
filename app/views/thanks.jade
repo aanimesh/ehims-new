@@ -8,6 +8,7 @@ html
         script(src="/foundation/js/foundation.js")
         script.
             var user = '!{username}';
+            var survey_code = '!{survey_code}'
     body
         .row(style="margin-top:5%")
             .large-12.medium-12.small-12.columns
@@ -15,4 +16,5 @@ html
         .row
             br
         .row
-            p 
+            p Amazon Mechanical Turk survey code: 
+                a #{survey_code}

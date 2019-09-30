@@ -11,6 +11,7 @@ var TIME_SLOT = 1; // 1 time_slot means 30 minutes. So each group should start a
 var MongoClient = require('mongodb').MongoClient;
 var mongoose = require('mongoose');
 var assert = require('assert');
+var CryptoJS = require('crypto-js');
 var _mongo_url = process.env.MONGOLAB_URI || 
                  process.env.MONGOHQ_URL  || 
                  'mongodb://localhost:27017/ehims';
@@ -383,16 +384,6 @@ var bookmark = function(msg_id, username, callback){
     })
 }
 
-/*var bookmark_list = function(username, callback){
-    get_user(username, function(err, user){
-        var results = [];
-        user.bookmarked.forEach(function(msg){
-            results.push(msg._id);
-        });
-        callback(err, results);
-    })
-}*/
-
 var create_exp_channel = function(time, callback){
     channel = new Channel({'name': 'tmpname-exp-'+time,
                      'chat_type': 'tree',
@@ -679,7 +670,8 @@ var store_postsurvey = function(data, callback){
             questionnaire: false,
             post_survey: post_survey.slice(2),
         }}, {upsert: true}, function(err1){});
-        callback(err);
+        var encrypt = CryptoJS.AES.encrypt(user.name, "Secret Passphrase");
+        callback(err, encrypt);
     })
 };
 
@@ -701,7 +693,7 @@ var complete_experiment = function(channel_id, username, callback){
             var now = new Date();
             var start = new Date(channel.started_at);
             //var duration = (now - start - 1000*60*60) / (1000*60);
-            var duration = (now - start - 1000*60*60*3) / (1000*60);
+            var duration = (now - start - 1000*60*60*4) / (1000*60);
             Channel.updateOne({"_id":channel_id},
                 {$set:{type: "result", participants: channel.participants, duration: duration.toFixed(2)}}, {upsert:true}, function(err1){
                     if(err1)
@@ -754,6 +746,22 @@ var store_channel_presurvey = function(channel_id, username, callback){
     })
 };
 
+var search_code = function(code, callback){
+    var decrypted = CryptoJS.AES.decrypt(code, "Secret Passphrase");
+    User.findOne({"name": decrypted.toString(CryptoJS.enc.Utf8)}, function(err1, user){
+        if(err1)
+            return callback(err1);
+        if(!user){
+            return callback("Invalid Survey Code.");
+        }
+        Survey.findOne({"user": user._id}, function(err, survey){
+            if(err)
+                return callback(err)
+            callback(err, "Pre Survey: "+JSON.stringify(survey.pre_survey)+"<br>Post Survey: "+JSON.stringify(survey.post_survey));
+        })
+    })
+};
+
 
 exports.get_user = get_user;
 exports.create_user = create_user;
@@ -795,3 +803,4 @@ exports.store_postsurvey = store_postsurvey;
 exports.complete_experiment = complete_experiment;
 exports.assign_account = assign_account;
 exports.store_channel_presurvey = store_channel_presurvey;
+exports.search_code = search_code;

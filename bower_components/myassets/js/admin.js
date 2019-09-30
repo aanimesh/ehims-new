@@ -196,8 +196,8 @@ var status_update = function(channel_id, status, finish, duration){
     var row = $("[channel_id="+channel_id+"]").find('td');
     if(duration)
         $(row[6]).text(status+' ('+duration+' min)');
-    else(status)
-        $(row[7]).text(status);
+    else if (status)
+        $(row[6]).text(status);
     if(finish)
         $(row[7]).text(finish);
 }
@@ -335,6 +335,19 @@ $(document).ready(function(){
         tr.remove();
         update_group_no(2);
     });
+
+    $("#search-survey-code").on('click', function(){
+        var code = $("input[name='survey-code']").val();
+        $.ajax({
+            url:"/search_code",
+            type:"POST",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data : JSON.stringify({code:code}),
+        }).success(function(judgement){
+            $("#user-info").html(judgement);
+        })
+    })
 
 })
 

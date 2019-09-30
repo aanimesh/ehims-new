@@ -818,15 +818,24 @@ module.exports = function(io){
           storage.complete_experiment(data.channel, data.username, function(err, status, postsurvey, duration){
             if(!err){
               io.to('admin').emit('status_update', data.channel, status, postsurvey, duration);
-              storage.store_postsurvey(data, function(err1){
+              storage.store_postsurvey(data, function(err1, survey_code){
                   if(!err1)
-                    res.render('thanks', {username: data.username});
+                    res.render('thanks', {username: data.username, survey_code: survey_code});
               });
             }
             else
               console.log(err);
           })
         },
+
+        search_code: function(req, res){
+          var code = req.body.code;
+          storage.search_code(code, function(err, judgement){
+            if(err)
+              res.json(err);
+            res.json(judgement);
+          })
+        }
     };
 
     return routes;

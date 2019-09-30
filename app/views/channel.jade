@@ -82,7 +82,7 @@ html
                     if channel.chat_type != 'path'
                         li
                             a#modify-button(href='#') Modify
-                    if channel.type = 'routine'
+                    if channel.type == 'routine'
                         li
                             a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
                             form#back-home-form(method='post', action="/back_channels")

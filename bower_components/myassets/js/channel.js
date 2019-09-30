@@ -1015,9 +1015,12 @@ var back_home = function(){
     var input = document.getElementById("back-home");
     var input1 = document.getElementById("name-form-input");
     var input2 = document.getElementById("name-form-input1");
-    input.setAttribute('value', username);
-    input1.setAttribute('value', username);
-    input2.setAttribute('value', channel._id);
+    if(input)
+        input.setAttribute('value', username);
+    if(input1)
+        input1.setAttribute('value', username);
+    if(input2)
+        input2.setAttribute('value', channel._id);
 };
 
 // ----------------------------------------
