@@ -82,10 +82,11 @@ html
                     if channel.chat_type != 'path'
                         li
                             a#modify-button(href='#') Modify
-                    li
-                        a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
-                        form#back-home-form(method='post', action="/back_channels")
-                            input#back-home(type='hidden' name='username')
+                    if channel.type = 'routine'
+                        li
+                            a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
+                            form#back-home-form(method='post', action="/back_channels")
+                                input#back-home(type='hidden' name='username')
 
                     li
                         a(href="#" data-reveal-id="logout-modal") Logout

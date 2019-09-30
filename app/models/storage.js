@@ -700,7 +700,8 @@ var complete_experiment = function(channel_id, username, callback){
         if(count == false){
             var now = new Date();
             var start = new Date(channel.started_at);
-            var duration = (now - start - 1000*60*60) / (1000*60);
+            //var duration = (now - start - 1000*60*60) / (1000*60);
+            var duration = (now - start - 1000*60*60*3) / (1000*60);
             Channel.updateOne({"_id":channel_id},
                 {$set:{type: "result", participants: channel.participants, duration: duration.toFixed(2)}}, {upsert:true}, function(err1){
                     if(err1)
