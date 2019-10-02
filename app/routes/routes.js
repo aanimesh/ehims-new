@@ -156,7 +156,7 @@ module.exports = function(io){
        },
 
        signup: function(req,res){
-            if(req.body.agreebox == 'on')
+            /*if(req.body.agreebox == 'on')
                 res.render("signup");
             else{
                 storage.get_content(function(content){
@@ -164,7 +164,8 @@ module.exports = function(io){
                     consent = consent.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
                     res.render('consent', {consent:consent});
                 });
-            }
+            }*/
+            res.render('signup');
        },
 
        forgot_password: function(req,res){

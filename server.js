@@ -81,7 +81,7 @@ app.post('/edit_content', routes.edit_content);
 
 app.post('/modify_hierarchy', routes.modify_hierarchy);
 
-app.post('/signup', routes.signup);
+app.get('/signup', routes.signup);
 
 app.get('/forgot_password', routes.forgot_password);
 
