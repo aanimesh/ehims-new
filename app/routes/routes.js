@@ -54,18 +54,18 @@ var user_join_channel = function(channel, user, res, STARTTIME){
         help_popup: get_help_popup(),
         socket_url : socket_url};
     if(STARTTIME == true){
-        if(channel.type == "experiment" || channel.type == "in progress"){
-            var seen = 0;
-            channel.participants.forEach(function(dict){
-                if (dict.name == user.name)
-                    seen = 1;
-            });
-            if(seen == 0){
-                res.render('error', {'message': 'Please follow the link to register first before join this channel: <a href="'+socket_url+'homepage">'+socket_url+'homepage</a><br><br>Thanks!', 
-                                     'username': user.name});
-                return;
-            }
-        }
+          if(channel.type == "experiment" || channel.type == "in progress"){
+              var seen = 0;
+              channel.participants.forEach(function(dict){
+                  if (dict.name == user.name)
+                      seen = 1;
+              });
+              if(seen == 0){
+                  res.render('error', {'message': 'Please follow the link to register first before join this channel: <a href="'+socket_url+'homepage">'+socket_url+'homepage</a><br><br>Thanks!', 
+                                       'username': user.name});
+                  return;
+              }
+          }
         if(channel.type == "result"){
             res.render('error', {'message': 'The experiment has finished yet.<br><br> Please follow the link to choose another channel: <a href="'+socket_url+'homepage">'+socket_url+'homepage</a><br><br>Thanks!', 
                                 'username': user.name});
@@ -73,6 +73,23 @@ var user_join_channel = function(channel, user, res, STARTTIME){
         }
     }
     else {
+        if(channel.type == "experiment" || channel.type == "in progress"){
+            var seen = 0;
+            if(channel.participants.length >= channel.users_number){
+                channel.participants.forEach(function(dict){
+                  if (dict.name == user.name)
+                      seen = 1;
+                });
+            }
+            else{
+              seen = 1;
+            }
+            if(seen == 0){
+                res.render('error', {'message': 'Sorry this channel is full now. <br>Please follow the link to join another channel: <a href="'+socket_url+'assign">'+socket_url+'assign</a><br><br>Thanks!', 
+                                     'username': user.name});
+                return;
+            }
+        }
         if(channel.type == "result"){
             res.render('error', {'message': 'The experiment has finished yet.<br><br> Please follow the link to enter another channel: <a href="'+socket_url+'assign">'+socket_url+'assign</a><br><br>Thanks!', 
                                 'username': user.name});
@@ -415,6 +432,7 @@ module.exports = function(io){
             if(channel === 'all'){
                 storage.get_all_channels(function(channels){
                     storage.get_all_messages(function(messages){
+                        neo4j.store_messages(messages);
                         ret = {'channels': []};
                         channels.forEach(function(ch){
                             ret.channels.push({
@@ -600,7 +618,7 @@ module.exports = function(io){
               storage.assign_account(function(err, user){
                 if(err)
                   return;
-                res.render('assign',{'user':user.name, 'consent': content.consent});
+                res.render('assign',{'user':user.name, 'password': user.password, 'consent': content.consent});
               })
             })
         },
@@ -610,8 +628,8 @@ module.exports = function(io){
               res.render('homepage', {'username': req.body.username});
             else{
                storage.get_content(function(content){
-                    res.render('assign',{'user': req.body.username, 'consent': content.consent});
-                }) 
+                    res.render('assign',{'user': req.body.username, 'password': req.body.password, 'consent': content.consent});
+                })
              }
         },
 
@@ -636,7 +654,7 @@ module.exports = function(io){
             }
             else{
                 storage.get_content(function(content){
-                    res.render('assign',{'user': req.body.username, 'consent': content.consent});
+                    res.render('assign',{'user': req.body.username,'password':req.body.password, 'consent': content.consent});
                 }); 
             }
         },
@@ -809,33 +827,47 @@ module.exports = function(io){
 
         postsurvey: function(req,res){
             storage.get_content(function(content){
-                res.render('postsurvey', {channel: req.body.channel, username: req.body.username, postsurvey: content.post_survey});
+                storage.complete_experiment(req.body.channel, req.body.username, function(err, status, postsurvey, duration){
+                    if(!err){
+                        io.to('admin').emit('status_update', req.body.channel, status, postsurvey, duration);
+                        io.to(req.body.channel).emit('stop_experiment', 1);
+                        res.render('postsurvey', {channel: req.body.channel, username: req.body.username, postsurvey: content.post_survey});
+                    }
+                });
             });
         },
 
         submit_postsurvey: function(req, res){
           var data = req.body;
-          storage.complete_experiment(data.channel, data.username, function(err, status, postsurvey, duration){
+          storage.submit_postsurvey(data.channel, data.username, function(err, count, duration){
             if(!err){
-              io.to('admin').emit('status_update', data.channel, status, postsurvey, duration);
-              storage.store_postsurvey(data, function(err1, survey_code){
-                  if(!err1)
+                storage.store_postsurvey(data, function(err1, survey_code){
+                  if(!err1){
                     res.render('thanks', {username: data.username, survey_code: survey_code});
+                    io.to('admin').emit('status_update', data.channel, 'Finished', count, duration);
+                  }
               });
             }
-            else
-              console.log(err);
           })
         },
 
         search_code: function(req, res){
-          var code = req.body.code;
-          storage.search_code(code, function(err, judgement){
-            if(err)
-              res.json(err);
-            res.json(judgement);
-          })
-        }
+            var code = req.body.code;
+            storage.search_code(code, function(err, judgement){
+              if(err)
+                res.json(err);
+              res.json(judgement);
+            })
+        },
+
+        force_stop: function(req,res){
+            storage.complete_experiment(req.body.channel, req.body.username, function(err, status, postsurvey, duration){
+              if(!err){
+                  io.to('admin').emit('status_update', req.body.channel, status, postsurvey, duration);
+                  res.json('data');
+              }
+            });
+        },
     };
 
     return routes;

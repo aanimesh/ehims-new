@@ -20,10 +20,10 @@ html
         .row
             h3 Consent
             br
-            p(style='white-space: pre') #{consent}
+            p(style='white-space: pre-line') #{consent}
             form#agreeconsent(method='post', action="/signup")
               input(type="checkbox" name='agreebox') 
-              label I have read the consent letter and agree to those conditions.
+              label I have read the consent form and agree to those conditions.
               br
             a(href='javascript:void(0);', onclick="document.getElementById('agreeconsent').submit();")
               button#agreehref Agree

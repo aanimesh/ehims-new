@@ -1,3 +1,6 @@
+var TIME_X = 5; // the waiting period to alert an warning
+var TIME_Y = 2; // the waiting period to stop experiment
+var DURATION = 60;  // maximum time for a group
 
 var hard_focus = null;
 var most_recent = null;
@@ -13,6 +16,10 @@ var change_parent = {};
 var latest_child = [];
 var color_table = [];
 var WAITING_MINUTES = 10;
+var last_msg_time = new Date();
+var flag1 = 0;
+var flag2 = 0;
+var START_TIME;
 
 var PLUS_CLICKABLE = false;
 
@@ -75,8 +82,50 @@ var send_message = function () {
     });
 };
 
+var waiting_time = setInterval(function(){
+    var now = new Date();
+    var time_delta = now - last_msg_time;
+    if(channel.type == 'in progress'){
+        if(now - START_TIME > DURATION*1000*60){
+            waiting_page("Time's Up. <br> Thank you for your cooperation, please click the button to complete a post survey.");
+            $("#waiting_page").append("<a id='logout-yes' onclick='document.getElementById("+'"name-form"'+").submit()' style='position:relative;display:inline-block;margin-left:42%;float:left;margin-top:3%'>\
+                                        <button>Post Survey</button></a>");
+            $.ajax({
+                url:"/force_stop",
+                type:"POST",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data : JSON.stringify({'channel':channel._id}),
+            }).success(function(data){
+                channel.type = 'result';
+            });
+        }
+        if(time_delta > TIME_X*1000*60 && (TIME_Y + TIME_X)*1000*60 > time_delta && flag1 == 0){
+            flag1 = 1;
+            alert("The channel has been idle for "+TIME_X+" minutes. It will automatically stop if it keep inactive for "+TIME_Y+" more minutes.");
+        }
+        else if(time_delta > (TIME_Y + TIME_X)*1000*60 && flag2 == 0){
+            flag2 = 1;
+            waiting_page("This experiment stops for being idle too long.<br> Thank you for your cooperation, please click the button to complete a post survey.");
+            $("#waiting_page").append("<a id='logout-yes' onclick='document.getElementById("+'"name-form"'+").submit()' style='position:relative;display:inline-block;margin-left:42%;float:left;margin-top:3%'>\
+                                        <button>Post Survey</button></a>");
+            $.ajax({
+                url:"/force_stop",
+                type:"POST",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data : JSON.stringify({'channel':channel._id}),
+            }).success(function(data){
+                channel.type = 'result';
+            });
+        }
+    }
+}, 1000*60);
+
 
 var receive_msg = function(msg, top_lvl_messages){
+    last_msg_time = new Date();
+
     var i;
     messages[msg._id] = msg;
     ids[msg._id] = cur_id;
@@ -249,8 +298,13 @@ var get_invite_link = function(invite){
 
 // ------- User Login/off ---------
 
+var stop_experiment = function(stop_signal){
+    if(stop_signal == 1)
+        channel_gate();
+};
+
 // before experiment starts
-var channel_gate = function(pos){
+var channel_gate = function(pos, msg){
     if(channel.type == 'experiment'){
         var time = new Date();
         var start_time = new Date(channel.started_at);
@@ -279,6 +333,11 @@ var channel_gate = function(pos){
                 experiment_started();
         }
     }
+    else if(channel.type == 'in progress'){
+        waiting_page("This experiment finishes because some participants log off.<br> Thank you for your cooperation, please click the button to complete a post survey.");
+        $("#waiting_page").append("<a id='logout-yes' onclick='document.getElementById("+'"name-form"'+").submit()' style='position:relative;display:inline-block;margin-left:42%;float:left;margin-top:3%'>\
+                                    <button>Post Survey</button></a>");
+    }
 };
 
 var waiting_page = function(msg){
@@ -301,6 +360,8 @@ var experiment_started = function(){
         channel.type = "in progress";
         $("#logout-yes").attr('href', '#');
         $("#logout-yes").attr('onclick', "document.getElementById('name-form').submit()");
+        last_msg_time = new Date();
+        START_TIME = new Date();
     });
 };
 
@@ -1456,6 +1517,7 @@ $(document).ready(function(){
     socket.on('likes', receive_likes);
     socket.on('edited_content', update_content);
     socket.on('modify_hierarchy', modify_hierarchy);
+    socket.on('stop_experiment', stop_experiment);
 
     socket.on('log-on',user_log_on);
     socket.on('log-off',user_log_off);
@@ -1495,6 +1557,8 @@ $(document).ready(function(){
 
     assign_color();
     update_online();
+    if(channel.type != 'routine')
+        waiting_time;
 
     $('#invite-link').on('click',function (e) {
         // select the whole link on a click

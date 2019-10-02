@@ -13,6 +13,7 @@ var app  = express();
 var http = http.Server(app);
 var io   = io(http);
 
+
 var routes  = require('./app/routes/routes.js')(io);
 var io_r    = require('./app/io/io.js')(io);
 
@@ -122,6 +123,8 @@ app.post('/presurvey_login', routes.presurvey_login);
 
 app.post('/search_code', routes.search_code);
 
+app.post('/force_stop', routes.force_stop);
+
 // ---------------------------------
 
 /**
@@ -144,4 +147,4 @@ var reqTimer = setTimeout(function wakeUp() {
    return reqTimer = setTimeout(wakeUp, 1200000);
 }, 1200000);
 
-reqTimer;
+//reqTimer;

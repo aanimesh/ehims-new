@@ -7,9 +7,8 @@ html
         link(rel="stylesheet",href="/myassets/css/admin.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
-        script(src="/myassets/js/admin.js")
+        script(src="/myassets/survey.js")
         script.
-            var presurvey = !{JSON.stringify(presurvey)};
             var username = "!{username}";
             var channel = "!{channel}";
     body
@@ -21,15 +20,23 @@ html
             br
             form#presurvey(method='post', action="/submit_presurvey")
                 .input-group
-                  input.input-group-field(type="hidden",
+                    input.input-group-field(type="hidden",
                         name="channel",
                         value="#{channel}")
-                  input.input-group-field(type="hidden",
+                    input.input-group-field(type="hidden",
                         name="username",
                         value="#{username}")
-                  each question, index in presurvey
-                    p #{index+1}. #{question}
-                    input.input-group-field(type="text",
-                        required
-                        name="question#{index+1}")
-                  button.input-group-button.button Submit
+
+                    // template for open questions
+                    input.input-group-field(
+                        type="text",
+                        name="id1",
+                        label="label")
+
+                    // template for dropdown boxes
+                    input.input-group-field(
+                        type="text",
+                        name="id1",
+                        label="label")
+
+                    button.input-group-button.button Submit

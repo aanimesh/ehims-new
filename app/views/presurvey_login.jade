@@ -7,9 +7,8 @@ html
         link(rel="stylesheet",href="/myassets/css/admin.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
-        script(src="/myassets/js/admin.js")
+        script(src="/myassets/js/survey.js")
         script.
-            var presurvey = !{JSON.stringify(presurvey)};
             var username = "!{username}";
             var channel = "!{channel}";
     body
@@ -19,17 +18,50 @@ html
         .row
             h2 Hi, #{username}
             br
-            form#presurvey(method='post', action="/presurvey_login")
-                .input-group
-                  input.input-group-field(type="hidden",
+            form
+                .input-group#presurvey
+                    input.input-group-field(type="hidden",
                         name="channel",
                         value="#{channel}")
-                  input.input-group-field(type="hidden",
+                    input.input-group-field(type="hidden",
                         name="username",
                         value="#{username}")
-                  each question, index in presurvey
-                    p #{index+1}. #{question}
-                    input.input-group-field(type="text",
-                        required
-                        name="question#{index+1}")
-                  button.input-group-button.button Submit
+
+                    // template for radio button (single choice)
+                    div.row
+                        div.columns.large-6
+                            p 2. Question2 Question2 Question2 Question2 Question2 Question2 Question2 Question2 Question2 Question2 Question2 
+                        div.columns.large-6#presurvey-radio
+                            input.input-group-field(type="radio", required, name="Q2", label="label2", value="male")
+                            label Male
+                            input.input-group-field(type="radio", name="Q2", label="label2", value="female")
+                            label Female
+                            input.input-group-field(type="radio", name="Q2", label="label2", value="others")
+                            label Others
+
+                    // template for checkbox (multiple choice)
+                    div.row
+                        div.columns.large-6
+                            p 3. Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 
+                        div.columns.large-6#presurvey-checkbox
+                            input.input-group-field(type="checkbox", name="Q3.1", label="label3", value="morning")
+                            label Morning
+                            input.input-group-field(type="checkbox", name="Q3.2", label="label3", value="evening")
+                            label Evening
+                            input.input-group-field(type="checkbox", name="Q3.3", label="label3", value="noon")
+                            label Noon
+
+                    // template for select boxes
+                    div.row
+                        div.columns.large-6
+                            p 4. Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 
+                        div.columns.large-6#presurvey
+                            select(name="id2", label="label2" require)
+                                option(value="hotdog") Hotdog
+                                option(value="sandwich") Sandwich
+
+                    // template for open questions
+                    p 1. Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 
+                    input.input-group-field(type="text", required, name="Q1", label="label1")
+
+                    button#presurvey-submit Submit

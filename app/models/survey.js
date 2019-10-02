@@ -3,11 +3,12 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var SurveySchema = new Schema ({
-	id:ObjectId,
+	id: ObjectId,
+	channel:{type: ObjectId, ref: 'Channel'},
 	user: {type: ObjectId, ref: 'User'},
 	questionnaire: {type: Boolean, default: false},
-	pre_survey: [String],
-	post_survey: [String],
+	pre_survey: [{lable: String, index: String, answer:String}],
+	post_survey: [{lable: String, index: String, answer:String}],
 	consent: String,
 	instructions: String,
 });

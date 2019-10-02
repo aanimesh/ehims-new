@@ -5,8 +5,6 @@
 // This file contains all code needed for
 // interfacing with the database
 var WAITING_MINUTES = 10;
-var TIME_SLOT = 1; // 1 time_slot means 30 minutes. So each group should start at **:30:00 or **:00:00 
-
 
 var MongoClient = require('mongodb').MongoClient;
 var mongoose = require('mongoose');
@@ -628,13 +626,14 @@ var register = function(channel_id, username, callback){
 };
 
 var store_presurvey = function(data, callback){
-    var pre_survey = Object.values(data);
+    console.log(data);
     User.findOne({"name":data.username}, function(err,user){
         if(err)
             callback(err);
         Survey.updateOne({"user": user._id}, {$set:{
+            channel:data.channel,
             questionnaire: false,
-            pre_survey: pre_survey.slice(2),
+            pre_survey: data.presurvey,
         }}, {upsert: true}, function(){});
         callback(err);
     })
@@ -675,40 +674,43 @@ var store_postsurvey = function(data, callback){
     })
 };
 
+var submit_postsurvey = function(channel_id, username, callback){
+    Channel.findOne({"_id":channel_id}, function(err, channel){
+        if(err || !channel)
+            return;
+        if(!err){
+            var count = 0;
+            channel.participants.forEach(participant => {
+                if(participant.name == username)
+                    participant.postsurvey = true;
+                if(participant.postsurvey == true)
+                    count += 1;
+            })
+            Channel.updateOne({"_id":channel_id}, {$set:{participants:channel.participants}},{upsert:true}, function(){});
+            callback(err, count, channel.duration);
+        }
+    })
+};
+
 var complete_experiment = function(channel_id, username, callback){
     Channel.findOne({"_id":channel_id}, function(err, channel){
         if(err)
             callback(err);
-        var count = false;
         var postsurvey = 0;
         for(var i = 0; i < channel.participants.length; i ++){
-            if(channel.participants[i].online == true)
-                count = true;
-            if(channel.participants[i].name == username)
-                channel.participants[i].postsurvey = true;
             if(channel.participants[i].postsurvey == true)
                 postsurvey += 1;
         };
-        if(count == false){
-            var now = new Date();
-            var start = new Date(channel.started_at);
-            //var duration = (now - start - 1000*60*60) / (1000*60);
-            var duration = (now - start - 1000*60*60*4) / (1000*60);
-            Channel.updateOne({"_id":channel_id},
-                {$set:{type: "result", participants: channel.participants, duration: duration.toFixed(2)}}, {upsert:true}, function(err1){
-                    if(err1)
-                        callback(err1);
-                });
-            callback(err, "Finished", postsurvey, duration.toFixed(2));
-        }
-        else{
-            Channel.updateOne({"_id":channel_id},
-                {$set:{participants: channel.participants}}, {upsert:true}, function(err1){
-                    if(err1)
-                        callback(err1);
-                });
-            callback(err, "Ongoing", postsurvey);
-        }
+        var now = new Date();
+        var start = new Date(channel.started_at);
+        //var duration = (now - start - 1000*60*60) / (1000*60);
+        var duration = (now - start - 1000*60*60*4) / (1000*60);
+        Channel.updateOne({"_id":channel_id},
+            {$set:{type: "result", participants: channel.participants, duration: duration.toFixed(2)}}, {upsert:true}, function(err1){
+                if(err1)
+                    callback(err1);
+            });
+        callback(err, "Finished", postsurvey, duration.toFixed(2));
     })  
 };
 
@@ -718,6 +720,7 @@ var assign_account = function(callback){
             callback(err);
         var name_array = [];
         var name;
+        var password = parseInt(Math.random()*10000000);
         users.forEach(user => {
             name_array.push(user.name);
         })
@@ -726,8 +729,9 @@ var assign_account = function(callback){
             if(name_array.includes(name) == false)
                 break;
         }
-        var new_user = new User({'name':name, 'password': name, 'channels': [], "experiment": true, "channel":[]});
+        var new_user = new User({'name':name, 'password': password, 'channels': [], "experiment": true, "channel":[]});
         new_user.save().then(function(){
+            new_user.password = password;
             callback(err, new_user);
         });
     });
@@ -801,6 +805,7 @@ exports.start_experiment = start_experiment;
 exports.get_user_presurvey = get_user_presurvey;
 exports.store_postsurvey = store_postsurvey;
 exports.complete_experiment = complete_experiment;
+exports.submit_postsurvey = submit_postsurvey;
 exports.assign_account = assign_account;
 exports.store_channel_presurvey = store_channel_presurvey;
 exports.search_code = search_code;

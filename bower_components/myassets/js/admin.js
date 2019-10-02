@@ -15,8 +15,8 @@ var add_group = function(group_id, channel_id){
     chat_td.append(chat_type);
     row.append(chat_td);
     row.append('<td id="tree_views_td-'+channel_id+'"><input id="tree_views-'+channel_id+'" type="checkbox" style="position: relative;top: 10px;left: 20px;transform:scale(1.5, 1.5);"></td>');
-    row.append('<td id="status-'+channel_id+'" style="text-align: center">Not started</td>');
-    row.append('<td id="completed-'+channel_id+'" style="text-align: center">0</td>');
+    row.append('<td id="status" style="text-align: center">Not started</td>');
+    row.append('<td id="postsurvey" style="text-align: center">0</td>');
     row.append('<td id="create-group-cell-'+channel_id+'" style="overflow: auto"><button class="small" id="create-group">Create</button></td>');
     row.append('<td id="download-'+channel_id+'"></td>');
 
@@ -47,9 +47,9 @@ var fixed_configuration = function(data){
     $('#tree_views_td-'+channel._id).css('text-align', 'center');
 
     if(channel.status == 'in progress')
-        $('#status-'+channel._id).html("Ongoing");
+        $('#status').html("Ongoing");
     else if (channel.status == 'result')
-        $('#status-'+channel._id).html("Finished");
+        $('#status').html("Finished");
     var post_count = 0;
     for(var i = 0; i < channel.participants.length; i++){
         if(channel.participants[i].postsurvey != undefined && channel.participants[i].postsurvey != null){
@@ -58,7 +58,7 @@ var fixed_configuration = function(data){
             }
         }
     }
-	$('#completed-'+channel._id).html(post_count);
+	$('#postsurvey').html(post_count);
 
 	$('#create-group-cell-'+channel._id).html(get_invite_link(invite_id));
 	$('#create-group-cell-'+channel._id+'> button').css('display', 'none');
@@ -193,13 +193,14 @@ var sub_question = function(seleted_page){
 }
 
 var status_update = function(channel_id, status, finish, duration){
-    var row = $("[channel_id="+channel_id+"]").find('td');
-    if(duration)
-        $(row[6]).text(status+' ('+duration+' min)');
+    var status_div = $("[channel_id='"+channel_id+"']").find("#status");
+    var postsurvey_div = $("[channel_id='"+channel_id+"']").find("#postsurvey");
+    if (duration)
+        status_div.text(status+' ('+duration+' min)');
     else if (status)
-        $(row[6]).text(status);
+        status_div.text(status);
     if(finish)
-        $(row[7]).text(finish);
+        postsurvey_div.text(finish);
 }
 
 $(document).ready(function(){
@@ -306,7 +307,7 @@ $(document).ready(function(){
         update_survey_question(seleted_page);
     });
 
-    $("#add-question").on('click', function(){
+    /*$("#add-question").on('click', function(){
         var seleted_page = parseInt($("#seleted-page").val());
         if(seleted_page == 1 || seleted_page == 0)
             return;
@@ -334,7 +335,7 @@ $(document).ready(function(){
         survey_contents.post_survey.splice(parseInt(no)-1, 1);
         tr.remove();
         update_group_no(2);
-    });
+    });*/
 
     $("#search-survey-code").on('click', function(){
         var code = $("input[name='survey-code']").val();

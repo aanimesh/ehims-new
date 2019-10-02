@@ -11,25 +11,28 @@ html
         script.
             var consent = "!{consent}";
             var user = !{JSON.stringify(user)};
+            var password = !{JSON.stringify(password)};
             var checked = false;
+            var invite_link = "!{invite_link}"
     body
         .row(style="margin-top:5%")
             .large-12.medium-12.small-12.columns
             h1 Welcome to EHIMS
         .row
             br
-            p For participating our experiments, please remember your unique username and password:
+            p For participating our experiments, please remember your unique username and password. In case of logging off accidently, you can come back to the experiment via the invitation link.
             h5(style='white-space: pre') Username: #{user}
-            h5(style='white-space: pre') Password: #{user}
+            h5(style='white-space: pre') Password: #{password}
             br
             p#consent(style='white-space: pre') 
             //first version
             //form#agreeconsent(method='post', action="/login")
             //second version
             form#agreeconsent(method='post', action="/hall")
-              input(type="checkbox" name='agreebox') 
+              input(type="checkbox" name='agreebox' required) 
               label I have read the consent letter and agree to those conditions.
               input(name='username' type='hidden' value='#{user}') 
+              input(name='password' type='hidden' value='#{password}') 
               br
             a(href='javascript:void(0);', onclick="document.getElementById('agreeconsent').submit();")
               button#agreehref Agree
