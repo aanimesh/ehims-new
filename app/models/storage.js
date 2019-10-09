@@ -596,7 +596,7 @@ var change_password = function(name, password, callback){
             );
         })
     })
-};
+}; 
 
 var get_content = function(callback){
     Survey.findOne({"questionnaire" : true}, function(err, data){
