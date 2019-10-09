@@ -9,14 +9,13 @@ html
         script(src="/foundation/js/foundation.js")
         script(src="/myassets/js/consent.js")
         script.
-            if consent:
+            if (consent)
                 var consent = !{JSON.stringify(consent)};
             var user = !{JSON.stringify(user)};
             var password = !{JSON.stringify(password)};
             var checked = false;
-            if invite_link:
+            if (invite_link)
                 var invite_link = !{JSON.stringify(invite_link)};
-            alert(consent);
     body
         .row(style="margin-top:5%")
             .large-12.medium-12.small-12.columns
