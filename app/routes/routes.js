@@ -76,23 +76,18 @@ var user_join_channel = function(channel, user, res, STARTTIME){
         }
     }
     else {
-        /*if(channel.type == "experiment" || channel.type == "in progress"){
-            var seen = 0;
-            if(channel.participants.length >= channel.users_number){
-                channel.participants.forEach(function(dict){
-                  if (dict.name == user.name)
-                      seen = 1;
-                });
-            }
-            else{
-              seen = 1;
-            }
-            if(seen == 0){
+        if(channel.type == "in progress"){
+            var seen = 1;
+            channel.participants.forEach(function(dict){
+              if (dict.name == user.name)
+                  seen = 0;
+            });
+            if(seen == 1){
                 res.render('error', {'message': 'Sorry this channel is full now. <br>Please follow the link to join another channel: <a href="'+socket_url+'assign">'+socket_url+'assign</a><br><br>Thanks!', 
                                      'username': user.name});
                 return;
             }
-        }*/
+        }
         if(channel.type == "result"){
             res.render('error', {'message': 'The experiment has finished yet.<br><br> Please follow the link to enter another channel: <a href="'+socket_url+'assign">'+socket_url+'assign</a><br><br>Thanks!', 
                                 'username': user.name});
