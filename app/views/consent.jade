@@ -9,7 +9,7 @@ html
         script(src="/foundation/js/foundation.js")
         script(src="/myassets/js/consent_normal_user.js")
         script.
-            var consent_normal_user = "!{JSON.stringify(consent)}";
+            var consent_normal_user = !{JSON.stringify(consent)};
             var channel_id = "!{channel_id}";
             var invite = "!{invite}";
             var checked = false;

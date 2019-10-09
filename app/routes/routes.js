@@ -139,7 +139,7 @@ module.exports = function(io){
                         res.render("welcome", {message: "Invite does not exist"});
                     else{
                         if(invite.experiment == true)
-                            res.render('homepage', {
+                            res.render('invite_login', {
                                 'channel': invite.channel,
                                 'invite': invite._id,
                             });
