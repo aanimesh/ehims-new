@@ -81,7 +81,7 @@ app.post('/edit_content', routes.edit_content);
 
 app.post('/modify_hierarchy', routes.modify_hierarchy);
 
-app.get('/signup', routes.signup);
+app.post('/signup', routes.signup);
 
 app.get('/forgot_password', routes.forgot_password);
 
@@ -93,7 +93,7 @@ app.post('/reset', routes.reset_password);
 
 app.post('/update_survey', routes.update_survey);
 
-app.get('/consent', routes.get_consent);
+app.post('/consent', routes.get_consent);
 
 app.get('/homepage', routes.homepage);
 
@@ -125,6 +125,8 @@ app.post('/search_code', routes.search_code);
 
 app.post('/force_stop', routes.force_stop);
 
+app.get('/download_individual', routes.download_individual);
+
 // ---------------------------------
 
 /**
@@ -140,11 +142,11 @@ http.listen(port,function(){
     console.log('Listening on 3000');
 });
 
-var reqTimer = setTimeout(function wakeUp() {
+/*var reqTimer = setTimeout(function wakeUp() {
    require('http').request("http://ehims-new.herokuapp.com/", function() {
       console.log("WAKE UP DYNO");
    });
    return reqTimer = setTimeout(wakeUp, 1200000);
 }, 1200000);
 
-reqTimer;
+reqTimer;*/

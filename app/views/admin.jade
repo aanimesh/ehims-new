@@ -39,7 +39,7 @@ html
             input(type='text' placeholder='Survey Code' style='width:80%;float:left' name='survey-code') 
             button#search-survey-code.input-group-button.button.tiny(style='float:left;left:5%') Search
         .row
-            p#user-info(style="white-space:pre")
+            div#user-info(style="white-space:pre-line")
 
         .row
             br
@@ -47,6 +47,8 @@ html
             h3(style="display: inline") Group Details
             i.fa.fa-minus-circle.fa-2x.sub-icon(id='sub-group')
             i.fa.fa-plus-circle.fa-2x.add-icon(id='add-group')
+            a(href='/download_individual' target="_blank")
+                button#individual-info.tiny(style="position:relative; top:5px;left:63%") Survey Results
             p
             div(style="max-height:600px;overflow-y:auto")
               table.large-12.medium-12.small-12(style='table-layout: fixed')
@@ -92,11 +94,16 @@ html
             div.large-3(id="survey-page")
               select#seleted-page
                 option(value='0') Select page:
-                option(value='1' selected="selected") Consent
+                option(value='1' selected="selected") Consent (for normal users)
+                option(value='5') Consent (for testers)
                 option(value='4') Instructions
                 //option(value='2') Pre Survey
                 //option(value='3') Post Survey
             p
+            p(style="display:inline") Please use 
+              b(style="display:inline") Shift + Enter 
+            p(style="display:inline") (instead of only Enter) to create a new line.
+            p
             div#survey
-              p#consent_content(contenteditable="true" style="border:1px solid lightgray;padding:10px") #{survey_contents.consent}
+              p#consent_content(contenteditable="true" style="border:1px solid lightgray;padding:10px;white-space:pre-line") 
             button#save-survey Save

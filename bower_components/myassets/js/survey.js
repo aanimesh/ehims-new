@@ -1,29 +1,34 @@
 $(document).ready(function(){
-	$("#presurvey-submit").on('click', function(){
-		var form = $("input");
-		var data = {};
-		data['presurvey'] = [];
-		form.each(function(index){
-			switch(index){
-				case 0:
-					data['channel'] = $(this).val();
-					break;
-				case 1:
-					data['username'] = $(this).val();
-					break;
-				default:
-					data['presurvey'].push({'label':$(this).attr('label'), 'answer':$(this).val(), 'name':$(this).attr('name')});
-			}
-		});
-
-		console.log(data);
-
-		/*$.ajax({
-            type : "POST",
-            url  : '/presurvey_login',
-            data : JSON.stringify(data),
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-        });*/
-	})
+	$("#presurvey-submit").on('click', function(e){
+		var checkboxes = $(".checkbox");
+		var checked = false;
+		$.each(checkboxes, function(i, boxes){
+			var child = $(this).children('input');
+			checked = false;
+			$(child).each(function(index){
+				if($(this).is(':checked'))
+					checked = true;
+			});
+		})
+		if(checked == false){
+			alert("Please check the checkbox");
+			return;
+		}
+	});
+	$("#postsurvey-submit").on('click', function(e){
+		var checkboxes = $(".checkbox");
+		var checked = false;
+		$.each(checkboxes, function(i, boxes){
+			var child = $(this).children('input');
+			checked = false;
+			$(child).each(function(index){
+				if($(this).is(':checked'))
+					checked = true;
+			});
+		})
+		if(checked == false){
+			alert("Please check the checkbox");
+			return;
+		}
+	});
 });

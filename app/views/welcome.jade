@@ -5,6 +5,7 @@ html
         link(rel="stylesheet",href="/foundation/css/foundation.min.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.min.js")
+        script(scr="/myassets/js/welcome.js")
     body
         .row.text-center(style="margin-top:10%;")
             .large-4.medium-4.columns.large-offset-4.medium-offset-4
@@ -48,8 +49,16 @@ html
                             a#forgot-pass(href='/forgot_password' style='font-size:0.8222rem;margin:0;text-align: right;display:block') Forgot password?
                             br
                             button.input-group-button.button Log In
+                    form#welcome-form(action="consent",method="POST")
+                        .input-group
+                            input.input-group-field(type="hidden",
+                                                    value="#{channel}",
+                                                    name="channel_id")
+                            input.input-group-field(type="hidden",
+                                                    value="#{invite}",
+                                                    name="invite")
                     p Need an account? 
-                        a(href='/signup') Sign up
+                        a(onclick="document.getElementById('welcome-form').submit();") Sign up
 
 
 

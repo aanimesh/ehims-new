@@ -51,6 +51,7 @@ var send_message = function () {
 
     if (parents.indexOf("0") > -1)
         parents.splice(parents.indexOf("0"), 1);
+    var urgency = $("#urgencybox").is(':checked');
 
     var message = {
         'author'    : username,
@@ -61,6 +62,7 @@ var send_message = function () {
         'likes'     : [],
         'bookmarked': [],
         'original_version':[],
+        'urgency'   : true,
         'content'   : $('#message').val().replace('&','&amp;')
                                          .replace('<','&lt;')
                                          .replace('>','&gt;')
@@ -79,6 +81,7 @@ var send_message = function () {
         $('#message').val('');
         $('#message').prop('disabled',false);
         $('#message').focus();
+        $("#urgencybox").prop('checked', false);;
     });
 };
 
@@ -125,6 +128,7 @@ var waiting_time = setInterval(function(){
 
 var receive_msg = function(msg, top_lvl_messages){
     last_msg_time = new Date();
+    var urgency = msg.urgency;
 
     var i;
     messages[msg._id] = msg;
@@ -146,7 +150,10 @@ var receive_msg = function(msg, top_lvl_messages){
     //   - Message authos is current user
     //   - We're in path mode
     if(msg.author !== username && chat_type !== 'path'){
-        queue.push(msg);
+        if (urgency == true)
+            queue.unshift(msg);
+        else
+            queue.push(msg);
         $('#queue-length').html('('+queue.length+')');
         clearInterval(new_message_flash);
         new_message_flash = setInterval(message_flash, 700);
@@ -469,7 +476,15 @@ var update_queue_display = function(){
 
 
 var add_msg_to_hover_list = function(msg){
-    $('#new-msg-list').prepend('<li id="list-'+
+    if(msg.urgency == true)
+        $('#new-msg-list').prepend('<li id="list-'+
+            msg._id +'">'+
+            msg.author + ': ' +
+            msg.content.substring(0, 
+                (25-msg.author.length)>0? 25-msg.author.length : 0) +
+            '</li>');
+    else 
+        $('#new-msg-list').append('<li id="list-'+
             msg._id +'">'+
             msg.author + ': ' +
             msg.content.substring(0, 
@@ -1008,6 +1023,15 @@ var forward = function(){
 
 // ---------- Popup window ---------------
 var display_popup_msg = function(msg_ids, modal){
+    if(msg_ids.length == 0 && modal == 'search-modal'){
+        $('#'+modal+' > #modal-msg').empty();
+        $('#'+modal+' > #modal-msg').append('<p>Sorry, no results found.</p>');
+        return;
+    }
+    else if(msg_ids.length == 0){
+        $('#'+modal+' > #modal-msg').empty();
+        return;
+    }
     $('#'+modal).css('height', '85%');
     $('#'+modal+' > #modal-msg').empty();
     for(var i = 0; i < msg_ids.length; i ++){
@@ -1062,6 +1086,31 @@ var get_bookmark_message = function(name){
             data.unshift(key);
     });
     return data;
+};
+
+var search_message = function(field, text){
+    var result = [];
+    switch(field){
+        case "ID":
+            Object.keys(ids).forEach(key => {
+                if(ids[key] == text)
+                    result.push(key);
+            });
+            break;
+        case "content":
+            Object.keys(messages).forEach(key => {
+                msg = messages[key];
+                if(msg.content.includes(text))
+                    result.push(msg._id);
+            });
+            break;
+        case "author":
+            result = get_msg_by_author(text);
+            break;
+        default:
+            break;
+    };
+    return result;
 };
 
 var get_sequential_message = function(){
@@ -1441,6 +1490,17 @@ var handle_keydown_editbox = function(e){
     }
 }
 
+var search_keydown = function(e){
+    var field = $("#field-dropdown option:selected").text();
+    var search_content = $("#search-context").val();
+    var code = e.keyCode || e.which;
+    if(search_content.length > 0){
+        if(code == 13){
+            display_popup_msg(search_message(field, search_content), 'search-modal');
+            return;
+        }
+    }
+}
 
 var handle_keydown = function(e){
     var code = e.keyCode || e.which;
@@ -1554,6 +1614,7 @@ $(document).ready(function(){
         var code = e.keyCode || e.which;
         delete keys[code];
     });
+    $('#search-context').on('keydown',search_keydown);
 
     assign_color();
     update_online();
@@ -1575,10 +1636,12 @@ $(document).ready(function(){
     $('body').on('click',function(){
         // unless the user has clicked to add a parent or invite someone, then
         // automatically refocus to the main message
-        //if(!$('#extra-parent').is(':focus') && !$('p').is(':focus'))
+        if($("#search-modal").attr('aria-hidden') == false)
+            $('#').focus();
+        if(!$('#extra-parent').is(':focus') && !$('p').is(':focus') && ($("#search-modal").attr('aria-hidden') == false)) 
             //!$('#invite-username').is(':focus') &&
             //!$('#invite-password').is(':focus'))
-            //$('#message').focus();
+            $('#message').focus();
     });
     $('#message').focus();
 
@@ -1713,6 +1776,12 @@ $(document).ready(function(){
 
     $('#bookmark-list').on('click',function(){
         display_popup_msg(get_bookmark_message(username), 'bookmark-modal');
+    });
+
+    $(document).on('click', "#search-submit", function(){
+        var field = $("#field-dropdown option:selected").text();
+        var search_content = $("#search-context").val();
+        display_popup_msg(search_message(field, search_content), 'search-modal');
     });
 
     $('#sequential').on('click',function(){

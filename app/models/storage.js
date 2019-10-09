@@ -270,11 +270,36 @@ var create_message = function(msg, callback){
 
 
 var create_invite = function(channel, callback){
-        var invite = new Invite({
-            'channel': channel,
-        });
-        invite.save();
-        callback(invite);
+    Channel.findOne({"_id":channel}, function(err, channel){
+        if(err)
+            return console.log(err);
+        if(channel.type == 'routine'){
+            if(channel.invite_link == null || channel.invite_link == undefined){
+                var invite = new Invite({
+                    'channel': channel,
+                });
+                invite.save().then(function(invite){
+                    callback(invite);
+                    Channel.updateOne({"_id":channel}, {$set:{invite_link: invite._id}},function(){});
+                });
+            } else {
+                callback(channel.invite_link);
+            }
+        } else {
+            if(channel.invite_link == null || channel.invite_link == undefined){
+                var invite = new Invite({
+                    'channel': channel,
+                    'experiment': true,
+                });
+                invite.save().then(function(invite){
+                    callback(invite);
+                    Channel.updateOne({"_id":channel}, {$set:{invite_link: invite._id}},function(){});
+                });
+            } else {
+                callback(channel.invite_link);
+            }
+        }
+    })
 };
 
 var get_invite = function(invite_id, callback){
@@ -414,7 +439,7 @@ var configure_exp_channel = function(data, callback){
             chat_type:data['chat_type'],
             name: channel_name,
             users_number: parseInt(data['number']),
-            invite_link: invite,
+            invite_link: invite._id,
         }}, {upsert:true}, function(err){
             Channel.findOne({'_id': data['channel_id']}, function(err, channel){
                 callback({'invite':invite._id, 'channel': channel});
@@ -581,7 +606,7 @@ var get_content = function(callback){
 
 var update_survey = function(data, callback){
     Survey.updateOne({},
-        {$set:{consent: data.consent, pre_survey: data.pre_survey, post_survey: data.post_survey}}
+        {$set:{consent: data.consent, pre_survey: data.pre_survey, post_survey: data.post_survey, tester_consent: data.tester_consent}}
     ).then(callback);
 };
 
@@ -626,14 +651,19 @@ var register = function(channel_id, username, callback){
 };
 
 var store_presurvey = function(data, callback){
-    console.log(data);
     User.findOne({"name":data.username}, function(err,user){
         if(err)
             callback(err);
+        var presurvey = [];
+        Object.keys(data).forEach(key => {
+            if(key != 'channel' && key != 'username'){
+                presurvey.push({'name':key,'answer':data[key]});
+            }
+        });
         Survey.updateOne({"user": user._id}, {$set:{
             channel:data.channel,
             questionnaire: false,
-            pre_survey: data.presurvey,
+            pre_survey: presurvey,
         }}, {upsert: true}, function(){});
         callback(err);
     })
@@ -661,13 +691,18 @@ var get_user_presurvey = function(user_id, callback){
 };
 
 var store_postsurvey = function(data, callback){
-    var post_survey = Object.values(data);
+    var postsurvey = [];
+    Object.keys(data).forEach(key => {
+        if(key != 'channel' && key != 'username'){
+            postsurvey.push({'name':key, 'answer':data[key]});
+        }
+    });
     User.findOne({"name":data.username}, function(err, user){
         if(err)
             callback(err);
         Survey.updateOne({"user": user._id}, {$set:{
             questionnaire: false,
-            post_survey: post_survey.slice(2),
+            post_survey: postsurvey,
         }}, {upsert: true}, function(err1){});
         var encrypt = CryptoJS.AES.encrypt(user.name, "Secret Passphrase");
         callback(err, encrypt);
@@ -760,9 +795,25 @@ var search_code = function(code, callback){
         }
         Survey.findOne({"user": user._id}, function(err, survey){
             if(err)
-                return callback(err)
-            callback(err, "Pre Survey: "+JSON.stringify(survey.pre_survey)+"<br>Post Survey: "+JSON.stringify(survey.post_survey));
+                return callback(err);
+            var pre_survey = {};
+            survey.pre_survey.forEach(dict => {
+                pre_survey[dict.name] = dict.answer;
+            });
+            var post_survey = {};
+            survey.post_survey.forEach(dict => {
+                post_survey[dict.name] = dict.answer;
+            });
+            callback(err, JSON.stringify(pre_survey), JSON.stringify(post_survey));
         })
+    })
+};
+
+var individual_info = function(callback){
+    Survey.find({}, function(err,results){
+        if(err) 
+            return console.log(err)
+        callback(err, results);
     })
 };
 
@@ -809,3 +860,5 @@ exports.submit_postsurvey = submit_postsurvey;
 exports.assign_account = assign_account;
 exports.store_channel_presurvey = store_channel_presurvey;
 exports.search_code = search_code;
+exports.individual_info = individual_info;
+

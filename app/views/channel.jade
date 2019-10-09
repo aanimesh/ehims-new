@@ -29,145 +29,152 @@ html
             var channel  = !{JSON.stringify(channel)}; 
             // colours to be cycled through when assigning a colour to each user
             var colours   = ["#bd5734", "#d64161", "#ff7b25", "#6b5b95", "#878f99", "#86af49", "#405d27", "#3e4444", "#034f84", "#f7786b", "#c94c4c", "#50394c", "#b2b2b2", "#bc5a45", "#618685", "#36486b", "#4040a1", "#563f46", "#838060", "#686256", "#a96e5b", "#7a3b2e"]; 
-    body
+    body(style='position:absolute;top:0;width:100%;overflow-y:hidden')
         - var trim_name = function(n) { var l = {'path': ' (Sequential)'.length, 'tree': ' (Tree)'.length, 'graph': ' (Graph)'.length}[channel.chat_type]; return n.substr(0, n.length - l);}
-        nav.top-bar#navbar
-            ul.title-area
-                li.name
-                    h1: a#channel-name #{trim_name(channel.name)}
+        div.row
+            nav.top-bar#navbar(style='position: absolute; width:100%;left:0px;display:block')
+                ul.title-area
+                    li.name
+                        h1: a#channel-name #{trim_name(channel.name)}
 
-            section.top-bar-section
-                unless channel.chat_type == 'path'
-                    ul.left
-                        li
-                            a#backward 
-                                i.fa.fa-backward
+                section.top-bar-section
+                    unless channel.chat_type == 'path'
+                        ul.left
+                            li
+                                a#backward 
+                                    i.fa.fa-backward
+                            li 
+                                a(data-dropdown="new-msg-list",
+                                  data-options="is_hover:true; hover_timeout:5000")#mail
+                                    i.fa.fa-envelope
+                                    | &nbsp;
+                                    span#queue-length (!{queue.length})
+                            li
+                                a#forward 
+                                    i.fa.fa-forward
+                    ul.right
                         li 
-                            a(data-dropdown="new-msg-list",
-                              data-options="is_hover:true; hover_timeout:5000")#mail
-                                i.fa.fa-envelope
-                                | &nbsp;
-                                span#queue-length (!{queue.length})
+                            a(data-dropdown="online-users-list",
+                              data-options="is_hover:true; hover_timeout:5000")#online-users
+                                | Participants &nbsp;
+                                span#num-online 
                         li
-                            a#forward 
-                                i.fa.fa-forward
-                ul.right
-                    li 
-                        a(data-dropdown="online-users-list",
-                          data-options="is_hover:true; hover_timeout:5000")#online-users
-                            | Participants &nbsp;
-                            span#num-online 
-                    li
-                        a Chat as: !{user.name}
-                    li#bookmark-list
-                        a(href='#' data-reveal-id='bookmark-modal')
-                            i.fa.fa-bookmark.fa-lg
-                    li#likes-ranking
-                        a(href='#' data-reveal-id="ranking-modal")
-                            i.fa.fa-thumbs-up.fa-lg
-                    if channel.chat_type != 'path'
-                        li#sequential
-                            a(href='#' data-reveal-id="sequential-modal")
-                                i.fa.fa-list.fa-lg
-                    li
-                        a(href="#" data-reveal-id="help-modal")
-                            i.fa.fa-question.fa-lg
-                    // unless channel.chat_type == 'path'
+                            a Chat as: !{user.name}
+                        li#search-list
+                            a(href='#' data-reveal-id='search-modal')
+                                i.fa.fa-search.fa-lg
+                        li#bookmark-list
+                            a(href='#' data-reveal-id='bookmark-modal')
+                                i.fa.fa-bookmark.fa-lg
+                        li#likes-ranking
+                            a(href='#' data-reveal-id="ranking-modal")
+                                i.fa.fa-thumbs-up.fa-lg
+                        if channel.chat_type != 'path'
+                            li#sequential
+                                a(href='#' data-reveal-id="sequential-modal")
+                                    i.fa.fa-list.fa-lg
                         li
-                            a(href="#" id="toggle-tree")
-                                | Hide Tree View
-                    li
-                        a(href='#' data-reveal-id="invite-modal" id='invite-button')
-                            i.fa.fa-plus-circle.fa-lg
-                    if channel.chat_type != 'path'
+                            a(href="#" data-reveal-id="help-modal")
+                                i.fa.fa-question.fa-lg
+                        // unless channel.chat_type == 'path'
+                            li
+                                a(href="#" id="toggle-tree")
+                                    | Hide Tree View
                         li
-                            a#modify-button(href='#') Modify
-                    if channel.type == 'routine'
-                        li
-                            a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
-                            form#back-home-form(method='post', action="/back_channels")
-                                input#back-home(type='hidden' name='username')
+                            a(href='#' data-reveal-id="invite-modal" id='invite-button')
+                                i.fa.fa-plus-circle.fa-lg
+                        if channel.chat_type != 'path'
+                            li
+                                a#modify-button(href='#') Modify
+                        if channel.type == 'routine'
+                            li
+                                a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
+                                form#back-home-form(method='post', action="/back_channels")
+                                    input#back-home(type='hidden' name='username')
 
-                    li
-                        a(href="#" data-reveal-id="logout-modal") Logout
+                        li
+                            a(href="#" data-reveal-id="logout-modal") Logout
 
-        ul#new-msg-list.f-dropdown(data-dropdown-content,
-            style="height=200px;overflow-y:scroll;")
+            ul#new-msg-list.f-dropdown(data-dropdown-content,
+                style="height=200px;overflow-y:scroll;")
 
-        ul#online-users-list.f-dropdown(data-dropdown-content,
-            style="height=200px;overflow-y:scroll;")
+            ul#online-users-list.f-dropdown(data-dropdown-content,
+                style="height=200px;overflow-y:scroll;")
 
         div#waiting_page
             h3
+        div.row
+            div.columns#messages-column
+                .progress.large-12.radius.success#progress-div
+                    span.meter#progress-bar(style="width:1%")
+                //#selected-arrow
+                //    i.fa.fa-arrow-right
+                #messages-view
+                    //each msg in channel.top_lvl_messages
+                    //    - var cls = 'message '+(messages[msg].author===user.name ? 'message-user' : 'message-other')
+                    //    div(class=cls,id=msg)
+                    //            p !{messages[msg].content}
+                    //            .info 
+                    //                | !{messages[msg].author} | 
+                    //                a.reply
+                    //                    i.fa.fa-reply
+                    //                    |  Reply
+                    //                    span.rcnt  (!{messages[msg].children.length})
 
-        #messages-column
-            .progress.large-12.radius.success#progress-div
-                span.meter#progress-bar(style="width:1%")
-            //#selected-arrow
-            //    i.fa.fa-arrow-right
-            #messages-view
-                //each msg in channel.top_lvl_messages
-                //    - var cls = 'message '+(messages[msg].author===user.name ? 'message-user' : 'message-other')
-                //    div(class=cls,id=msg)
-                //            p !{messages[msg].content}
-                //            .info 
-                //                | !{messages[msg].author} | 
-                //                a.reply
-                //                    i.fa.fa-reply
-                //                    |  Reply
-                //                    span.rcnt  (!{messages[msg].children.length})
+                #message-input
+                    #message-text
+                        textarea#message(style="resize:none;",
+                                         rows=3,
+                                         placeholder="Type your message here...")
+                    #message-buttons
+                        a.button.success.expand#message-send Send
+                        .urgencybox
+                            input#urgencybox(type='checkbox')  
+                            label Urgency
 
-            #message-input
-                #message-text
-                    textarea#message(style="resize:none;",
-                                     rows=3,
-                                     placeholder="Type your message here...")
-                #message-buttons
-                    a.button.success.expand#message-send Send
+            #view-column.columns
+                if channel.chat_type == "path"
+                    include side_columns/path
+                if channel.chat_type == "tree"
+                    include side_columns/tree
+                if channel.chat_type == "graph"
+                    include side_columns/graph
+                //ul.tabs(data-tab)#tabs-list
+                    li.tab-title.active
+                        a(href='#online') Online Users
+                    if channel.chat_type == 'graph'
+                        li.tab-title
+                            a(href='#parents') Merge Ideas
+                            // formerly "Add Parents"
+                    unless channel.chat_type == 'path'
+                        li.tab-title
+                            a(href='#treeview') Tree View
 
-        #view-column
-            if channel.chat_type == "path"
-                include side_columns/path
-            if channel.chat_type == "tree"
-                include side_columns/tree
-            if channel.chat_type == "graph"
-                include side_columns/graph
-            //ul.tabs(data-tab)#tabs-list
-                li.tab-title.active
-                    a(href='#online') Online Users
-                if channel.chat_type == 'graph'
-                    li.tab-title
-                        a(href='#parents') Merge Ideas
-                        // formerly "Add Parents"
-                unless channel.chat_type == 'path'
-                    li.tab-title
-                        a(href='#treeview') Tree View
-
-            //.tabs-content
-                .content.active#online
-                    .tab
-                        //h5(style='width:100%;text-align:center')
-                            | Online Users
-                        ul(style='padding-left:20px;')#online-users
-                .content#treeview
-                    .tab
-                        //h5(style='width:100%;text-align:center')
-                            | Tree View
-                        #tree
-                .content#parents
-                    .tab
-                        //h5(style='width:100%;text-align:center')
-                            | Add a parent
-                        #parent-view
-                            form#other-parent
-                                .row.collapse
-                                    .small-9.columns
-                                        input#extra-parent(type='text',
-                                            placeholder="Message ID",
-                                            name="message")
-                                    .small-3.columns
-                                        button.postfix Add
-                            ul#other-parents
+                //.tabs-content
+                    .content.active#online
+                        .tab
+                            //h5(style='width:100%;text-align:center')
+                                | Online Users
+                            ul(style='padding-left:20px;')#online-users
+                    .content#treeview
+                        .tab
+                            //h5(style='width:100%;text-align:center')
+                                | Tree View
+                            #tree
+                    .content#parents(style='padding:15px')
+                        .tab
+                            //h5(style='width:100%;text-align:center')
+                                | Add a parent
+                            #parent-view
+                                form#other-parent
+                                    div(style='width: 95%;left: 15px;position: relative; right: 15px' class='collapse row')
+                                        .small-9.columns
+                                            input#extra-parent(type='text',
+                                                placeholder="Message ID",
+                                                name="message" )
+                                        .small-3.columns
+                                            button.postfix Add
+                                ul#other-parents
 
 
         // modal
@@ -190,6 +197,22 @@ html
                 include help_popup/tree_help
             if channel.chat_type == "graph"
                 include help_popup/graph_help
+        #search-modal.reveal-modal(data-reveal 
+                                 aria-hidden="true" 
+                                 aria-labelledby="research-title" 
+                                 role="dialog"
+                                 style="overflow-y:scroll")
+            h2 Search Messages
+            br
+            div(style='display:block')
+                select#field-dropdown
+                    option(value='ID') ID
+                    option(value='author') author
+                    option(value='content' selected) content
+                input#search-context.input-group-field(type='text' placeholder='Search..')
+                button#search-submit.button.tiny(value='Search') Search
+            #modal-msg
+            a.close-reveal-modal(aria-label="Close")  &#215;
         #bookmark-modal.reveal-modal(data-reveal 
                                  aria-hidden="true" 
                                  aria-labelledby="list-title" 

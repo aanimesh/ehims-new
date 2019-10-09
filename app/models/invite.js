@@ -5,8 +5,6 @@ var ObjectId = Schema.ObjectId;
 var InviteSchema = new Schema({
     id: ObjectId,
     channel: {type: ObjectId, ref: 'Channel'},
-    username: String,
-    //password: String,
     experiment: {type: Boolean, default: false},
 }, { timestamps: { createdAt: 'created_at' } });
 

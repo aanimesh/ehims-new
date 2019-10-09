@@ -20,17 +20,23 @@ html
             h1 Welcome to EHIMS
         .row
             br
-            p For participating our experiments, please remember your unique username and password. In case of logging off accidently, you can come back to the experiment via the invitation link.
+            p For participating our experiments, please remember your unique username and password. 
             h5(style='white-space: pre') Username: #{user}
             h5(style='white-space: pre') Password: #{password}
+            p(style='display:inline') In case of logging off accidently, you can click the plus button
+                img(src="/myassets/img/rsz_invitation_link.png" style='display:inline;width:18px;margin-left:3px;margin-right:3px') 
+            p(style='display:inline') in the upper-right corner on the channel page to get an invitation link for this channel, so that you can come back with your username and password.
+            
             br
-            p#consent(style='white-space: pre') 
+            br
+            h3 Consent
+            p#consent(style='white-space: pre-line') 
             //first version
             //form#agreeconsent(method='post', action="/login")
             //second version
             form#agreeconsent(method='post', action="/hall")
               input(type="checkbox" name='agreebox' required) 
-              label I have read the consent letter and agree to those conditions.
+              label I have read the consent form and agree to those conditions.
               input(name='username' type='hidden' value='#{user}') 
               input(name='password' type='hidden' value='#{password}') 
               br

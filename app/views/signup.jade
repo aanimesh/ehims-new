@@ -72,9 +72,9 @@ html
                             if message
                                 small.error(style='position:relative; top:-15px') #{message}
                             if invite
-                                input.input-group-field(type="text",
-                                                    placeholder="!{invite}",
-                                                    value="!{invite}"
+                                input.input-group-field(type="hidden",
+                                                    placeholder="#{invite}",
+                                                    value="#{invite}"
                                                     name="invite")
                             else
                                 input.input-group-field(type="text",

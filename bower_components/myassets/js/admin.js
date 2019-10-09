@@ -67,12 +67,17 @@ var fixed_configuration = function(data){
 
 var create_survey_consent = function(consent){
     $("#survey").empty();
-    $("#survey").append('<p id="consent_content" contenteditable="true" style="border:1px solid lightgray;padding:10px">'+consent+'</p>');
+    $("#survey").append('<p id="consent_content" contenteditable="true" style="border:1px solid lightgray;padding:10px;white-space:pre-line">'+consent+'</p>');
+}
+
+var create_tester_consent = function(tester_consent){
+    $("#survey").empty();
+    $("#survey").append('<p id="tester_consent" contenteditable="true" style="border:1px solid lightgray;padding:10px;white-space:pre-line">'+tester_consent+'</p>');
 }
 
 var create_instructions = function(instructions){
     $("#survey").empty();
-    $("#survey").append('<p id="instructions" contenteditable="true" style="border:1px solid lightgray;padding:10px">'+instructions+'</p>');
+    $("#survey").append('<p id="instructions" contenteditable="true" style="border:1px solid lightgray;padding:10px;white-space:pre-line">'+instructions+'</p>');
 }
 
 var create_survey_question = function(pre_survey, content){
@@ -108,18 +113,16 @@ var update_survey_question = function(seleted_page){
     var instructions = survey_contents.instructions;
     var pre_survey = survey_contents.pre_survey;
     var post_survey = survey_contents.post_survey;
+    var tester_consent = survey_contents.tester_consent;
     switch(seleted_page){
         case 1:
-            consent = $('#consent_content').html().replace('<div>', '<br>').replace('</div>', '');
-            break;
-        case 2:
-            pre_survey = get_survey_question(1);
-            break;
-        case 3:
-            post_survey = get_survey_question(0);
+            consent = $('#consent_content').html().replace(/\n/g, '<br>').replace(/<div>/g, '<br>').replace(/&nbsp;/g, ' ').replace(/<\/div>/g, '');
             break;
         case 4:
-            instructions = $('#instructions').html().replace('<div>', '<br>').replace('</div>', '');
+            instructions = $('#instructions').html().replace(/\n/g, '<br>').replace(/<div>/g, '<br>').replace(/&nbsp;/g, ' ').replace(/<\/div>/g, '');
+            break;
+        case 5:
+            tester_consent = $('#tester_consent').html().replace(/\n/g, '<br>').replace(/<div>/g, '<br>').replace(/&nbsp;/g, ' ').replace(/<\/div>/g, '');
             break;
         default:
             break;
@@ -129,7 +132,7 @@ var update_survey_question = function(seleted_page){
         type:"POST",
         contentType: "application/json; charset=utf-8",
         dataType: "json",
-        data: JSON.stringify({'consent': consent, 'pre_survey': pre_survey, 'post_survey': post_survey, 'instructions':instructions})
+        data: JSON.stringify({'consent': consent, 'pre_survey': pre_survey, 'post_survey': post_survey, 'instructions':instructions, 'tester_consent':tester_consent})
     }).success(data => {
         survey_contents = data;
         create_survey_div(seleted_page);
@@ -150,6 +153,10 @@ var create_survey_div = function(seleted_page){
             break;
         case 4:
             create_instructions(survey_contents.instructions);
+            break
+        case 5:
+            create_tester_consent(survey_contents.tester_consent);
+            break;
         default:
             break;
     }
@@ -206,6 +213,8 @@ var status_update = function(channel_id, status, finish, duration){
 $(document).ready(function(){
     var socket = io(socket_url, {query:"admin=admin"});
     socket.on('status_update', status_update);
+
+    $("#consent_content").html(survey_contents.consent);
 
     // add a group in html
     $('#add-group').on('click', function(e){
@@ -268,6 +277,7 @@ $(document).ready(function(){
     	var group_no = $(this).closest("tr").attr('group_id');
     	var number = $('#number-'+channel_id).text();
         var time = new Date($('#time-'+channel_id).text()).toLocaleString("en-US");
+
     	$('#chat_type-'+channel_id).find('input').each(function(index){
     		if ($(this).is(":checked"))
     			chat_type = $(this).val();
@@ -345,10 +355,23 @@ $(document).ready(function(){
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             data : JSON.stringify({code:code}),
-        }).success(function(judgement){
-            $("#user-info").html(judgement);
+        }).success(function(data){
+            var presurvey = data.presurvey;
+            var postsurvey = data.postsurvey;
+            $("#user-info").append('<h5>Pre Survey</h5><p style="white-space:pre-line">'+presurvey+'</p>');
+            $("#user-info").append('<h5>Post Survey</h5><p style="white-space:pre-line">'+postsurvey+'</p>');
         })
-    })
+    });
+
+    /*$("#individual-info").on('click',function(){
+        $.ajax({
+            url:"/download_individual",
+            type:"GET",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data : JSON.stringify({}),
+        });
+    });*/
 
 })
 

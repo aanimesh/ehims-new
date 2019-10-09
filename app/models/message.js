@@ -11,9 +11,10 @@ var MessageSchema = new Schema({
     msg_parent: this,
     other_parents: [ this ],
     children: [ this ],
-    seen_by : [ {type: ObjectId, ref: 'User'} ],
+    //seen_by : [ {type: ObjectId, ref: 'User'} ],
     likes: [String],
     bookmarked: [ String ],
+    urgency: {type: Boolean, default: false},
 }, { timestamps: { createdAt: 'created_at' , updatedAt: 'updated_at'} });
 
 

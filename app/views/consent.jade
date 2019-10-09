@@ -7,9 +7,11 @@ html
         link(rel="stylesheet",href="/myassets/css/admin.css")
         script(src="/jquery/dist/jquery.min.js")
         script(src="/foundation/js/foundation.js")
-        script(src="/myassets/js/consent.js")
+        script(src="/myassets/js/consent_normal_user.js")
         script.
-            var consent = "!{content}";
+            var consent_normal_user = "!{consent}";
+            var channel_id = "!{channel_id}";
+            var invite = "!{invite}";
             var checked = false;
     body
         .row(style="margin-top:5%")
@@ -20,9 +22,11 @@ html
         .row
             h3 Consent
             br
-            p(style='white-space: pre-line') #{consent}
+            p#consent-normal-user(style='white-space: pre-line')
             form#agreeconsent(method='post', action="/signup")
-              input(type="checkbox" name='agreebox') 
+              input.input-group-field(type="hidden",value="#{channel_id}", name="channel_id")
+              input.input-group-field(type="hidden", value="#{invite}", name="invite")
+              input(type="checkbox" required name='agreebox') 
               label I have read the consent form and agree to those conditions.
               br
             a(href='javascript:void(0);', onclick="document.getElementById('agreeconsent').submit();")

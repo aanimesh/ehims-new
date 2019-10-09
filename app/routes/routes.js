@@ -4,6 +4,9 @@
 
 var storage = require('../models/storage.js');
 var nodemailer = require('nodemailer');
+var http = require('http');
+var fs = require('fs');
+var chokidar = require('chokidar');
 
 var get_socket_url = function(){
     return process.env.NODE_ENV ? 'https://ehims-new.herokuapp.com/' : 'http://localhost:3000/';
@@ -73,7 +76,7 @@ var user_join_channel = function(channel, user, res, STARTTIME){
         }
     }
     else {
-        if(channel.type == "experiment" || channel.type == "in progress"){
+        /*if(channel.type == "experiment" || channel.type == "in progress"){
             var seen = 0;
             if(channel.participants.length >= channel.users_number){
                 channel.participants.forEach(function(dict){
@@ -89,7 +92,7 @@ var user_join_channel = function(channel, user, res, STARTTIME){
                                      'username': user.name});
                 return;
             }
-        }
+        }*/
         if(channel.type == "result"){
             res.render('error', {'message': 'The experiment has finished yet.<br><br> Please follow the link to enter another channel: <a href="'+socket_url+'assign">'+socket_url+'assign</a><br><br>Thanks!', 
                                 'username': user.name});
@@ -107,7 +110,7 @@ var user_join_channel = function(channel, user, res, STARTTIME){
              context.messages = results;
              var message_keys = Object.keys(results);
              var queue = [];
-             for(var i = 0, len = message_keys.length;i<len;i++){
+             for(var i = 0, len = message_keys.length; i<len;i++){
                   queue.push(context.messages[message_keys[i]]);
              }
              queue.sort(function(a,b){
@@ -156,16 +159,14 @@ module.exports = function(io){
        },
 
        signup: function(req,res){
-            /*if(req.body.agreebox == 'on')
-                res.render("signup");
+            if(req.body.agreebox == 'on')
+                res.render("signup", {invite:req.body.invite, channel_id:req.body.channel_id});
             else{
                 storage.get_content(function(content){
-                    var consent = content.consent;
-                    consent = consent.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
-                    res.render('consent', {consent:consent});
+                    res.render('consent', {consent:content.consent, invite:req.body.invite, channel_id:req.body.channel_id});
                 });
-            }*/
-            res.render('signup');
+            }
+            //res.render('signup');
        },
 
        forgot_password: function(req,res){
@@ -312,6 +313,9 @@ module.exports = function(io){
                     if(!result)
                         res.status(404).send("Invite not found");
                     else {
+                        if(pass2 != pass)
+                            return res.render("signup", 
+                                  { message: "Entered Password is not matching.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
                         if(email != undefined && email != null){
                             storage.get_user(user, function(err, results){
                                 if(results == null || results == undefined){
@@ -421,7 +425,7 @@ module.exports = function(io){
        
         message : function(req, res){
            storage.create_message(req.body,function(message, top_lvl_messages){
-               io.to(req.body.channel).emit('message',message, top_lvl_messages);
+               io.to(req.body.channel).emit('message', message, top_lvl_messages);
                res.send('Message sent');
            });
         },
@@ -429,6 +433,7 @@ module.exports = function(io){
         download_channel : function(req, res) {
             try{
             var channel = req.query.channel;
+            var channel_id = channel;
             console.log("Channel download: " + channel);
             if(channel === 'all'){
                 storage.get_all_channels(function(channels){
@@ -450,24 +455,62 @@ module.exports = function(io){
                 });
             }
             else {
-                storage.get_channel_by_id(channel, function(ch) {
-                    if(ch === null || ch === undefined) { 
-                        res.status(400).json({'error': 'Bad request'});
-                        return;
-                    }
-                    storage.get_messages_by_channel(channel, function(messages) {
-                        if(messages === null || messages === undefined) {
-                            res.status(400).json({'error': 'Bad request'});
-                            return;
-                        }
-                        else
-                            res.json({
-                                'channel_id': channel,
-                                'chat_type': ch.chat_type,
-                                'name': ch.name,
-                                'messages': messages
+                const writeFilePromise = (filename) => {
+                    return new Promise((resolve, reject) => {
+                        var watcher = chokidar.watch(filename, {
+                            persistent: true
+                        });
+                        var exist = fs.existsSync(filename);
+                        storage.get_channel_by_id(channel, function(ch) {
+                            if(ch === null || ch === undefined) { 
+                                res.status(400).json({'error': 'Bad request'});
+                                return;
+                            }
+                            storage.get_messages_by_channel(channel, function(messages) {
+                                if(messages === null || messages === undefined) {
+                                    res.status(400).json({'error': 'Bad request'});
+                                    return;
+                                } 
+                                else{
+                                    var result = JSON.stringify({
+                                        'channel_id': channel,
+                                        'chat_type': ch.chat_type,
+                                        'name': ch.name,
+                                        'tree_views': ch.tree_views,
+                                        'participants': ch.participants,
+                                        'duration': ch.duration,
+                                        'started_at': ch.started_at,
+                                        'messages': messages
+                                    });
+                                    var writeStream = fs.createWriteStream(filename, { flags : 'w' });
+                                    writeStream.write(result);
+                                    if(exist){
+                                        watcher.on('change',path => {
+                                            writeStream.on('finish', function() {
+                                                writeStream.close();  // close() is async, call cb after close completes.
+                                            });
+                                            resolve('success');
+                                        });
+                                      } else {
+                                          watcher.on('add',path => {
+                                              writeStream.on('finish', function() {
+                                                  writeStream.close();  // close() is async, call cb after close completes.
+                                              });
+                                              resolve('success');
+                                          });
+                                      }
+                                }
                             });
-                    });
+                          });
+                        });
+                    };
+                var promise = writeFilePromise('tmp_file/channel-'+channel_id+'.json');
+                var flag = 0;
+                promise.then((signal) => {
+                    if(flag == 0){
+                        return res.download('tmp_file/channel-'+channel_id+'.json');
+                    }
+                    console.log("Download survey results");
                 });
             }
             } catch(err) {
@@ -604,9 +647,7 @@ module.exports = function(io){
 
         get_consent: function(req,res){
             storage.get_content(function(content){
-                var consent = content.consent;
-                consent = consent.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
-                res.render('consent', {consent:consent});
+                res.render('consent', {consent:content.consent, invite:req.body.invite, channel_id:req.body.channel_id});
             });
         },
 
@@ -619,7 +660,7 @@ module.exports = function(io){
               storage.assign_account(function(err, user){
                 if(err)
                   return;
-                res.render('assign',{'user':user.name, 'password': user.password, 'consent': content.consent});
+                res.render('assign',{'user':user.name, 'password': user.password, 'consent': content.tester_consent});
               })
             })
         },
@@ -663,21 +704,17 @@ module.exports = function(io){
         presurvey_login:function(req, res){
             var data = req.body;
             storage.store_presurvey(data, function(err){
-              if(err){
-                console.log(err);
-                return;
-              }
-              storage.store_channel_presurvey(data.channel, data.username, function(err1, channel){
-                    if(!err1){
-                        storage.get_user(data.username, function(err2, user){
-                            if(err2)
-                              console.log(err2);
-                            else
-                              user_join_channel(channel, user, res, false);
-                        })
-                    }
-                    else
+                if(err)
+                    console.log(err);
+                storage.store_channel_presurvey(data.channel, data.username, function(err1, channel){
+                    if(err1)
                       console.log(err1);
+                    storage.get_user(data.username, function(err2, user){
+                        if(err2)
+                          console.log(err2);
+                        else
+                          user_join_channel(channel, user, res, false);
+                    })
                 })
             });
         },
@@ -854,10 +891,10 @@ module.exports = function(io){
 
         search_code: function(req, res){
             var code = req.body.code;
-            storage.search_code(code, function(err, judgement){
+            storage.search_code(code, function(err, presurvey, postsurvey){
               if(err)
                 res.json(err);
-              res.json(judgement);
+              res.json({'presurvey':presurvey, 'postsurvey':postsurvey});
             })
         },
 
@@ -867,6 +904,43 @@ module.exports = function(io){
                   io.to('admin').emit('status_update', req.body.channel, status, postsurvey, duration);
                   res.json('data');
               }
+            });
+        },
+
+        download_individual:function(req, res){
+            const writeFilePromise = (filename) => {
+                return new Promise((resolve, reject) => {
+                    var watcher = chokidar.watch(filename, {
+                        persistent: true
+                    });
+                    var exist = fs.existsSync(filename);
+                    storage.individual_info(function(err, results){
+                        if(err)
+                          return console.log(err);
+                        var writeStream = fs.createWriteStream(filename, { flags : 'w' });
+                        writeStream.write(JSON.stringify(results));
+                        if(exist){
+                            watcher.on('change',path => {
+                                writeStream.on('finish', function() {
+                                    writeStream.close();  // close() is async, call cb after close completes.
+                                });
+                                resolve('success');
+                            });
+                          } else {
+                              watcher.on('add',path => {
+                                  writeStream.on('finish', function() {
+                                      writeStream.close();  // close() is async, call cb after close completes.
+                                  });
+                                  resolve('success');
+                              });
+                          }
+                    });
+                    });
+                };
+            var promise = writeFilePromise('tmp_file/survey-results.json');
+            promise.then((signal) => {
+                res.download('tmp_file/survey-results.json');
+                console.log("Download survey results");
             });
         },
     };
