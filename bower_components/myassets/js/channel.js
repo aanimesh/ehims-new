@@ -1,5 +1,5 @@
-var TIME_X = 5; // alert an warning if the experiment channel keeps idle for TIME_X min.
-var TIME_Y = 2; // the experiment stops if the experiment channel keeps idle for another TIME_Y minutes after the alert.
+var TIME_X = 5;     // alert a warning if the experiment channel keeps idle for TIME_X min.
+var TIME_Y = 2;     // the experiment stops if the experiment channel keeps idle for another TIME_Y minutes after the alert.
 var DURATION = 60;  // maximum duration for an experiment (minutes)
 
 var hard_focus = null;

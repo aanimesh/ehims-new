@@ -932,7 +932,7 @@ module.exports = function(io){
                     });
                     });
                 };
-            var promise = writeFilePromise('tmp_file/survey-results.json');
+            var promise = writeFilePromise('tmp_file/survey_results.json');
             promise.then((signal) => {
                 res.download('tmp_file/survey-results.json');
                 console.log("Download survey results");
