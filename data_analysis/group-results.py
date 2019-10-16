@@ -18,7 +18,7 @@ generate a .xlsx file consisted of 2 sheets (participants, messages)  and a .txt
 '''
 
 def get_stats():
-    file = open(filedir+group_stats, 'w+')
+    file = open(filedir+group_stats, 'w')
     file.write('Channel basic information:\n')
     file.write('ID:\t{}\n'.format(group['channel_id']))
     file.write('Name:\t{}\n'.format(group['name']))
@@ -98,7 +98,7 @@ group = json.loads(group)
 channel = group['channel_id']
 filedir = r'tmp_file/'
 channeldir = r'channel-{}/'.format(channel)
-group_stats = r'channel-{}.txt'.format(channel)
+group_stats = r'channel.txt'
 group_info = r'channel-{}.xlsx'.format(channel)
 plt_path = r'channel-{}.png'.format(channel)
 zipObj = ZipFile('tmp_file/channel.zip'.format(channel), 'w')
@@ -220,10 +220,10 @@ if len(group['messages']) > 0 and len(relation) > 0:
     '''os.remove(filedir+plt_path)
     os.remove(filedir+'messages')
     os.remove(filedir+'participants')'''
+else:
+    get_stats()
+    zipObj.write(filedir+group_stats)
 
-get_stats()
-zipObj.write(filedir+group_stats)
-os.remove(filedir+group_stats)
 zipObj.close()
 print('done')
 
