@@ -17,12 +17,12 @@ for line in fileinput.input():
 surveys = json.loads(surveys)
 
 for index, survey in enumerate(surveys):
-    if index == 1:
+    if index == 0:
         header = ['user id', 'channel id']
         header.extend(['pre survey ('+item['name']+')' if 'name' in item.keys() else ' ' for item in survey['pre_survey']])
         header.extend(['post survey ('+item['name']+')' if 'name' in item.keys() else ' ' for item in survey['post_survey']])
         csvwriter.writerow(header)
-    elif index > 1:
+    else:
         row = [survey['user'] if 'user' in survey.keys() else ' ',
                survey['channel'] if 'channel' in survey.keys() else ' ']
         if survey['pre_survey']:
