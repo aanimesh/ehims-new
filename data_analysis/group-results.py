@@ -137,7 +137,7 @@ if len(group['messages']) > 0 and len(relation) > 0:
     nodes_num = nx.number_of_nodes(G_msg)
     edges_num = nx.number_of_edges(G_msg)  # portion of nodes in the tree
 
-    max_height = len(nx.dag_longest_path(G_msg)) if len(group['messages']) > 1 else 1
+    max_height = 1 if not nx.is_directed_acyclic_graph(G_msg) else len(nx.dag_longest_path(G_msg))
 
     ''' Messages Stats '''
     df = pd.DataFrame.from_dict(group['messages'], orient='index', columns=['original_version', 'other_parents', 'children',

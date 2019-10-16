@@ -84,7 +84,7 @@ for channel in channels:
         G_msg.add_edges_from(relation, label='parent')
 
         edges = nx.number_of_edges(G_msg)
-        depth = len(nx.dag_longest_path(G_msg)) if len(messages) > 1 else 1
+        depth = 1 if not nx.is_directed_acyclic_graph(G_msg) else len(nx.dag_longest_path(G_msg))
         width = reduce(lambda x, y: x+y, [tree_width(node) for node in root_msg])
         density = nx.density(G_msg)
     elif not len(messages):
