@@ -203,8 +203,8 @@ if len(group['messages']) > 0 and len(relation) > 0:
                                 colmax['subtree_width'], colavg['subtree_width']], index=df1.index)
 
     #with pd.ExcelWriter(filedir+group_info) as writer:
-    df.to_csv(filedir+'messages')
-    df1.to_csv(filedir+'participants')
+    df.to_csv(filedir+'messages.csv')
+    df1.to_csv(filedir+'participants.csv')
 
     plt.title('messages_network')
     msg_color = [authors.index(G_msg.node[node]['author']) if 'author' in G_msg.node[node].keys() else len(authors)
@@ -215,8 +215,8 @@ if len(group['messages']) > 0 and len(relation) > 0:
     # plt.show()
     plt.savefig(filedir+plt_path)
     zipObj.write(filedir+plt_path)
-    zipObj.write(filedir+'messages')
-    zipObj.write(filedir+'participants')
+    zipObj.write(filedir+'messages.csv')
+    zipObj.write(filedir+'participants.csv')
     '''os.remove(filedir+plt_path)
     os.remove(filedir+'messages')
     os.remove(filedir+'participants')'''

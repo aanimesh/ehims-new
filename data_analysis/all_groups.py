@@ -32,7 +32,7 @@ for line in fileinput.input():
     group += line
 group = json.loads(group)
 channels = group['channels']
-channeldir = r'tmp_file/all-channels.xlsx'
+channeldir = r'tmp_file/all-channels.csv'
 table = {}
 
 

@@ -456,7 +456,7 @@ module.exports = function(io){
                             });
                         });
                         runPy.then(function(fromRunpy) {
-                            res.download('tmp_file/all-channels.xlsx');
+                            res.download('tmp_file/all-channels.csv');
                         }).catch((error) => {
                             console.log(error.toString());
                         });
