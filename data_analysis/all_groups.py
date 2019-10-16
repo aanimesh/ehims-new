@@ -103,7 +103,7 @@ df = pd.DataFrame.from_dict(table, orient='index', columns=['name', 'type', 'tre
                             'avg children of all messages', 'avg parents of all messages', 'avg parents of merged messages', 
                             'depth', 'width', 'density', 'avg likes', 'avg bookmarks', 'avg versions'])
 df.fillna(0, inplace=True)
-df.to_excel(channeldir)
+df.to_csv(channeldir)
 print('done')
 
 
