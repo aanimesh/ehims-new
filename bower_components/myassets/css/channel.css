@@ -564,3 +564,11 @@ span.op-x:hover {
     font-size:13px;
 }
 
+.orbit-container{
+    height: 85%
+}
+
+.orbit-slide-number {
+    color:black;
+}
+

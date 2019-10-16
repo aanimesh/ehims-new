@@ -7,6 +7,7 @@ var nodemailer = require('nodemailer');
 var http = require('http');
 var fs = require('fs');
 var chokidar = require('chokidar');
+const { spawn } = require('child_process');
 
 var get_socket_url = function(){
     return process.env.NODE_ENV ? 'https://ehims-new.herokuapp.com/' : 'http://localhost:3000/';
@@ -118,6 +119,12 @@ var user_join_channel = function(channel, user, res, STARTTIME){
                     res.status(500).send("Whoops, we had an error");
                     return;
                 }
+                 if(user.newcoming==true){
+                    storage.reset_newcoming(user._id);
+                    context.guidance_popup = true;
+                 }
+                 else
+                    context.guidance_popup = false;
                  console.log("Connected Users");
                  res.render("channel", context);
              });
@@ -308,10 +315,10 @@ module.exports = function(io){
                     if(!result)
                         res.status(404).send("Invite not found");
                     else {
-                        if(pass2 != pass)
-                            return res.render("signup", 
-                                  { message: "Entered Password is not matching.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
-                        if(email != undefined && email != null){
+                          if(email != undefined && email != null){
+                            if(pass2 != pass)
+                                return res.render("signup", 
+                                      { message: "Entered Password is not matching.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
                             storage.get_user(user, function(err, results){
                                 if(results == null || results == undefined){
                                     storage.create_user(user, pass, firstname, lastname, email, function(new_user){
@@ -426,6 +433,84 @@ module.exports = function(io){
         },
 
         download_channel : function(req, res) {
+            var channel_id = req.query.channel;
+            if(channel_id == "all"){
+                var result = {}
+                storage.get_all_messages(function(messages){
+                    storage.get_all_channels(function(channels){
+                        Object.keys(messages).forEach(function(msg){
+                            delete messages[msg]['content'];
+                        })
+                        result['messages'] = messages;
+                        result['channels'] = channels;
+                        let runPy = new Promise(function(success, nosuccess) {
+                            const pyprog = spawn('python', ['data_analysis/all_groups.py']);
+                            pyprog.stdin.setEncoding('utf-8');
+                            pyprog.stdin.write(JSON.stringify(result));
+                            pyprog.stdin.end();
+                            pyprog.stdout.on('data', function(data) {
+                                success(data);
+                            });
+                            pyprog.stderr.on('data', (data) => {
+                                nosuccess(data);
+                            });
+                        });
+                        runPy.then(function(fromRunpy) {
+                            res.download('tmp_file/all-channels.xlsx');
+                        }).catch((error) => {
+                            console.log(error.toString());
+                        });
+                    });
+                });
+            }
+            else{
+                var result;
+                storage.get_channel_by_id(channel_id, function(ch) {
+                    if(ch === null || ch === undefined) { 
+                        res.status(400).json({'error': 'Bad request'});
+                        return;
+                    }
+                    storage.get_messages_by_channel(channel_id, function(messages) {
+                        if(messages === null || messages === undefined) {
+                            res.status(400).json({'error': 'Bad request'});
+                            return;
+                        } 
+                        else{
+                            result = JSON.stringify({
+                                'channel_id': channel_id,
+                                'chat_type': ch.chat_type,
+                                'name': ch.name,
+                                'tree_views': ch.tree_views,
+                                'participants': ch.participants,
+                                'duration': ch.duration,
+                                'started_at': ch.started_at,
+                                'messages': messages
+                            });
+                        }
+
+                        let runPy = new Promise(function(success, nosuccess) {
+                            const pyprog = spawn('python', ['data_analysis/group-results.py']);
+                            pyprog.stdin.setEncoding('utf-8');
+                            pyprog.stdin.write(result.toString());
+                            pyprog.stdin.end();
+                            pyprog.stdout.on('data', function(data) {
+                                success(data);
+                            });
+                            pyprog.stderr.on('data', (data) => {
+                                nosuccess(data);
+                            });
+                        });
+                        runPy.then(function(fromRunpy) {
+                            res.download('tmp_file/channel.zip');
+                        }).catch((error) => {
+                            console.log(error.toString());
+                        });
+                    });
+                });
+            } 
+        },
+
+        /*download_channel : function(req, res) {
             try{
             var channel = req.query.channel;
             var channel_id = channel;
@@ -512,7 +597,7 @@ module.exports = function(io){
                 res.status(500).json({'error': 'Server Error'});
             }
 
-        },
+        },*/
 
        admin : function(req, res){
            var pass = req.body.pass;
@@ -903,40 +988,29 @@ module.exports = function(io){
         },
 
         download_individual:function(req, res){
-            const writeFilePromise = (filename) => {
-                return new Promise((resolve, reject) => {
-                    var watcher = chokidar.watch(filename, {
-                        persistent: true
+            storage.individual_info(function(err, results){
+                if(err)
+                  return console.log(err);
+                results = JSON.stringify(results);
+                let runPy = new Promise(function(success, nosuccess) {
+                    const pyprog = spawn('python', ['data_analysis/survey-results.py']);
+                    pyprog.stdin.setEncoding('utf-8');
+                    pyprog.stdin.write(results.toString());
+                    pyprog.stdin.end();
+                    pyprog.stdout.on('data', function(data) {
+                        success(data);
                     });
-                    var exist = fs.existsSync(filename);
-                    storage.individual_info(function(err, results){
-                        if(err)
-                          return console.log(err);
-                        var writeStream = fs.createWriteStream(filename, { flags : 'w' });
-                        writeStream.write(JSON.stringify(results));
-                        if(exist){
-                            watcher.on('change',path => {
-                                writeStream.on('finish', function() {
-                                    writeStream.close();  // close() is async, call cb after close completes.
-                                });
-                                resolve('success');
-                            });
-                          } else {
-                              watcher.on('add',path => {
-                                  writeStream.on('finish', function() {
-                                      writeStream.close();  // close() is async, call cb after close completes.
-                                  });
-                                  resolve('success');
-                              });
-                          }
+                    pyprog.stderr.on('data', (data) => {
+                        nosuccess(data);
                     });
-                    });
-                };
-            var promise = writeFilePromise('tmp_file/survey_results.json');
-            promise.then((signal) => {
-                res.download('tmp_file/survey-results.json');
-                console.log("Download survey results");
+                });
+                runPy.then(function(fromRunpy) {
+                    res.download('tmp_file/survey.csv');
+                }).catch((error) => {
+                    console.log(error.toString());
+                });
             });
+            
         },
     };
 

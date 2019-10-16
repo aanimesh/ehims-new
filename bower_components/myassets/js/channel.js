@@ -93,6 +93,8 @@ var waiting_time = setInterval(function(){
             waiting_page("Time's Up. <br> Thank you for your cooperation, please click the button to complete a post survey.");
             $("#waiting_page").append("<a id='logout-yes' onclick='document.getElementById("+'"name-form"'+").submit()' style='position:relative;display:inline-block;margin-left:42%;float:left;margin-top:3%'>\
                                         <button>Post Survey</button></a>");
+            flag1 = 1;
+            flag2 = 1;
             $.ajax({
                 url:"/force_stop",
                 type:"POST",
@@ -128,6 +130,8 @@ var waiting_time = setInterval(function(){
 
 var receive_msg = function(msg, top_lvl_messages){
     last_msg_time = new Date();
+    flag1 = 0;
+    flag2 = 0;
     var urgency = msg.urgency;
 
     var i;
@@ -1402,14 +1406,13 @@ var modify_msg_hierarchy = function(child_id, parent_ids){
 };
 
 var modify_tree_hierarchy = function(child_id, parent_ids){
-    modify_msg_hierarchy(child_id, parent_ids);
     var original_parent = [];
     if(messages[child_id].msg_parent != null || messages[child_id].msg_parent != undefined)
         original_parent.push(messages[child_id].msg_parent);
     if(messages[child_id].other_parents != null || messages[child_id].other_parents != undefined)
         if(messages[child_id].other_parents.length > 0)
             messages[child_id].other_parents.forEach(id => original_parent.push(id));
-
+    //console.log(original_parent);
     $.ajax({
         url:"/modify_hierarchy",
         type:"POST",
@@ -1417,6 +1420,7 @@ var modify_tree_hierarchy = function(child_id, parent_ids){
         dataType: "json",
         data : JSON.stringify({'child_id':child_id, 'parent_ids':parent_ids, 'channel':channel._id, 'original_parent': original_parent}),
         success: function(data){
+            modify_msg_hierarchy(child_id, parent_ids);
             modify_hierarchy(data);
         },
     });
@@ -1528,8 +1532,6 @@ var handle_keydown = function(e){
             e.preventDefault();
             break;
         case 37: // left
-            //ascend_from_soft_focus();
-            //to_left_sibling();
             break;
         case 38: // up
             arrow_up();
@@ -1547,13 +1549,14 @@ var handle_keydown = function(e){
             // Two cases to have a plus:
             //    On the path to root and have >= 2 children
             //    A child message with >= 1 children
-            var sf = get_soft_focus();
+            set_hard_focus(get_soft_focus()); 
+            /*var sf = get_soft_focus();
             var sf_children = messages[sf].children.length;
 
             if(sf_children > 1 || 
                ($('#'+sf).hasClass('child-message') && sf_children > 0)){
                 set_hard_focus(sf);
-            }
+            }*/
             break;
         case 40: // down
             arrow_down();
@@ -1582,6 +1585,9 @@ $(document).ready(function(){
     socket.on('log-on',user_log_on);
     socket.on('log-off',user_log_off);
 
+    if(guidance_popup)
+        $("#guidance-modal").foundation('reveal', 'open');
+
     $('#message-send').on('click',function(){
         if($('#message').val().trim())
             send_message();
@@ -1592,8 +1598,6 @@ $(document).ready(function(){
     $('.message .view').on('click',function(){
         set_hard_focus($(this).attr('id'));
     });
-
-    
 
     // make the channel name go to the root if we're not in
     if(chat_type !== 'path')
@@ -1636,9 +1640,9 @@ $(document).ready(function(){
     $('body').on('click',function(){
         // unless the user has clicked to add a parent or invite someone, then
         // automatically refocus to the main message
-        if($("#search-modal").attr('aria-hidden') == false)
-            $('#').focus();
-        if(!$('#extra-parent').is(':focus') && !$('p').is(':focus') && ($("#search-modal").attr('aria-hidden') == false)) 
+        //if($("#search-modal").attr('aria-hidden') == false)
+            //$('#').focus();
+        if(!$('#extra-parent').is(':focus') && !$('p').is(':focus') && !$("#search-context").is(':focus') && !$("#field-dropdown").is(':focus')) 
             //!$('#invite-username').is(':focus') &&
             //!$('#invite-password').is(':focus'))
             $('#message').focus();

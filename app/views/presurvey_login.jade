@@ -4,9 +4,9 @@ html
     head
         link(rel="stylesheet",href="/foundation/css/foundation.min.css")
         link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
-        link(rel="stylesheet",href="/myassets/css/admin.css")
-        script(src="/myassets/js/survey.js")
+        link(rel="stylesheet",href="/myassets/css/survey.css")
         script(src="/jquery/dist/jquery.min.js")
+        script(src="/myassets/js/survey.js")
         script(src="/foundation/js/foundation.js")
         script.
             var username = "!{username}";
@@ -29,9 +29,9 @@ html
 
                     // template for radio button (single choice)
                     div.row
-                        div.columns.large-6
+                        div.columns.large-8
                             p 2. Question2 Question2 Question2 Question2 Question2 Question2 Question2 Question2 Question2 Question2 Question2 
-                        div.columns.large-6
+                        div.columns.large-4
                             input.input-group-field(type="radio", required, name="Q2" value="male")
                             label Male
                             input.input-group-field(type="radio", name="Q2" value="female")
@@ -41,9 +41,9 @@ html
 
                     // template for checkbox (multiple choice)
                     div.row
-                        div.columns.large-6
+                        div.columns.large-8
                             p 3. Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 Question3 
-                        div.columns.large-6.checkbox
+                        div.columns.large-4.checkbox
                             input.input-group-field(type="checkbox", name="Q3.1" value="morning")
                             label Morning
                             input.input-group-field(type="checkbox", name="Q3.2" value="evening")
@@ -53,12 +53,40 @@ html
 
                     // template for select boxes
                     div.row
-                        div.columns.large-6
+                        div.columns.large-8
                             p 4. Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 Question4 
-                        div.columns.large-6
+                        div.columns.large-4
                             select(name="Q4", label="label4", require)
                                 option(value="hotdog") Hotdog
                                 option(value="sandwich") Sandwich
+
+                    // ranking
+                    div.row
+                        div.columns.large-8
+                            p 5. Question5 Question5 Question5 Question5 Question5 Question5 Question5 Question5 Question5 Question5 Question5 
+                        div.columns.large-4
+                            input.input-group-field.star_ranking(type="hidden", name="Q5", style='font-size: 1rem;')
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            span.fa.fa-circle-o.fa-xs
+                            br
+                            span.number 1
+                            span.number 2
+                            span.number 3
+                            span.number 4
+                            span.number 5
+                            span.number 6
+                            span.number 7
+                            span.number 8
+                            span.number 9
+                            span.number 10
 
                     // template for open questions
                     p 1. Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 Question1 

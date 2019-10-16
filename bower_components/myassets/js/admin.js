@@ -215,6 +215,7 @@ $(document).ready(function(){
     socket.on('status_update', status_update);
 
     $("#consent_content").html(survey_contents.consent);
+    $("#allchannel").attr('href', get_download_link('all'));
 
     // add a group in html
     $('#add-group').on('click', function(e){

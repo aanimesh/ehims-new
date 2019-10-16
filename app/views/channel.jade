@@ -6,8 +6,14 @@ html
         link(rel="stylesheet",href="/fontawesome/css/font-awesome.css")
         link(rel="stylesheet",href="/vis/dist/vis.css")
         link(rel="stylesheet",href="/myassets/css/channel.css")
+        script(src="/jquery/dist/jquery.min.js")
+        script(src="/foundation/js/foundation.js")
+        script(src="/foundation/js/foundation/foundation.orbit.js")
+        script(src="/socket.io-client/socket.io.js")
+        script(src="/vis/dist/vis.js")
         script.
             var help_popup = !{help_popup};
+            var guidance_popup = !{guidance_popup};
             var socket_url = "!{socket_url}";
             var messages = !{JSON.stringify(messages)};    
             var participants   = !{JSON.stringify(participants)};
@@ -74,7 +80,7 @@ html
                                 a(href='#' data-reveal-id="sequential-modal")
                                     i.fa.fa-list.fa-lg
                         li
-                            a(href="#" data-reveal-id="help-modal")
+                            a(href="#" data-reveal-id="guidance-modal")
                                 i.fa.fa-question.fa-lg
                         // unless channel.chat_type == 'path'
                             li
@@ -178,6 +184,35 @@ html
 
 
         // modal
+        #guidance-modal.reveal-modal(data-reveal 
+                                 aria-labelledby="guidance-title" 
+                                 aria-hidden="true" 
+                                 role="dialog"
+                                 style="height:85%")
+            h2 User Guide
+            ul(data-orbit style='height:100%' data-options="navigation_arrows: true;slide_number: true; slide_number_text: of; circular: false; timer: false; bullets:false;")
+                li
+                    img(src='myassets/img/0welcome.png', alt='welcome to EHIMS')
+                li
+                    img(src='myassets/img/1messages.png', alt='messages hierarchy')
+                li
+                    img(src='myassets/img/2tree-view.png', alt='tree views')
+                if channel.chat_type == 'graph'
+                    li
+                        img(src='myassets/img/3merge-ideas.png', alt='merged ideas')
+                li
+                    img(src='myassets/img/4top-right.png', alt='navigation')
+                if channel.type == 'in progress'
+                    li
+                        img(src='myassets/img/5modification-exp.png', alt='modification')
+                else
+                    li
+                        img(src='myassets/img/5modification-normal.png', alt='modification')
+                if channel.chat_type != 'path'
+                    li
+                        img(src='myassets/img/6modification-tree.png', alt='tree modification')
+            a.close-reveal-modal(aria-label="Close")  &#215;
+
         #user-modal.reveal-modal(data-reveal 
                                  aria-labelledby="user-title" 
                                  aria-hidden="true" 
@@ -286,10 +321,6 @@ html
                             a#logout-close(aria-label="Close" style='position:relative;display:inline-block;float:left;margin-left:15%')
                                 button  No 
             a.close-reveal-modal(aria-label="Close")  &#215;
-        script(src="/jquery/dist/jquery.min.js")
-        script(src="/foundation/js/foundation.js")
-        script(src="/socket.io-client/socket.io.js")
-        script(src="/vis/dist/vis.js")
         script(src="/myassets/js/channel.js")
         script.
             $(document).foundation();

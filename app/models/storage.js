@@ -50,7 +50,7 @@ var get_user = function(name,callback){
  */
 
 var create_user = function(user, pass, firstname, lastname, email, callback) {
-    var user = new User({'name':user, 'password': pass, 'channels': [],
+    var user = new User({'name':user, 'password': pass, 'channels': [], 'newcoming':true,
                         'firstname': firstname, 'lastname': lastname, 'email': email});
     user.save().then(function(user){
         callback(user);
@@ -479,31 +479,60 @@ var modify_hierarchy = function(data, callback){
     var channel_id = data.channel;
     data.record = '*orginal parents*: ' + data.original_parent.join(',');
     data.record = data.record.trim(', ');
-    Message.findOne({"_id": child_id},function(err, cmsg){
+    Message.findOne({"_id": child_id}, function(err, cmsg){
+        var bulkOps = [];
+        var channelOps = [];
         if(cmsg.msg_parent != null && cmsg.msg_parent != undefined){
-            Message.findOne({"_id":cmsg.msg_parent}, function(err, op){
+            /*Message.findOne({"_id":cmsg.msg_parent}, function(err, op){
                 op.children = op.children.filter(child => child != child_id);
                 Message.updateOne({"_id":cmsg.msg_parent},{$set:{children: op.children}}, {upsert:true}, function(){});
-            });
-            if(cmsg.other_parents != undefined){
+            });*/
+            let updateParent = {
+                'updateOne': {
+                    'filter': {'_id': cmsg.msg_parent},
+                    'update': {$pull: {'children': mongoose.Types.ObjectId(child_id)}},
+                    'upsert': true,
+                    'multi': true
+                }
+            };
+            bulkOps.push(updateParent);
+            /*if(cmsg.other_parents != undefined){
                 cmsg.other_parents.forEach(function(other_parent){
                     Message.findOne({"_id":other_parent}, function(err, op1){
                         op1.children = op1.children.filter(child => child != child_id);
                         Message.updateOne({"_id":other_parent},{$set:{children: op1.children}}, {upsert:true}, function(){});
                     });
                 });
+            }*/
+            for(var i=0; i < cmsg.other_parents.length; i ++){
+                let updateParent = {
+                    'updateOne': {
+                        'filter': {'_id': cmsg.other_parents[i]},
+                        'update': {$pull: {'children': mongoose.Types.ObjectId(child_id)}},
+                        'upsert': true,
+                    }
+                };
+                bulkOps.push(updateParent);
             }
         }else{
-            Channel.findOne({"_id":channel_id},function(err, channel){
+            /*Channel.findOne({"_id":channel_id},function(err, channel){
                 channel.top_lvl_messages = channel.top_lvl_messages.filter(msg => msg != child_id); 
                 Channel.updateOne({"_id": channel_id}, {$set:{top_lvl_messages: channel.top_lvl_messages}}, {upsert:true}, function(){});
-            })
+            })*/
+            let updateChannel = {
+                'updateOne': {
+                    'filter': {'_id': channel_id},
+                    'update': {$pull: {'top_lvl_messages': mongoose.Types.ObjectId(child_id)}},
+                    'upsert': true,
+                }
+            };
+            channelOps.push(updateChannel);
         }
         
         var msg_parent = null;
         var other_parents = [];
-        if(change_parents[0] == "0"){
-            Channel.findOne({"_id": channel_id}, function(err, channel){
+        if(change_parents.includes("0")){
+            /*Channel.findOne({"_id": channel_id}, function(err, channel){
                 var seen = 0;
                 channel.top_lvl_messages.forEach(function(m){
                     if (m == cmsg)
@@ -511,10 +540,18 @@ var modify_hierarchy = function(data, callback){
                 });
                 if (seen == 0)
                     Channel.updateOne({"_id": channel_id}, {$push:{top_lvl_messages: mongoose.Types.ObjectId(child_id)}}, {upsert:true}, function(){});
-            });
+            });*/
+            let updateChannel = {
+                'updateOne': {
+                    'filter': {'_id': channel_id},
+                    'update': {$push: {'top_lvl_messages': mongoose.Types.ObjectId(child_id)}},
+                    'upsert': true,
+                }
+            };
+            channelOps.push(updateChannel);
         }else{
             //change_parents = change_parents.filter(msg => msg != "0");
-            var bulkOps = [];
+            //var bulkOps = [];
             for(var i = 0; i < change_parents.length; i ++){
                 let updateMsg = {
                     'updateOne': {
@@ -529,16 +566,34 @@ var modify_hierarchy = function(data, callback){
                 else
                     other_parents.push(mongoose.Types.ObjectId(change_parents[i]));
             };
+        };
+        let updateMsg = {
+            'updateOne': {
+                'filter': {'_id': child_id},
+                'update': {$set: {'msg_parent':msg_parent, 'other_parents':other_parents}, $push:{'original_version': data.record}},
+                'upsert': true,
+            }
+        };
+        bulkOps.push(updateMsg);
 
-            Message.bulkWrite(bulkOps)
+        Message.bulkWrite(bulkOps)
+            .then( bulkWriteOpResult => {
+                console.log('Hierarchy changed');
+            })
+            .catch( err => {
+                console.log(err);
+                console.log('Hierarchy failed to change');
+            });
+        if(channelOps.length > 0){
+            Channel.bulkWrite(channelOps)
                 .then( bulkWriteOpResult => {
-                    console.log('Hierarchy changed');
+                    console.log('top level msg changed');
                 })
                 .catch( err => {
-                    console.log('Hierarchy failed to change');
+                    console.log(err);
+                    console.log('top level msg failed to change');
                 });
-        };
-        Message.updateOne({"_id":child_id},{$set:{msg_parent:msg_parent, other_parents:other_parents}, $push:{original_version: data.record}}, {upsert:true}, function(){});
+            }
     });
     callback(data);
 };
@@ -764,7 +819,7 @@ var assign_account = function(callback){
             if(name_array.includes(name) == false)
                 break;
         }
-        var new_user = new User({'name':name, 'password': password, 'channels': [], "experiment": true, "channel":[]});
+        var new_user = new User({'name':name, 'password': password, 'channels': [], "experiment": true, "channel":[], "newcoming":true});
         new_user.save().then(function(){
             new_user.password = password;
             callback(err, new_user);
@@ -817,6 +872,16 @@ var individual_info = function(callback){
     })
 };
 
+var reset_newcoming = function(user_id){
+    User.updateOne({"_id":user_id}, {$set:{newcoming:false}}, {upsert:true}, function(){});
+};
+
+var get_exp_channels = function(callback){
+    Channel.find({$or:[{'type':"experiment"}, {'type':"in progress"}, {'type':"result"}]},function(err, channels){
+        callback(channels);
+    });
+};
+
 
 exports.get_user = get_user;
 exports.create_user = create_user;
@@ -861,4 +926,5 @@ exports.assign_account = assign_account;
 exports.store_channel_presurvey = store_channel_presurvey;
 exports.search_code = search_code;
 exports.individual_info = individual_info;
-
+exports.reset_newcoming = reset_newcoming;
+exports.get_exp_channels = get_exp_channels;

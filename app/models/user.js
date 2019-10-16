@@ -18,6 +18,7 @@ var UserSchema = new Schema({
     email: {type: String},
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    newcoming: {type: Boolean, default: false},
     channels : [{
         name: {type: String}, 
         chat_type: {type: String}, 
