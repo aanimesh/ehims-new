@@ -140,12 +140,11 @@ var receive_msg = function(msg, top_lvl_messages){
     dbid_to_userid[cur_id] = msg._id;
     cur_id++;
     most_recent = msg._id;
-    channel.top_lvl_messages = top_lvl_messages;
+    channel.top_lvl_messages = top_lvl_messages
 
     if(msg.msg_parent)
         messages[msg.msg_parent].children.push(msg._id);
-    else
-        channel.top_lvl_messages.push(msg._id);
+
     if(chat_type === 'graph' && msg.other_parents)
         for(i = msg.other_parents.length-1; i >= 0; i--)
            messages[msg.other_parents[i]].children.push(msg._id); 
@@ -1796,7 +1795,6 @@ $(document).ready(function(){
         set_hard_focus($(this).attr('id'));
         $('#modal-msg').foundation('reveal', 'close');
     });
-
 
     $('#invite-button').on('click', function(e){
         e.preventDefault();
