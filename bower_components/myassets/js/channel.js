@@ -442,7 +442,7 @@ var blink_new_message = function(id) {
     // identify the message as new
     $(id).addClass('new-blink-message');
 
-    var sleep = 2000; // 2 seconds between blinks
+    var sleep = 10000; // earlier 2 seconds between blinks, increased to 10 sec [animesh]
     var callback = function(iter) {
         // stop if the message is no longer new
         if (!$(id).hasClass('new-blink-message')) {
