@@ -10,8 +10,8 @@ var MongoClient = require('mongodb').MongoClient;
 var mongoose = require('mongoose');
 var assert = require('assert');
 var CryptoJS = require('crypto-js');
-var _mongo_url = process.env.MONGOLAB_URI || 
-                 process.env.MONGOHQ_URL  || 
+var _mongo_url = process.env.MONGOHQ_URL  || 
+		 process.env.MONGOALTAS_URI ||
                  'mongodb://localhost:27017/ehims';
 var crypto = require('crypto');
 var bcrypt = require('bcrypt');
