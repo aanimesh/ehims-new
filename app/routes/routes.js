@@ -137,38 +137,50 @@ module.exports = function(io){
 
     routes = {
        landing : function(req, res){
-            var invite_id = req.query.i;
-            if (invite_id == undefined || invite_id == null)
-                res.render("welcome");
-            else {
-                storage.get_invite(invite_id, function(invite){
-                    if (!invite)
-                        res.render("welcome", {message: "Invite does not exist"});
-                    else{
-                        if(invite.experiment == true)
-                            res.render('invite_login', {
-                                'channel': invite.channel,
-                                'invite': invite._id,
-                            });
-                        else
-                            res.render('welcome', {
-                                'channel': invite.channel,
-                                'invite': invite._id,
-                            });
-                    }
-                });
-            }
+           try {
+                var invite_id = req.query.i;
+                if (invite_id == undefined || invite_id == null)
+                    res.render("welcome");
+                else {
+                    storage.get_invite(invite_id, function(invite){
+                        if (!invite)
+                            res.render("welcome", {message: "Invite does not exist"});
+                        else{
+                            if(invite.experiment == true)
+                                res.render('invite_login', {
+                                    'channel': invite.channel,
+                                    'invite': invite._id,
+                                });
+                            else
+                                res.render('welcome', {
+                                    'channel': invite.channel,
+                                    'invite': invite._id,
+                                });
+                        }
+                    });
+                }
+           } catch (e) {
+               res.end();
+               console.log("landing error");
+               console.log(e.message);
+           }
+            
        },
 
        signup: function(req,res){
-            if(req.body.agreebox == 'on')
-                res.render("signup", {invite:req.body.invite, channel_id:req.body.channel_id});
-            else{
-                storage.get_content(function(content){
-                    res.render('consent', {consent:content.consent, invite:req.body.invite, channel_id:req.body.channel_id});
-                });
-            }
-            //res.render('signup');
+           try {
+                if(req.body.agreebox == 'on')
+                    res.render("signup", {invite:req.body.invite, channel_id:req.body.channel_id});
+                else{
+                    storage.get_content(function(content){
+                        res.render('consent', {consent:content.consent, invite:req.body.invite, channel_id:req.body.channel_id});
+                    });
+                }
+           } catch(e) {
+                res.end();
+                console.log("entering signing up process error");
+                console.log(e.message);
+           }
        },
 
        forgot_password: function(req,res){
@@ -176,173 +188,148 @@ module.exports = function(io){
        },
 
        change_password: function(req, res){
-            var username = req.body.username;
-            storage.get_email(username, function(err, token, user){
-                if(err)
-                    return res.status(500).send("Oops. Something wrong.");
-                if(user == undefined || user == null )
-                    return res.render("forgot_password", {message: 'This account does not exist.'});
+           try {
+                var username = req.body.username;
+                storage.get_email(username, function(err, token, user){
+                    if(err)
+                        return res.status(500).send("Oops. Something wrong.");
+                    if(user == undefined || user == null )
+                        return res.render("forgot_password", {message: 'This account does not exist.'});
 
-                if(user.email == undefined || user.email == null)
-                    return res.render("forgot_password", {message: 'No email address available.'});
-                else {
+                    if(user.email == undefined || user.email == null)
+                        return res.render("forgot_password", {message: 'No email address available.'});
+                    else {
+                        var smtpTransport = nodemailer.createTransport({
+                            service: 'Gmail',
+                            auth: {
+                                user: 'ehims.new@gmail.com',
+                                pass: 'ehims2016'
+                            }
+                        });
+                        var mailOptions = {
+                            to: user.email,
+                            from: 'ehims.new@gmail.com',
+                            subject: 'EHIMS Password Reset',
+                            text: 'Dear '+user.firstname+' '+user.lastname+',\n\nYou are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
+                            'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                            get_socket_url() + 'reset?token=' + token + '\n\n' +
+                            'If you did not request this, please ignore this email and your password will remain unchanged.\n'
+                        };
+                        smtpTransport.sendMail(mailOptions, function(err) {
+                            console.log('An e-mail has been sent to ' + user.email);
+                        });
+                        res.render('forgot_password', {message: 'An e-mail has been sent to '+user.email});
+                    }
+                });
+           } catch(e) {
+               res.end();
+               console.log("changing pw error");
+               console.log(e.message);
+           }
+       },
+
+       reset: function(req,res){
+           try {
+                storage.compare_token(req.query.token, function(err, user){
+                    if(!user){
+                        //console.log(err);
+                        res.render('reset_password', {message: 'Password reset token is invalid or has expired.'});
+                    } else {
+                        res.render('reset_password', {name: user.name, token: req.query.token});
+                    }
+                });
+           } catch(e) {
+               res.end();
+               console.log("reset pw page error");
+               console.log(e.message);
+           }
+       },
+
+       reset_password: function(req, res){
+           try {
+                var username = req.body.username;
+                var password = req.body.password;
+                var password2 = req.body.password2;
+                var token = req.query.token;
+                if(password2 != password)
+                    return res.render('reset_password', {message: 'Entered password is not matched.', name: username, token: req.query.token});;
+
+                storage.change_password(username, password, function(err, user){
+                    if(err){
+                        console.log(err);
+                        res.status(500).send("Whoops, we had an error");
+                        return;
+                    }
                     var smtpTransport = nodemailer.createTransport({
                         service: 'Gmail',
                         auth: {
                             user: 'ehims.new@gmail.com',
                             pass: 'ehims2016'
                         }
-                      });
-                      var mailOptions = {
+                    });
+                    var mailOptions = {
                         to: user.email,
                         from: 'ehims.new@gmail.com',
-                        subject: 'EHIMS Password Reset',
-                        text: 'Dear '+user.firstname+' '+user.lastname+',\n\nYou are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
-                          'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                          get_socket_url() + 'reset?token=' + token + '\n\n' +
-                          'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-                      };
-                      smtpTransport.sendMail(mailOptions, function(err) {
-                        console.log('An e-mail has been sent to ' + user.email);
-                      });
-                      res.render('forgot_password', {message: 'An e-mail has been sent to '+user.email});
-                }
-            });
-       },
-
-       reset: function(req,res){
-            storage.compare_token(req.query.token, function(err, user){
-                if(!user){
-                    //console.log(err);
-                    res.render('reset_password', {message: 'Password reset token is invalid or has expired.'});
-                } else {
-                    res.render('reset_password', {name: user.name, token: req.query.token});
-                }
-            });
-       },
-
-       reset_password: function(req, res){
-            var username = req.body.username;
-            var password = req.body.password;
-            var password2 = req.body.password2;
-            var token = req.query.token;
-            if(password2 != password)
-                return res.render('reset_password', {message: 'Entered password is not matched.', name: username, token: req.query.token});;
-
-            storage.change_password(username, password, function(err, user){
-                if(err){
-                    console.log(err);
-                    res.status(500).send("Whoops, we had an error");
-                    return;
-                }
-                var smtpTransport = nodemailer.createTransport({
-                    service: 'Gmail',
-                    auth: {
-                        user: 'ehims.new@gmail.com',
-                        pass: 'ehims2016'
-                    }
-                  });
-                  var mailOptions = {
-                    to: user.email,
-                    from: 'ehims.new@gmail.com',
-                    subject: 'Your password has been changed',
-                    text: 'Hello,\n\n' +
-                      'This is a confirmation that the password for your account ' + user.name + ' has just been changed.\n'
-                  };
-                  smtpTransport.sendMail(mailOptions, function(err) {
-                    console.log('Password has been changed.');
-                  });
-            });
-            res.render('welcome');
+                        subject: 'Your password has been changed',
+                        text: 'Hello,\n\n' +
+                        'This is a confirmation that the password for your account ' + user.name + ' has just been changed.\n'
+                    };
+                    smtpTransport.sendMail(mailOptions, function(err) {
+                        console.log('Password has been changed.');
+                    });
+                });
+                res.render('welcome');
+           } catch(e) {
+               res.end();
+               console.log("reseting pw error");
+               console.log(e.message);
+           }
+            
        },
        
        channels : function(req, res){
-           var user = req.body.username;
-           var pass = req.body.password;
-           var pass2 = req.body.password_check;
-           var firstname = req.body.firstname;
-           var lastname = req.body.lastname;
-           var email = req.body.email;
-           var channel_id = req.body.channel_id; 
-           var invite = req.body.invite;
-
-            if(invite == 'undefined' || invite == null || invite == ''){
-                if(email != undefined && email != null){
-                    if(pass2 != pass)
-                        return res.render("signup", 
-                                { message: "Entered Password is not matching.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
-                    storage.get_user(user, function(err, results){
-                        if(!results){
-                            storage.create_user(user, pass, firstname, lastname, email, function(results){
-                                res.render("channels",{ user: {
-                                    name: results.name,
-                                    channels: results.channels
-                                }});
-                            });
-                        } else {
-                            res.render("signup", 
-                                { message: "This username has already existed.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
-                        }
-                    })
-               } else {
-                    storage.get_user(user, function(err, results){
-                        if(err){
-                            res.render("welcome", 
-                                    { message: "This account does not exist.", username:user});
-                            return;
-                        }
-                        results.comparePassword(pass, function(err, match){
-                            if(err){
-                                console.log(err);
-                                res.status(500).send("Whoops, we had an error");
-                                return;
-                            }
-                            if (match) {
-                                res.render("channels",{ user: {
-                                    name: results.name,
-                                    channels: results.channels
-                                }});
-                            } else {
-                                res.render("welcome", 
-                                    { message: "The password is incorrect.", username:user});
-                            }
-                        });
-                    })
-               }
-            } else {
-               invite = invite.replace(get_socket_url()+'invite?i=', '');
-                storage.get_invite(invite, function(result){
-                    if(!result)
-                        res.status(404).send("Invite not found");
-                    else {
-                          if(email != undefined && email != null){
+           try {
+                var user = req.body.username;
+                var pass = req.body.password;
+                var pass2 = req.body.password_check;
+                var firstname = req.body.firstname;
+                var lastname = req.body.lastname;
+                var email = req.body.email;
+                var channel_id = req.body.channel_id; 
+                var invite = req.body.invite;
+    
+                if(invite == 'undefined' || invite == null || invite == ''){
+                    if(email != undefined && email != null){
+                        // new user without a invitaiton
+                        try {
                             if(pass2 != pass)
                                 return res.render("signup", 
-                                      { message: "Entered Password is not matching.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
+                                        { message: "Entered Password is not matching.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
                             storage.get_user(user, function(err, results){
-                                if(results == null || results == undefined){
-                                    storage.create_user(user, pass, firstname, lastname, email, function(new_user){
-                                        storage.get_channel_by_id(result.channel, function(channel){
-                                            if(!channel){
-                                                return res.render("signup", { message: "This channel does not exist.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
-                                            }
-                                            user_join_channel(channel, new_user, res);
-                                        });
+                                if(!results){
+                                    storage.create_user(user, pass, firstname, lastname, email, function(results){
+                                        res.render("channels",{ user: {
+                                            name: results.name,
+                                            channels: results.channels
+                                        }});
                                     });
                                 } else {
                                     res.render("signup", 
                                         { message: "This username has already existed.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
                                 }
                             })
-                       } else {
+                        } catch (e) {
+                            res.end();
+                            console.log("signing up error");
+                            console.log(e.message);
+                        }
+                    } else {
+                        // returning user without a invitaiton
+                        try {
                             storage.get_user(user, function(err, results){
                                 if(err){
-                                    res.render('welcome', {
-                                            'channel': channel_id,
-                                            'username': user,
-                                            'invite': invite,
-                                            'message': "This account does not exist.",
-                                        });
+                                    res.render("welcome", 
+                                            { message: "This account does not exist.", username:user});
                                     return;
                                 }
                                 results.comparePassword(pass, function(err, match){
@@ -351,163 +338,279 @@ module.exports = function(io){
                                         res.status(500).send("Whoops, we had an error");
                                         return;
                                     }
-                                    if (match) {  
-                                        storage.get_channel_by_id(channel_id, function(channel){
-                                            user_join_channel(channel, results, res);
-                                        });
+                                    if (match) {
+                                        res.render("channels",{ user: {
+                                            name: results.name,
+                                            channels: results.channels
+                                        }});
                                     } else {
-                                        res.render('welcome', {
-                                            'channel': channel_id,
-                                            'username': user,
-                                            'invite': invite,
-                                            'message': "The password is incorrect.",
-                                        });
+                                        res.render("welcome", 
+                                            { message: "The password is incorrect.", username:user});
                                     }
                                 });
                             })
+                        } catch (e) {
+                            res.end();
+                            console.log("returning user entering channels error");
+                            console.log(e.message);
                         }
                     }
-                })
-            }
+                } else {
+                    invite = invite.replace(get_socket_url()+'invite?i=', '');
+                    storage.get_invite(invite, function(result, err){
+                        if (err) {
+                            res.end();
+                            console.log("fail to get invitation");
+                            console.log(e.message);
+                        }
+                        if(!result)
+                            res.status(404).send("Invite not found");
+                        else {
+                            if(email != undefined && email != null){
+                                // new user with an invitation
+                                try {
+                                    if(pass2 != pass)
+                                        return res.render("signup", 
+                                            { message: "Entered Password is not matching.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
+                                    storage.get_user(user, function(err, results){
+                                        if(results == null || results == undefined){
+                                            storage.create_user(user, pass, firstname, lastname, email, function(new_user){
+                                                storage.get_channel_by_id(result.channel, function(channel){
+                                                    if(!channel){
+                                                        return res.render("signup", { message: "This channel does not exist.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
+                                                    }
+                                                    user_join_channel(channel, new_user, res);
+                                                });
+                                            });
+                                        } else {
+                                            res.render("signup", 
+                                                { message: "This username has already existed.", user:user, firstname:firstname, lastname:lastname,invite:invite,email:email});
+                                        }
+                                    })
+                                } catch (e) {
+                                    res.end();
+                                    console.log("signing up with an invitation error")
+                                    console.log(e.message);
+                                }
+                            } else {
+                                // returning user with an invitation
+                                try {
+                                    storage.get_user(user, function(err, results){
+                                        if(err){
+                                            res.render('welcome', {
+                                                    'channel': channel_id,
+                                                    'username': user,
+                                                    'invite': invite,
+                                                    'message': "This account does not exist.",
+                                                });
+                                            return;
+                                        }
+                                        results.comparePassword(pass, function(err, match){
+                                            if(err){
+                                                console.log(err);
+                                                res.status(500).send("Whoops, we had an error");
+                                                return;
+                                            }
+                                            if (match) {  
+                                                storage.get_channel_by_id(channel_id, function(channel){
+                                                    user_join_channel(channel, results, res);
+                                                });
+                                            } else {
+                                                res.render('welcome', {
+                                                    'channel': channel_id,
+                                                    'username': user,
+                                                    'invite': invite,
+                                                    'message': "The password is incorrect.",
+                                                });
+                                            }
+                                        });
+                                    })
+                                } catch (e) {
+                                    res.end();
+                                    console.log("signing up with an invitation error")
+                                    console.log(e.message);
+                                }
+                            }
+                        }
+                    })
+                }
+           } catch (e) {
+               res.end();
+               console.log("entering channels error");
+               console.log(e.message);
+           }
+           
         },
 
         back_channels : function(req, res){
-            storage.get_user(req.body.username, function(err, results){
-                res.render("channels",{ user: {
-                    name: results.name,
-                    channels: results.channels
-                }});
-            });
+            try {
+                storage.get_user(req.body.username, function(err, results){
+                    res.render("channels",{ user: {
+                        name: results.name,
+                        channels: results.channels
+                    }});
+                });
+            } catch(e) {
+                res.end();
+                console.log("going back to channels error");
+                console.log(e.message);
+            }
         },
 
         create_channel : function(req, res){
-            var socket_url = get_socket_url();
-            var context = { user: req.body.username,
-                channel: req.body.channel,
-                help_popup: get_help_popup(),
-                socket_url : socket_url};
-            storage.create_channel(context.channel, req.body.ctype,
-                function(err, channel) {
-                    if(err){
-                        console.log(err);
-                        context.messages = {
-                            create: "The channel you tried to create already exists"};
+            try {
+                var socket_url = get_socket_url();
+                var context = { user: req.body.username,
+                    channel: req.body.channel,
+                    help_popup: get_help_popup(),
+                    socket_url : socket_url};
+                storage.create_channel(context.channel, req.body.ctype,
+                    function(err, channel) {
+                        if(err){
+                            console.log(err);
+                            context.messages = {
+                                create: "The channel you tried to create already exists"};
+                            storage.get_user(context.user, function(err, result){
+                                context.user = result;
+                                res.render("channels", context); 
+                            });
+                            return;
+                        }
                         storage.get_user(context.user, function(err, result){
-                            context.user = result;
-                            res.render("channels", context); 
+                            user_join_channel(channel, result, res);
                         });
-                        return;
                     }
-                    storage.get_user(context.user, function(err, result){
-                        user_join_channel(channel, result, res);
-                    });
-                }
-            );
+                );
+            } catch(e) {
+                res.end();
+                console.log("creating channels error");
+                console.log(e.message);
+            }
         },
        
         join_channel : function(req, res){
-            var channel_id = req.body.channel;
-            var user = req.body.username;
-            var context = { user: req.body.username,
-                channel: req.body.channel,
-                help_popup: get_help_popup(),
-                socket_url : get_socket_url()};
-            storage.get_channel_by_id(channel_id, function(channel){
-                storage.get_user(user, function(err, result){
-                    context.user = result;
-                    if(!channel || err){
-                        context.messages = {
-                            join: "The channel does not exist"};
-                        return res.render("channels", context);
-                    }
-                    user_join_channel(channel, result, res);
+            try {
+                var channel_id = req.body.channel;
+                var user = req.body.username;
+                var context = { user: req.body.username,
+                    channel: req.body.channel,
+                    help_popup: get_help_popup(),
+                    socket_url : get_socket_url()};
+                storage.get_channel_by_id(channel_id, function(channel){
+                    storage.get_user(user, function(err, result){
+                        context.user = result;
+                        if(!channel || err){
+                            context.messages = {
+                                join: "The channel does not exist"};
+                            return res.render("channels", context);
+                        }
+                        user_join_channel(channel, result, res);
+                    });
                 });
-            });
+            } catch(e) {
+                res.end();
+                console.log("joining channel error");
+                console.log(e.message);
+            }
         },
        
         message : function(req, res){
-           storage.create_message(req.body,function(message, top_lvl_messages){
-               io.to(req.body.channel).emit('message', message, top_lvl_messages);
-               res.send('Message sent');
-           });
+            try {
+                storage.create_message(req.body,function(message, top_lvl_messages){
+                    io.to(req.body.channel).emit('message', message, top_lvl_messages);
+                    res.send('Message sent');
+                });
+            } catch(e) {
+                res.end();
+                console.log("creating msg error");
+                console.log(e.message);
+            }
         },
 
         download_channel : function(req, res) {
-            var channel_id = req.query.channel;
-            if(channel_id == "all"){
-                var result = {}
-                storage.get_all_messages(function(messages){
-                    storage.get_all_channels(function(channels){
-                        Object.keys(messages).forEach(function(msg){
-                            delete messages[msg]['content'];
-                        })
-                        result['messages'] = messages;
-                        result['channels'] = channels;
-                        let runPy = new Promise(function(success, nosuccess) {
-                            const pyprog = spawn('python', ['data_analysis/all_groups.py']);
-                            pyprog.stdin.setEncoding('utf-8');
-                            pyprog.stdin.write(JSON.stringify(result));
-                            pyprog.stdin.end();
-                            pyprog.stdout.on('data', function(data) {
-                                success(data);
+            try {
+                var channel_id = req.query.channel;
+                if(channel_id == "all"){
+                    var result = {}
+                    storage.get_all_messages(function(messages){
+                        storage.get_all_channels(function(channels){
+                            Object.keys(messages).forEach(function(msg){
+                                delete messages[msg]['content'];
+                            })
+                            result['messages'] = messages;
+                            result['channels'] = channels;
+                            let runPy = new Promise(function(success, nosuccess) {
+                                const pyprog = spawn('python', ['data_analysis/all_groups.py']);
+                                pyprog.stdin.setEncoding('utf-8');
+                                pyprog.stdin.write(JSON.stringify(result));
+                                pyprog.stdin.end();
+                                pyprog.stdout.on('data', function(data) {
+                                    success(data);
+                                });
+                                pyprog.stderr.on('data', (data) => {
+                                    nosuccess(data);
+                                });
                             });
-                            pyprog.stderr.on('data', (data) => {
-                                nosuccess(data);
+                            runPy.then(function(fromRunpy) {
+                                res.download('tmp_file/all-channels.csv');
+                            }).catch((error) => {
+                                console.log(error.toString());
                             });
-                        });
-                        runPy.then(function(fromRunpy) {
-                            res.download('tmp_file/all-channels.csv');
-                        }).catch((error) => {
-                            console.log(error.toString());
                         });
                     });
-                });
-            }
-            else{
-                var result;
-                storage.get_channel_by_id(channel_id, function(ch) {
-                    if(ch === null || ch === undefined) { 
-                        res.status(400).json({'error': 'Bad request'});
-                        return;
-                    }
-                    storage.get_messages_by_channel(channel_id, function(messages) {
-                        if(messages === null || messages === undefined) {
+                }
+                // download all channels
+                else {
+                    var result;
+                    storage.get_channel_by_id(channel_id, function(ch) {
+                        if(ch === null || ch === undefined) { 
                             res.status(400).json({'error': 'Bad request'});
                             return;
-                        } 
-                        else{
-                            result = JSON.stringify({
-                                'channel_id': channel_id,
-                                'chat_type': ch.chat_type,
-                                'name': ch.name,
-                                'tree_views': ch.tree_views,
-                                'participants': ch.participants,
-                                'duration': ch.duration,
-                                'started_at': ch.started_at,
-                                'messages': messages
-                            });
                         }
+                        storage.get_messages_by_channel(channel_id, function(messages) {
+                            if(messages === null || messages === undefined) {
+                                res.status(400).json({'error': 'Bad request'});
+                                return;
+                            } 
+                            else{
+                                result = JSON.stringify({
+                                    'channel_id': channel_id,
+                                    'chat_type': ch.chat_type,
+                                    'name': ch.name,
+                                    'tree_views': ch.tree_views,
+                                    'participants': ch.participants,
+                                    'duration': ch.duration,
+                                    'started_at': ch.started_at,
+                                    'messages': messages
+                                });
+                            }
 
-                        let runPy = new Promise(function(success, nosuccess) {
-                            const pyprog = spawn('python', ['data_analysis/group-results.py']);
-                            pyprog.stdin.setEncoding('utf-8');
-                            pyprog.stdin.write(result.toString());
-                            pyprog.stdin.end();
-                            pyprog.stdout.on('data', function(data) {
-                                success(data);
+                            let runPy = new Promise(function(success, nosuccess) {
+                                const pyprog = spawn('python', ['data_analysis/group-results.py']);
+                                pyprog.stdin.setEncoding('utf-8');
+                                pyprog.stdin.write(result.toString());
+                                pyprog.stdin.end();
+                                pyprog.stdout.on('data', function(data) {
+                                    success(data);
+                                });
+                                pyprog.stderr.on('data', (data) => {
+                                    nosuccess(data);
+                                });
                             });
-                            pyprog.stderr.on('data', (data) => {
-                                nosuccess(data);
+                            runPy.then(function(fromRunpy) {
+                                res.download('tmp_file/channel.zip');
+                            }).catch((error) => {
+                                console.log(error.toString());
                             });
-                        });
-                        runPy.then(function(fromRunpy) {
-                            res.download('tmp_file/channel.zip');
-                        }).catch((error) => {
-                            console.log(error.toString());
                         });
                     });
-                });
-            } 
+                } 
+            } catch(e) {
+                res.end();
+                console.log("downloading files error");
+                console.log(e.message);
+            }
+            
         },
 
         /*download_channel : function(req, res) {
@@ -600,93 +703,145 @@ module.exports = function(io){
         },*/
 
        admin : function(req, res){
-           var pass = req.body.pass;
-           if(pass === 'ehims2016'){
-               storage.get_all_exp_channels(function(channels){
-                    storage.get_content(function(contents){
-                        res.render('admin', {channels: channels, survey_contents:contents, socket_url: get_socket_url()});
+            try {
+                var pass = req.body.pass;
+                if(pass === 'ehims2016'){
+                    storage.get_all_exp_channels(function(channels){
+                            storage.get_content(function(contents){
+                                res.render('admin', {channels: channels, survey_contents:contents, socket_url: get_socket_url()});
+                            })
                     })
-               })
-           } else {
-               res.render("admin_login", {message:"Incorrect Password"});
-           }
+                } else {
+                    res.render("admin_login", {message:"Incorrect Password"});
+                }
+            } catch(e) {
+                res.end();
+                console.log("admin page loging error");
+                console.log(e.message);
+            }
         },
 
        admin_login : function(req, res){
-            res.render("admin_login");
+            try {
+                res.render("admin_login");
+            } catch(e) {
+                res.end();
+                console.log("admin logging error");
+                console.log(e.message);
+            }
         },
 
        make_invite : function(req, res){
-            var channel = req.body.channel;
-            storage.create_invite(channel, function(invite){
-               if(invite)
-                    res.json({'invite': invite._id});
-            });
+            try {
+                var channel = req.body.channel;
+                storage.create_invite(channel, function(invite){
+                if(invite)
+                        res.json({'invite': invite._id});
+                });
+            } catch(e) {
+                res.end();
+                console.log("making invitation links error");
+                console.log(e.message);
+            }
         },
 
        invite : function(req, res){
-            var invite = req.body.invite;
-            var pass = req.body.pass;
-            var name = req.body.username;
-            var channel_id = req.body.channel;
-            storage.get_invite(invite, function(result){
-                if(!result)
-                    res.status(404).send("Page not found");
-                else {
-                    storage.get_user(name, function(err, results){
-                        results.comparePassword(pass, function(err, match){
-                            if(err){
-                                console.log(err);
-                                res.status(500).send("Whoops, we had an error");
-                                return;
-                            }
-                            if (match) {  
-                                storage.get_channel_by_id(channel_id, function(channel){
-                                    user_join_channel(channel, results, res);
-                                });
-                            } else {
-                                res.render('invite_login', {
-                                    'channel': channel_id,
-                                    'username': req.body.username,
-                                    'invite': invite,
-                                    'message': "The password is incorrect.",
-                                });
-                            }
-                        });
-                    })
-                }
-            })
+            try {
+                var invite = req.body.invite;
+                var pass = req.body.pass;
+                var name = req.body.username;
+                var channel_id = req.body.channel;
+                storage.get_invite(invite, function(result){
+                    if(!result)
+                        res.status(404).send("Page not found");
+                    else {
+                        storage.get_user(name, function(err, results){
+                            results.comparePassword(pass, function(err, match){
+                                if(err){
+                                    console.log(err);
+                                    res.status(500).send("Whoops, we had an error");
+                                    return;
+                                }
+                                if (match) {  
+                                    storage.get_channel_by_id(channel_id, function(channel){
+                                        user_join_channel(channel, results, res);
+                                    });
+                                } else {
+                                    res.render('invite_login', {
+                                        'channel': channel_id,
+                                        'username': req.body.username,
+                                        'invite': invite,
+                                        'message': "The password is incorrect.",
+                                    });
+                                }
+                            });
+                        })
+                    }
+                })
+            } catch(e) {
+                res.end();
+                console.log("invitation links error!");
+                console.log(e.message);
+            }
        },
 
         likes : function(req, res){
-            var msg_id = req.body.msg_id;
-            var user = req.body.user;
-            storage.likes(msg_id, user, function(err, likes_length, msg_likes){
-                res.json({'length':likes_length});
-                io.to(req.body.channel).emit('likes',{likes: msg_likes, msg_id: msg_id, user:user});
-            });
+            try {
+                var msg_id = req.body.msg_id;
+                var user = req.body.user;
+                storage.likes(msg_id, user, function(err, likes_length, msg_likes){
+                    res.json({'length':likes_length});
+                    io.to(req.body.channel).emit('likes',{likes: msg_likes, msg_id: msg_id, user:user});
+                });
+            } catch(e) {
+                res.end();
+                console.log("likes error!");
+                console.log(e.message);
+            }
+            
         },
 
         bookmark: function(req, res){
-            var msg_id = req.body.msg_id;
-            var user = req.body.user;
-            storage.bookmark(msg_id, user, function(err, bookmarked){
-                res.json({"bookmarked": bookmarked});
-            });
+            try {
+                var msg_id = req.body.msg_id;
+                var user = req.body.user;
+                storage.bookmark(msg_id, user, function(err, bookmarked){
+                    res.json({"bookmarked": bookmarked});
+                });
+            } catch(e) {
+                res.end();
+                console.log("Bookmarking error");
+                console.log(e.message);
+            }
+            
         },
 
         add_group: function(req, res){
-            var time=req.body.time;
-            time = time.replace(' ', '');
-            storage.create_exp_channel(time, function(err, channel){
-                res.json({'channel':channel});
-            })
+            try {
+                var time=req.body.time;
+                time = time.replace(' ', '');
+                storage.create_exp_channel(time, function(err, channel){
+                    res.json({'channel':channel});
+                })
+            } catch(e) {
+                res.end();
+                console.log("creating exp channel error");
+                console.log(e.message);
+            }
+            
         },
 
         create_group: function(req,res){
-            storage.configure_exp_channel(req.body, function(invite_id, channel){
-                res.json({'invite':invite_id, 'channel': channel});
-            })
+            try {
+                storage.configure_exp_channel(req.body, function(invite_id, channel){
+                    res.json({'invite':invite_id, 'channel': channel});
+                })
+            } catch(e) {
+                res.end();
+                console.log("creating exp channel fail");
+                console.log(e.message);
+            }
+            
         },
 
         sub_group: function(req, res){
@@ -706,10 +861,16 @@ module.exports = function(io){
         },
 
         modify_hierarchy: function(req, res){
-            storage.modify_hierarchy(req.body, function(data){
-                io.to(req.body.channel).emit('modify_hierarchy', data);
-                res.json(data);
-            });
+            try {
+                storage.modify_hierarchy(req.body, function(data){
+                    io.to(req.body.channel).emit('modify_hierarchy', data);
+                    res.json(data);
+                });
+            } catch(e) {
+                res.end();
+                console.log("modifying hierarchy error");
+                console.log(e.message);
+            }
         },
 
         get_content: function(req,res){
@@ -732,7 +893,14 @@ module.exports = function(io){
         },
 
         homepage: function(req,res){
-            res.render('homepage');
+            try {
+                res.render('homepage');
+
+            } catch(e) {
+                res.end();
+                console.log("rendering homepage error");
+                console.log(e.message);
+            }
         },
 
         assign: function(req, res){
@@ -746,13 +914,19 @@ module.exports = function(io){
         },
 
         login: function(req, res){
-            if(req.body.agreebox == 'on')
-              res.render('homepage', {'username': req.body.username});
-            else{
-               storage.get_content(function(content){
-                    res.render('assign',{'user': req.body.username, 'password': req.body.password, 'consent': content.consent});
-                })
-             }
+            try {
+                if(req.body.agreebox == 'on')
+                res.render('homepage', {'username': req.body.username});
+                else{
+                storage.get_content(function(content){
+                        res.render('assign',{'user': req.body.username, 'password': req.body.password, 'consent': content.consent});
+                    })
+                }
+            } catch(e) {
+                res.end();
+                console.log("loging in error");
+                console.log(e.message);
+            }
         },
 
         hall: function(req, res){

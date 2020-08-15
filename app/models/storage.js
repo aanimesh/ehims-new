@@ -307,7 +307,7 @@ var get_invite = function(invite_id, callback){
         '_id' :  invite_id
     }, function(err, messages){
         // assert.equal(null, err);
-        callback(messages);
+        callback(messages, err);
     });
 };
 

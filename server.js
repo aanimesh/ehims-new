@@ -1,6 +1,7 @@
 // server.js
 // ---------
 // Author: Amiel Kollek <a_kollek@live.ca>
+//         Shirley Li <lichy@ruc.edu.cn>
 //
 
 
@@ -137,16 +138,25 @@ io.on('connection',io_r.connection);
 
 var port = process.env.PORT || 3000;
 
-// Run server
 http.listen(port,function(){
     console.log('Listening on 3000');
 });
 
+/**
+ * Make sure the server will not sleep and close the app
+ */
 var reqTimer = setTimeout(function wakeUp() {
    require('http').request("http://ehims-new.herokuapp.com/", function() {
       console.log("WAKE UP DYNO");
    });
    return reqTimer = setTimeout(wakeUp, 1200000);
 }, 1200000);
-
 reqTimer;
+
+/**
+ * Catch the uncaught exceptions
+ */
+process.on('uncaughtException', (err, origin) => {
+   console.log(err.message);
+ });
+ 
