@@ -32,6 +32,12 @@ app.use(express.static('bower_components'));
 app.use(bodyParser.json()); 
 // for parsing application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+   res.append('Access-Control-Allow-Origin', ['*']);
+   res.append('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+   res.append('Access-Control-Allow-Headers', 'Content-Type');
+   next();
+});
 
 
 
@@ -40,6 +46,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 /**
  * Routes
  */
+
 // landing page
 app.get('/', routes.landing);
 
@@ -145,18 +152,19 @@ http.listen(port,function(){
 /**
  * Make sure the server will not sleep and close the app
  */
-var reqTimer = setTimeout(function wakeUp() {
-   require('http').request("http://ehims-new.herokuapp.com/", function() {
-      console.log("WAKE UP DYNO");
-   });
-   return reqTimer = setTimeout(wakeUp, 1200000);
-}, 1200000);
-reqTimer;
+var get_socket_url = function(){
+   return process.env.NODE_ENV ? 'https://ehims-new.herokuapp.com/' : 'http://localhost:3000/';
+};
+
+const interval = setInterval(() => {
+   require('http').request(get_socket_url(), function(req, res) {
+      console.log('Wake up');
+   }).end();
+ }, 1000 * 60 * 20);
 
 /**
  * Catch the uncaught exceptions
  */
-process.on('uncaughtException', (err, origin) => {
-   console.log(err.message);
- });
- 
+//process.on('uncaughtException', (err, origin) => {
+//   console.log(err.message);
+// });

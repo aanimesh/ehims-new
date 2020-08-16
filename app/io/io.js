@@ -11,6 +11,7 @@ module.exports = function(io){
     methods = {
         connection : function(socket){
             var q = socket.handshake.query;
+            console.log(q);
             if(q.admin == "admin"){
                 socket.join('admin');
             }
@@ -19,6 +20,8 @@ module.exports = function(io){
             else if(q.username != undefined && q.username != null){
                 console.log(q.username+" connected to "+q.channel);
                 storage.add_online_users(q.channel, q.username, function(err, participants){
+                    if (err)
+                        console.log(err.message);
                     if(!err && participants){
                         socket.join(q.channel);
                         io.to(q.channel).emit('log-on',q.username, participants);

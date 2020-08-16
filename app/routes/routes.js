@@ -137,6 +137,7 @@ module.exports = function(io){
 
     routes = {
        landing : function(req, res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
            try {
                 var invite_id = req.query.i;
                 if (invite_id == undefined || invite_id == null)
@@ -159,15 +160,16 @@ module.exports = function(io){
                         }
                     });
                 }
+                
            } catch (e) {
                res.end();
                console.log("landing error");
                console.log(e.message);
            }
-            
        },
 
        signup: function(req,res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
            try {
                 if(req.body.agreebox == 'on')
                     res.render("signup", {invite:req.body.invite, channel_id:req.body.channel_id});
@@ -176,6 +178,7 @@ module.exports = function(io){
                         res.render('consent', {consent:content.consent, invite:req.body.invite, channel_id:req.body.channel_id});
                     });
                 }
+                
            } catch(e) {
                 res.end();
                 console.log("entering signing up process error");
@@ -184,10 +187,13 @@ module.exports = function(io){
        },
 
        forgot_password: function(req,res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
             res.render("forgot_password");
+            
        },
 
        change_password: function(req, res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
            try {
                 var username = req.body.username;
                 storage.get_email(username, function(err, token, user){
@@ -221,6 +227,7 @@ module.exports = function(io){
                         res.render('forgot_password', {message: 'An e-mail has been sent to '+user.email});
                     }
                 });
+                
            } catch(e) {
                res.end();
                console.log("changing pw error");
@@ -229,6 +236,7 @@ module.exports = function(io){
        },
 
        reset: function(req,res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
            try {
                 storage.compare_token(req.query.token, function(err, user){
                     if(!user){
@@ -238,6 +246,7 @@ module.exports = function(io){
                         res.render('reset_password', {name: user.name, token: req.query.token});
                     }
                 });
+                
            } catch(e) {
                res.end();
                console.log("reset pw page error");
@@ -246,6 +255,7 @@ module.exports = function(io){
        },
 
        reset_password: function(req, res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
            try {
                 var username = req.body.username;
                 var password = req.body.password;
@@ -279,6 +289,7 @@ module.exports = function(io){
                     });
                 });
                 res.render('welcome');
+                
            } catch(e) {
                res.end();
                console.log("reseting pw error");
@@ -288,6 +299,7 @@ module.exports = function(io){
        },
        
        channels : function(req, res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
            try {
                 var user = req.body.username;
                 var pass = req.body.password;
@@ -443,14 +455,23 @@ module.exports = function(io){
         },
 
         back_channels : function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             try {
                 storage.get_user(req.body.username, function(err, results){
-                    res.render("channels",{ user: {
-                        name: results.name,
-                        channels: results.channels
-                    }});
+                    try {
+                        res.render("channels",{ user: {
+                            name: results.name,
+                            channels: results.channels
+                        }});
+                    } catch(e) {
+                        res.end();
+                        console.log("going back to channels error");
+                        console.log(e.message);
+                    }
                 });
+                
             } catch(e) {
+                res.render("welcome");
                 res.end();
                 console.log("going back to channels error");
                 console.log(e.message);
@@ -458,12 +479,14 @@ module.exports = function(io){
         },
 
         create_channel : function(req, res){
+            //res.set({'Content-Type': 'text/html; charset=utf-8'});
             try {
                 var socket_url = get_socket_url();
                 var context = { user: req.body.username,
                     channel: req.body.channel,
                     help_popup: get_help_popup(),
-                    socket_url : socket_url};
+                    socket_url : socket_url
+                };
                 storage.create_channel(context.channel, req.body.ctype,
                     function(err, channel) {
                         if(err){
@@ -489,6 +512,7 @@ module.exports = function(io){
         },
        
         join_channel : function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             try {
                 var channel_id = req.body.channel;
                 var user = req.body.username;
@@ -507,6 +531,7 @@ module.exports = function(io){
                         user_join_channel(channel, result, res);
                     });
                 });
+                
             } catch(e) {
                 res.end();
                 console.log("joining channel error");
@@ -515,11 +540,13 @@ module.exports = function(io){
         },
        
         message : function(req, res){
+            res.set({'Content-Type': 'text/plain; charset=utf-8'});
             try {
                 storage.create_message(req.body,function(message, top_lvl_messages){
                     io.to(req.body.channel).emit('message', message, top_lvl_messages);
                     res.send('Message sent');
                 });
+                
             } catch(e) {
                 res.end();
                 console.log("creating msg error");
@@ -558,6 +585,7 @@ module.exports = function(io){
                             });
                         });
                     });
+                    
                 }
                 // download all channels
                 else {
@@ -604,6 +632,7 @@ module.exports = function(io){
                             });
                         });
                     });
+                    
                 } 
             } catch(e) {
                 res.end();
@@ -703,6 +732,7 @@ module.exports = function(io){
         },*/
 
        admin : function(req, res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
             try {
                 var pass = req.body.pass;
                 if(pass === 'ehims2016'){
@@ -714,6 +744,7 @@ module.exports = function(io){
                 } else {
                     res.render("admin_login", {message:"Incorrect Password"});
                 }
+                
             } catch(e) {
                 res.end();
                 console.log("admin page loging error");
@@ -722,8 +753,10 @@ module.exports = function(io){
         },
 
        admin_login : function(req, res){
+        res.set({'Content-Type': 'text/html; charset=utf-8'});
             try {
                 res.render("admin_login");
+                
             } catch(e) {
                 res.end();
                 console.log("admin logging error");
@@ -732,12 +765,14 @@ module.exports = function(io){
         },
 
        make_invite : function(req, res){
+        res.set({'Content-Type': 'application/json; charset=utf-8'});
             try {
                 var channel = req.body.channel;
                 storage.create_invite(channel, function(invite){
                 if(invite)
                         res.json({'invite': invite._id});
                 });
+                
             } catch(e) {
                 res.end();
                 console.log("making invitation links error");
@@ -767,6 +802,7 @@ module.exports = function(io){
                                         user_join_channel(channel, results, res);
                                     });
                                 } else {
+                                    res.set({'Content-Type': 'text/html; charset=utf-8'});
                                     res.render('invite_login', {
                                         'channel': channel_id,
                                         'username': req.body.username,
@@ -778,6 +814,7 @@ module.exports = function(io){
                         })
                     }
                 })
+                
             } catch(e) {
                 res.end();
                 console.log("invitation links error!");
@@ -786,6 +823,7 @@ module.exports = function(io){
        },
 
         likes : function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             try {
                 var msg_id = req.body.msg_id;
                 var user = req.body.user;
@@ -793,6 +831,7 @@ module.exports = function(io){
                     res.json({'length':likes_length});
                     io.to(req.body.channel).emit('likes',{likes: msg_likes, msg_id: msg_id, user:user});
                 });
+                
             } catch(e) {
                 res.end();
                 console.log("likes error!");
@@ -802,12 +841,14 @@ module.exports = function(io){
         },
 
         bookmark: function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             try {
                 var msg_id = req.body.msg_id;
                 var user = req.body.user;
                 storage.bookmark(msg_id, user, function(err, bookmarked){
                     res.json({"bookmarked": bookmarked});
                 });
+                
             } catch(e) {
                 res.end();
                 console.log("Bookmarking error");
@@ -817,12 +858,14 @@ module.exports = function(io){
         },
 
         add_group: function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             try {
                 var time=req.body.time;
                 time = time.replace(' ', '');
                 storage.create_exp_channel(time, function(err, channel){
                     res.json({'channel':channel});
-                })
+                });
+                
             } catch(e) {
                 res.end();
                 console.log("creating exp channel error");
@@ -832,10 +875,12 @@ module.exports = function(io){
         },
 
         create_group: function(req,res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             try {
                 storage.configure_exp_channel(req.body, function(invite_id, channel){
                     res.json({'invite':invite_id, 'channel': channel});
-                })
+                });
+                
             } catch(e) {
                 res.end();
                 console.log("creating exp channel fail");
@@ -845,27 +890,33 @@ module.exports = function(io){
         },
 
         sub_group: function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             storage.sub_group(req.body.id, function(msg){
                 if (msg == "ok")
                     res.json("ok");
             });
+            
         },
 
         edit_content:function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             var content = req.body.msg;
             var id = req.body.id;
             storage.edit_content(id, content, function(msg){
                 io.to(req.body.channel).emit('edited_content', msg);
                 res.json({'msg': content, 'id':id});
             });
+            
         },
 
         modify_hierarchy: function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             try {
                 storage.modify_hierarchy(req.body, function(data){
                     io.to(req.body.channel).emit('modify_hierarchy', data);
                     res.json(data);
                 });
+                
             } catch(e) {
                 res.end();
                 console.log("modifying hierarchy error");
@@ -874,27 +925,35 @@ module.exports = function(io){
         },
 
         get_content: function(req,res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             storage.get_content(function(content){
                 res.json(content);
             });
+            
         },
 
         update_survey: function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             var data = req.body;
             storage.update_survey(data, function(){
                 res.json(data);
-            })
+            });
+            
         },
 
         get_consent: function(req,res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             storage.get_content(function(content){
                 res.render('consent', {consent:content.consent, invite:req.body.invite, channel_id:req.body.channel_id});
             });
+            
         },
 
         homepage: function(req,res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             try {
                 res.render('homepage');
+                
 
             } catch(e) {
                 res.end();
@@ -904,16 +963,19 @@ module.exports = function(io){
         },
 
         assign: function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
           storage.get_content(function(content){
               storage.assign_account(function(err, user){
                 if(err)
                   return;
                 res.render('assign',{'user':user.name, 'password': user.password, 'consent': content.tester_consent});
               })
-            })
+            });
+            
         },
 
         login: function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             try {
                 if(req.body.agreebox == 'on')
                 res.render('homepage', {'username': req.body.username});
@@ -922,6 +984,7 @@ module.exports = function(io){
                         res.render('assign',{'user': req.body.username, 'password': req.body.password, 'consent': content.consent});
                     })
                 }
+                
             } catch(e) {
                 res.end();
                 console.log("loging in error");
@@ -930,6 +993,7 @@ module.exports = function(io){
         },
 
         hall: function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             if(req.body.agreebox == 'on'){
                 storage.get_available_channels(function(err, channels){
                     if(err){
@@ -946,7 +1010,8 @@ module.exports = function(io){
                           res.render('error',{'username': req.body.username, 'message': "Sorry that our experiment is finished today. <br><br> Thank you!"});
                       }); 
                     }
-                })
+                });
+                
             }
             else{
                 storage.get_content(function(content){
@@ -971,9 +1036,11 @@ module.exports = function(io){
                     })
                 })
             });
+            
         },
 
         instructions:function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
            var tester = {
               user: req.body.username,
               pass: req.body.password,
@@ -986,9 +1053,11 @@ module.exports = function(io){
                 instructions = instructions.replace(new RegExp('&nbsp;', 'g'), ' ').replace(new RegExp('<br>', 'g'), '\n');
                 res.render('instructions', {instructions:instructions, tester:tester});
             });
+            
         },
 
         tester_channels: function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             var tester = req.body.tester;
             if(tester == 'undefined' || tester == null || tester == ''){
                 var user = req.body.username;
@@ -1071,9 +1140,11 @@ module.exports = function(io){
                     }
                 })
             }
+            
         },
 
         register:function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             var channel_id = req.body.channel;
             var username = req.body.username;
             storage.register(channel_id, username, function(err, channel){
@@ -1085,12 +1156,15 @@ module.exports = function(io){
         },
 
         presurvey:function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             storage.get_content(function(content){
               res.render('presurvey', {username: req.body.username,channel:req.body.channel, presurvey: content.pre_survey});
-            })
+            });
+            
         },
 
         submit_presurvey: function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
           var data = req.body;
           storage.store_presurvey(data, function(err){
             if(err){
@@ -1105,19 +1179,23 @@ module.exports = function(io){
                   console.log(err1);
             })
           });
+          
         },
 
         start: function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             var channel = req.body.channel;
             storage.start_experiment(channel, function(err, type){
                 if(!err){
                   res.json({'type': "in progress"});
                   io.to('admin').emit('status_update', channel, "Ongoing");
                 }
-            })
+            });
+            
         },
 
         postsurvey: function(req,res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
             storage.get_content(function(content){
                 storage.complete_experiment(req.body.channel, req.body.username, function(err, status, postsurvey, duration){
                     if(!err){
@@ -1127,9 +1205,11 @@ module.exports = function(io){
                     }
                 });
             });
+            
         },
 
         submit_postsurvey: function(req, res){
+            res.set({'Content-Type': 'text/html; charset=utf-8'});
           var data = req.body;
           storage.submit_postsurvey(data.channel, data.username, function(err, count, duration){
             if(!err){
@@ -1140,16 +1220,19 @@ module.exports = function(io){
                   }
               });
             }
-          })
+          });
+          
         },
 
         search_code: function(req, res){
+            res.set({'Content-Type': 'application/json; charset=utf-8'});
             var code = req.body.code;
             storage.search_code(code, function(err, presurvey, postsurvey){
               if(err)
                 res.json(err);
               res.json({'presurvey':presurvey, 'postsurvey':postsurvey});
-            })
+            });
+            
         },
 
         force_stop: function(req,res){
@@ -1159,6 +1242,7 @@ module.exports = function(io){
                   res.json('data');
               }
             });
+            
         },
 
         download_individual:function(req, res){

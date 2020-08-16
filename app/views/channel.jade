@@ -51,7 +51,7 @@ html
                                     i.fa.fa-backward
                             li 
                                 a(data-dropdown="new-msg-list",
-                                  data-options="is_hover:true; hover_timeout:5000")#mail
+                                  data-options="is_hover:true; hover_timeout:3000")#mail
                                     i.fa.fa-envelope
                                     | &nbsp;
                                     span#queue-length (!{queue.length})
@@ -61,7 +61,7 @@ html
                     ul.right
                         li 
                             a(data-dropdown="online-users-list",
-                              data-options="is_hover:true; hover_timeout:5000")#online-users
+                              data-options="is_hover:true; hover_timeout:3000")#online-users
                                 | Participants &nbsp;
                                 span#num-online 
                         li
@@ -91,7 +91,9 @@ html
                                 i.fa.fa-plus-circle.fa-lg
                         if channel.chat_type != 'path'
                             li
-                                a#modify-button(href='#') Modify
+                                a#modify-control-btn(data-dropdown="modification-mode-list",
+                                data-options="is_hover:true; hover_timeout:3000")
+                                    | Modify (beta)
                         if channel.type == 'routine'
                             li
                                 a(href='javascript:void(0);', onclick="document.getElementById('back-home-form').submit();") Home
@@ -106,6 +108,11 @@ html
 
             ul#online-users-list.f-dropdown(data-dropdown-content,
                 style="height=200px;overflow-y:scroll;")
+
+            ul#modification-mode-list.f-dropdown(data-dropdown-content,
+                style="height=200px;overflow-y:scroll;")
+                li#edit-context Edit context
+                li#modify-button Modify hierachy
 
         div#waiting_page
             h3

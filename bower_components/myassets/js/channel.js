@@ -13,7 +13,8 @@ var online_count = 0;
 var wait_signal = 0;
 var modify_signal = 0;
 var change_parent = {};
-var latest_child = [];
+var lchild = null;
+var parents_id = [];
 var color_table = [];
 var WAITING_MINUTES = 10;
 var last_msg_time = new Date();
@@ -535,7 +536,7 @@ var set_hard_focus = function(id, hnav, signal){
     // if not, add to history and clear forward history
 
     if(hard_focus == id){
-        if(modify_signal == 1){
+        if(modify_signal == 2){
             if (messages[id].author.replace(' (edited)', '') == username){
                 $('.message-selected .msg_content p').attr('contenteditable', 'true');
                 $('.message-selected .msg_content p').focus();
@@ -738,7 +739,7 @@ var set_hard_focus = function(id, hnav, signal){
     //        $('#'+id+'-wrapper').position().bottom;\
     $('#messages-view').animate({ scrollTop: msg_view.scrollHeight}, 500);
 
-    if(modify_signal == 1){
+    if(modify_signal == 2){
         if (messages[id].author.replace(' (edited)', '') == username){
             $('.message-selected .msg_content p').attr('contenteditable', 'true');
             $('.message-selected .msg_content p').focus();
@@ -1307,17 +1308,46 @@ var display_tree = function(){
                 }
             }
         });*/
-    }else{
+    } 
+    else if (modify_signal == 1) {
         // first select a child node and then double click parents.
         tree.on('selectNode', function(e){
             if(e.nodes[0] == undefined || e.nodes[0] == null)
                 return;
             if(e.nodes[0] != "0"){
-                if(messages[e.nodes[0]].author == username)
-                    latest_child.push(e.nodes[0]);
+                if(messages[e.nodes[0]].author == username){
+                    var seen = 0;
+                    channel.top_lvl_messages.forEach(msgid => {
+                        if (msgid == e.nodes[0]) seen = 1;
+                    });
+                    if (seen != 1 || channel.top_lvl_messages.length != 1){
+                        lchild = e.nodes[0];
+                        alert("The node you are moving is: " + messages[e.nodes[0]].content + "\nClick Next to confirm and to choose the node to attach. \nPress ESC to cancel.");
+                    }
+                }
             }
         });
-        tree.on('doubleClick', function(e){
+    }
+    else if (modify_signal == 3) {
+        tree.on('selectNode', function(e){
+            if(e.nodes[0] == undefined || e.nodes[0] == null)
+                return;
+            if(e.nodes[0] == "0" || messages[e.nodes[0]].author == username) {
+                /*if (id == 0){
+                    parents_id = ["0"];
+                    alert("If you choose the root node, the node cannot have other parents any more.\n Click Finish to apply changes.\nPress ESC to cancel.")
+                }*/
+                if (e.nodes[0] == "0") {
+                    alert("You are trying to attach to the root node.\n Click Finish to apply changes.\nPress ESC to cancel.");
+                    parents_id[0] = e.nodes[0];
+                }
+                else if (is_legal_to_move(e.nodes[0]) == true) {
+                    alert("The node you try to attach to is: " + messages[e.nodes[0]].content + "\n Click Finish to apply changes.\nPress ESC to cancel.");
+                    parents_id[0] = e.nodes[0];
+                }
+            }
+        });
+        /*tree.on('doubleClick', function(e){
             if(e.nodes[0] == undefined || e.nodes[0] == null)
                 return;
             if(e.nodes[0] != "0"){
@@ -1350,10 +1380,40 @@ var display_tree = function(){
             else{
                 change_parent[lchild] = [e.nodes[0]];
             }
-            modify_tree_hierarchy(lchild, change_parent[lchild]);
-        });
+            // alert("The node you are attaching to is: " + messages[e.nodes[0]].content);
+            
+        });*/
     }
 };
+
+var find_child = function(p, id) {
+    if (p.localeCompare(id) == 0) return true;
+    if (messages[p].children.length == 0) return false;
+    var is_child = false;
+    messages[p].children.forEach(msgid => {
+        if (find_child(msgid, id) == true) is_child = true;
+    });
+    return is_child;
+}
+
+var is_legal_to_move = function(id){
+    var seen = 0;
+    var root = 0;
+    var is_child = false;
+    // no duplicates
+    /*parents_id.forEach(function(msg_id){
+        if (msg_id == id)
+            seen = 1;
+        if (msg_id == "0")
+            root = 1;
+    });*/
+
+    // no loops
+    is_child = find_child(lchild, id);
+    if (is_child == true) alert("You cannot choose a child node.")
+    if (seen == 0 && root == 0 && is_child == false) return true;
+    return false;
+}
 
 var toggle_tree_view = function(){
     var toggle_tree = $('#toggle-tree');
@@ -1502,6 +1562,17 @@ var search_keydown = function(e){
             display_popup_msg(search_message(field, search_content), 'search-modal');
             return;
         }
+    }
+}
+
+var quit_modification = function(e){
+    var code = e.keyCode || e.which;
+    if (code == 27) {
+        $('#modify-control-btn').html('Modify (beta)');
+        modify_signal = 0;
+        change_parent = {};
+        lchild = null;
+        display_tree();
     }
 }
 
@@ -1823,21 +1894,62 @@ $(document).ready(function(){
     });
 
     $('#modify-button').on('click',function(){
-        if(modify_signal == 1){
-            $(this).html('Modify');
-            modify_signal = 0;
-            change_parent = {};
-            latest_child = [];
-            display_tree();
-        }
-        else{
-            $(this).html('Finish');
+        if(modify_signal == 0){
+            $('#modify-control-btn').html('Next');
+            $('#modify-control-btn').removeAttr("data-dropdown");
+            $('#modification-mode-list').css('display', 'none');
+            $(document).on('keydown', quit_modification);
             modify_signal = 1;
             change_parent = {};
-            latest_child = [];
+            lchild = null;
             display_tree();
             //set_hard_focus(hard_focus);
         }
     });
+
+    $('#edit-context').on('click',function(){
+        if(modify_signal == 0){
+            $('#modify-control-btn').html('Finish');
+            $('#modify-control-btn').removeAttr("data-dropdown");
+            $('#modification-mode-list').css('display', 'none');
+            modify_signal = 2;
+            change_parent = {};
+            lchild = null;
+            display_tree();
+            //set_hard_focus(hard_focus);
+        }
+    });
+
+    $('#modify-control-btn').on('click', function(){
+        if (modify_signal == 1) {
+            if (lchild == null)
+                alert("Please click on the node you want to move and then click Next.\nPress ESC to cancel.")
+            else {
+                modify_signal = 3;
+                $('#modify-control-btn').html('Finish');
+                display_tree();
+            }
+        }
+        else if(modify_signal == 2 || modify_signal == 3){
+            if (modify_signal == 3){
+                if (parents_id.length == 0){
+                    alert("Please click on nodes you want to attach and then click Finish.\nPress ESC to cancel.");
+                    return;
+                }
+                else 
+                    modify_tree_hierarchy(lchild, parents_id);
+            }
+                
+            $('#modify-control-btn').html('Modify (beta)');
+            $('#modify-control-btn').attr("data-dropdown", "modification-mode-list");
+            // $('#modify-control-btn').attr("data-options", {is_hover:true, hover_timeout:3000});
+            $(document).on('keydown','.message-selected .msg_content p', handle_keydown_editbox);
+            modify_signal = 0;
+            change_parent = {};
+            parents_id = [];
+            lchild = null;
+            display_tree();
+        }
+    })
 });
 
